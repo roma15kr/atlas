@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      POSTGRES_PASSWORD: ci-postgres-password
+      REDIS_PASSWORD: ci-redis-password
+      JWT_SECRET: ci-jwt-secret-123456789012345678901234567890
+      REFRESH_TOKEN_SECRET: ci-refresh-secret-123456789012345678901234567890
+      MINIO_ROOT_USER: atlas-storage
+      MINIO_ROOT_PASSWORD: ci-minio-password-1234567890
+      S3_ACCESS_KEY: atlas-api
+      S3_SECRET_KEY: ci-s3-password-1234567890
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose config --quiet
+
