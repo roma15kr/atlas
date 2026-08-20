@@ -53,6 +53,7 @@ alerts
 integration_connections
 ```
 
-The API records each SQL migration before continuing and applies the demo seed
-once on a fresh database. Demo accounts exist only to make the first launch
-reviewable; their passwords must be changed before real company data is entered.
+The API records each SQL migration before continuing. Migration checksums protect
+against silently changing applied files. The demo seed is enabled only by the
+local override; production skips it and bootstraps one director from a random
+runtime secret when the user table is empty.

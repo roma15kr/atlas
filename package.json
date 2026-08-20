@@ -10,9 +10,9 @@
     "build": "npm run build --workspace @atlas/api && npm run build --workspace @atlas/web",
     "typecheck": "npm run typecheck --workspace @atlas/api && npm run typecheck --workspace @atlas/web",
     "test": "npm run test --workspace @atlas/api && npm run test --workspace @atlas/web",
-    "dev": "docker compose up --build",
-    "down": "docker compose down",
-    "logs": "docker compose logs -f web api"
+    "dev": "docker compose -f compose.yaml -f compose.local.yaml up --build",
+    "down": "docker compose -f compose.yaml -f compose.local.yaml down",
+    "logs": "docker compose -f compose.yaml -f compose.local.yaml logs -f web api"
   },
   "engines": {
     "node": ">=22"

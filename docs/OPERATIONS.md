@@ -11,13 +11,13 @@ After deployment, run:
 ```bash
 ATLAS_URL=https://atlas.example.com \
 ATLAS_DIRECTOR_PASSWORD='current-password' \
-ATLAS_EMPLOYEE_PASSWORD='current-password' \
 ./scripts/smoke.sh
 ```
 
-The script checks real dependency health, director dashboard/export access, and
-the employee export denial. It keeps access tokens in a temporary directory and
-does not print them.
+The script always checks real dependency health and director dashboard/export
+access. Set `ATLAS_EMPLOYEE_PASSWORD` (and optionally `ATLAS_EMPLOYEE_USER`) to
+also verify the employee export denial. It keeps access tokens in a temporary
+directory and does not print them.
 
 ## Backups and restore
 
@@ -54,4 +54,3 @@ For a bad application release, use Coolify's previous successful deployment and
 run the smoke test. Database migrations are forward-only; when a release changes
 the schema, use a reviewed compensating migration instead of editing an applied
 file. If data integrity is affected, stop writes and follow the restore procedure.
-

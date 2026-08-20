@@ -13,9 +13,10 @@ expected scope, reproduction steps, and the smallest useful evidence set.
 
 - Use unique high-entropy database, Redis, JWT, refresh-token, and object-storage
   secrets. Never reuse the Coolify API token as an application secret.
-- Require HTTPS before setting `COOKIE_SECURE=true`; keep it enabled in production.
+- Require HTTPS and `COOKIE_SECURE=true` in production; startup rejects weaker settings.
 - Make PostgreSQL, Redis, MinIO, and the API reachable only on the internal network.
-- Replace seeded demo passwords before storing real data.
+- Keep `SEED_DEMO_DATA=false` in production and protect the one-time director
+  bootstrap password as an operational secret.
 - Restrict Coolify and GitHub access to named administrators with 2FA.
 - Verify daily backups and perform a restore drill at least quarterly.
 - Obtain documented employee consent for presence and audit metadata collection.
@@ -25,4 +26,3 @@ expected scope, reproduction steps, and the smallest useful evidence set.
 Dependencies are pinned by `package-lock.json` and checked in CI. Apply security
 updates through a reviewed branch, run the full build and smoke tests, then use
 Coolify's previous deployment for rollback if production health regresses.
-
