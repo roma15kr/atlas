@@ -1,0 +1,20 @@
+{
+  "name": "atlas-virtual-office",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Atlas virtual office for a focused 20-person team",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @atlas/api && npm run build --workspace @atlas/web",
+    "typecheck": "npm run typecheck --workspace @atlas/api && npm run typecheck --workspace @atlas/web",
+    "test": "npm run test --workspace @atlas/api && npm run test --workspace @atlas/web",
+    "dev": "docker compose up --build",
+    "down": "docker compose down",
+    "logs": "docker compose logs -f web api"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
