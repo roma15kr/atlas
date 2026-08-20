@@ -16,7 +16,6 @@ Create a Docker Compose application from this Git repository and select
 using independently generated secrets. Point the public domain at the `web`
 service on port `80`, enable HTTPS, and leave all data services private.
 
-After the first healthy deployment, change the seeded demo passwords, configure
-off-server encrypted backup replication, and rotate the Coolify API token used
-during provisioning.
-
+After the first healthy deployment, change the seeded demo passwords, replicate
+the verified database and object backup volumes to encrypted off-server storage,
+perform a restore drill, and rotate the Coolify API token used during provisioning.

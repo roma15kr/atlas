@@ -12,7 +12,8 @@ connections for presence.
 - `postgres`: source of truth for identity, CRM, work, files, reports, and audit history.
 - `redis`: ephemeral presence, session coordination, and rate-limit counters.
 - `minio`: private S3-compatible object storage for document bodies.
-- `backup`: daily encrypted-at-rest-volume-compatible PostgreSQL dumps with 14-day retention.
+- `backup`: verified daily PostgreSQL dumps with 14-day retention.
+- `object-backup`: daily private document-bucket mirrors for restore operations.
 
 External integrations are adapter boundaries. An adapter reports `disabled`
 until its server-side credentials are configured; secrets never enter the web
@@ -52,7 +53,6 @@ alerts
 integration_connections
 ```
 
-The initial SQL migration is idempotent and the seed is safe to re-run. Demo
-accounts exist only to make the first launch reviewable; their passwords must be
-changed before real company data is entered.
-
+The API records each SQL migration before continuing and applies the demo seed
+once on a fresh database. Demo accounts exist only to make the first launch
+reviewable; their passwords must be changed before real company data is entered.
