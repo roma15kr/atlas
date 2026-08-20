@@ -9,6 +9,8 @@ The interface is Russian-first and optimized for desktop Chrome. The runtime is
 fully containerized and exposes a single web origin; PostgreSQL, Redis, object
 storage, and the API remain private behind the gateway.
 
+Production: [atlas.141.94.30.173.sslip.io](https://atlas.141.94.30.173.sslip.io)
+
 ## Included in this release
 
 - JWT authentication with rotating refresh sessions, login throttling, and
