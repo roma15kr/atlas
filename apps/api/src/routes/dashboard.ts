@@ -55,6 +55,7 @@ dashboardRouter.get("/", asyncHandler(async (req, res) => {
         clients: clients.rows[0]?.count ?? 0,
         pipelineValue: pipeline.rows[0]?.total ?? 0,
         weightedPipeline: pipeline.rows[0]?.weighted ?? 0,
+        currency: "UAH",
         openDeals: pipeline.rows[0]?.open ?? 0,
         tasks: tasks.rows[0] ?? { total: 0, overdue: 0, done: 0 },
         online: Object.keys(presence).length,

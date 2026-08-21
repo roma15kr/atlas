@@ -1,9 +1,15 @@
-export const formatMoney = (value: number, currency: string = 'RUB') =>
-  new Intl.NumberFormat('ru-RU', {
+export const formatMoney = (value: number, currency: 'UAH' = 'UAH') =>
+  new Intl.NumberFormat('uk-UA', {
     style: 'currency',
     currency,
+    currencyDisplay: 'narrowSymbol',
     maximumFractionDigits: 0,
   }).format(value);
+
+export const formatKpiValue = (value: number, unit: string) =>
+  unit.toUpperCase() === 'UAH'
+    ? formatMoney(value)
+    : `${new Intl.NumberFormat('ru-RU').format(value)} ${unit}`;
 
 export const formatDate = (value?: string, options?: Intl.DateTimeFormatOptions) => {
   if (!value) return '—';

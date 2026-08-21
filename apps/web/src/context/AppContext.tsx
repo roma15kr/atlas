@@ -75,7 +75,7 @@ const normalizeClient = (source: Record<string, unknown>): Client => {
 const normalizeDeal = (source: Record<string, unknown>): Deal => {
   const owner = source.owner as { id?: string; fullName?: string } | undefined;
   const client = source.client as { companyName?: string } | undefined;
-  return { id: String(source.id), clientId: String(source.clientId ?? ''), title: String(source.title ?? ''), companyName: String(source.companyName ?? client?.companyName ?? ''), ownerId: String(source.ownerId ?? owner?.id ?? ''), ownerName: String(source.ownerName ?? owner?.fullName ?? ''), stage: String(source.stage ?? 'APPLICATION'), value: Number(source.value ?? 0), currency: (source.currency as Deal['currency']) ?? 'RUB', probability: Number(source.probability ?? 0), expectedCloseAt: String(source.expectedCloseAt ?? '') };
+  return { id: String(source.id), clientId: String(source.clientId ?? ''), title: String(source.title ?? ''), companyName: String(source.companyName ?? client?.companyName ?? ''), ownerId: String(source.ownerId ?? owner?.id ?? ''), ownerName: String(source.ownerName ?? owner?.fullName ?? ''), stage: String(source.stage ?? 'APPLICATION'), value: Number(source.value ?? 0), currency: 'UAH', probability: Number(source.probability ?? 0), expectedCloseAt: String(source.expectedCloseAt ?? '') };
 };
 
 const normalizeTask = (source: Record<string, unknown>): WorkTask => {

@@ -9,7 +9,7 @@ interface SystemMetrics {
   target: { id: string; role: string; jobTitle: string | null };
   kpiProgress: number;
   tasks: { total: number; done: number; overdue: number };
-  pipeline: { openDeals: number; openValue: number; weightedValue: number };
+  pipeline: { openDeals: number; openValue: number; weightedValue: number; currency: "UAH" };
   presence: { activeDays30: number; lastEventAt: string | null };
 }
 
@@ -78,7 +78,7 @@ async function systemMetrics(companyId: string, userId: string): Promise<SystemM
     target: user.rows[0] ?? { id: userId, role: "UNKNOWN", jobTitle: null },
     kpiProgress: kpi.rows[0]?.progress ?? 0,
     tasks: tasks.rows[0] ?? { total: 0, done: 0, overdue: 0 },
-    pipeline: pipeline.rows[0] ?? { openDeals: 0, openValue: 0, weightedValue: 0 },
+    pipeline: { ...(pipeline.rows[0] ?? { openDeals: 0, openValue: 0, weightedValue: 0 }), currency: "UAH" },
     presence: presence.rows[0] ?? { activeDays30: 0, lastEventAt: null }
   };
 }
@@ -92,7 +92,7 @@ function ruleBased(metrics: SystemMetrics, mode: AiMode): { summary: string; rec
   if (!recommendations.length) recommendations.push("Keep the current cadence and record outcomes as work closes.");
 
   if (mode === "FORECAST") {
-    return { summary: `Weighted pipeline forecast is ${Math.round(metrics.pipeline.weightedValue)} across ${metrics.pipeline.openDeals} open deals.`, recommendations };
+    return { summary: `Weighted pipeline forecast is ${Math.round(metrics.pipeline.weightedValue)} UAH across ${metrics.pipeline.openDeals} open deals.`, recommendations };
   }
   if (mode === "EVALUATION") {
     return { summary: `KPI progress is ${Math.round(metrics.kpiProgress * 100)}% and task completion is ${Math.round(completion * 100)}%.`, recommendations };

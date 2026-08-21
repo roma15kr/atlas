@@ -51,7 +51,7 @@ export interface Deal {
   ownerName: string;
   stage: string;
   value: number;
-  currency: 'RUB' | 'USD' | 'EUR';
+  currency: 'UAH';
   probability: number;
   expectedCloseAt: string;
 }

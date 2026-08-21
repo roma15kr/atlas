@@ -8,18 +8,18 @@ import { ApiError, asyncHandler } from "../errors";
 import { asOptionalDate, pagination, updatedFields } from "../http";
 import { recordScope } from "../scope";
 
-const dealInput = z.object({
+export const dealInputSchema = z.object({
   clientId: z.string().uuid(),
   ownerId: z.string().uuid().optional(),
   title: z.string().trim().min(1).max(200),
   stage: z.string().trim().regex(/^[A-Z0-9_]{2,50}$/).default("APPLICATION"),
   value: z.coerce.number().min(0).max(1_000_000_000).default(0),
-  currency: z.string().trim().length(3).transform((value) => value.toUpperCase()).default("USD"),
+  currency: z.string().trim().transform((value) => value.toUpperCase()).pipe(z.literal("UAH")).default("UAH"),
   probability: z.coerce.number().int().min(0).max(100).default(10),
   expectedCloseAt: z.string().datetime().nullable().optional(),
   closedAt: z.string().datetime().nullable().optional()
 });
-const dealPatch = dealInput.omit({ clientId: true }).partial();
+const dealPatch = dealInputSchema.omit({ clientId: true }).partial();
 const idSchema = z.string().uuid();
 
 export const dealsRouter = Router();
@@ -76,7 +76,7 @@ dealsRouter.get("/", asyncHandler(async (req, res) => {
 
 dealsRouter.post("/", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
-  const input = dealInput.parse(req.body);
+  const input = dealInputSchema.parse(req.body);
   const owner = await manageableUser(auth, input.ownerId);
   await assertClientVisible(auth, input.clientId);
   await assertStage(auth.companyId, input.stage);

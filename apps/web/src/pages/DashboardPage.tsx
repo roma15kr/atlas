@@ -1,4 +1,4 @@
-import { Activity, ArrowUpRight, Bot, CalendarDays, Check, CircleDollarSign, Clock3, FileWarning, Plus, Target, TrendingUp, UserCheck, Users } from 'lucide-react';
+import { Activity, ArrowUpRight, Banknote, Bot, CalendarDays, Check, Clock3, FileWarning, Plus, Target, TrendingUp, UserCheck, Users } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, Badge, Button, Dialog, EmptyState, Field, Meter, PageHeader, SectionHeader, SelectField, Surface } from '../components/ui';
@@ -29,7 +29,7 @@ export function DashboardPage() {
     <PageHeader title={`Добрый день, ${user.fullName.split(' ')[0]}`} description={`${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}`} action={<Button icon={Plus} onClick={() => setTaskOpen(true)}>Новая задача</Button>} />
     <div className="metric-grid">
       <Metric label={isDirector ? 'Команда в сети' : 'Мой рейтинг'} value={isDirector ? `${online} / ${users.length}` : `${user.rating}`} note={isDirector ? `${Math.round(online / Math.max(users.length, 1) * 100)}% команды` : 'из 100 баллов'} icon={isDirector ? Users : Target} tone="teal" />
-      <Metric label="Активная воронка" value={formatMoney(pipeline)} note={`${activeDeals.length} сделок`} icon={CircleDollarSign} tone="blue" />
+      <Metric label="Активная воронка" value={formatMoney(pipeline)} note={`${activeDeals.length} сделок`} icon={Banknote} tone="blue" />
       <Metric label={isDirector ? 'Клиенты' : 'Мой KPI'} value={isDirector ? String(clients.length) : `${kpi}%`} note="текущий доступ" icon={isDirector ? UserCheck : TrendingUp} tone="amber" />
       <Metric label="Задачи в срок" value={`${completed} / ${tasks.length}`} note={dueSoon ? `${dueSoon} требуют внимания` : 'просрочек нет'} icon={dueSoon ? FileWarning : Check} tone={dueSoon ? 'red' : 'teal'} />
     </div>

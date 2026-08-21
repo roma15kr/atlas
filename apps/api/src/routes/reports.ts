@@ -115,7 +115,7 @@ async function reportMetrics(
   const deal = deals.rows[0] ?? { total: 0, won: 0, value: 0 };
   return {
     kpiProgress: kpi.rows[0]?.progress ?? 0,
-    deals: deal,
+    deals: { ...deal, currency: "UAH" },
     conversion: deal.total ? deal.won / deal.total : 0,
     tasks: tasks.rows[0] ?? { total: 0, done: 0, overdue: 0 },
     attendance: attendance.rows[0] ?? { activeDays: 0, firstSeenAt: null, lastSeenAt: null }

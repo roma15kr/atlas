@@ -51,6 +51,15 @@ describe('role-aware routing', () => {
     expect(screen.queryByText('Мария Белова')).not.toBeInTheDocument();
   });
 
+  it('shows Ukrainian hryvnia throughout the sales workflow', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.employee));
+    renderAt('/sales');
+    expect((await screen.findAllByText(/₴/)).length).toBeGreaterThan(0);
+    await user.click(screen.getByRole('button', { name: 'Новая сделка' }));
+    expect(screen.getByLabelText('Сумма, ₴')).toBeInTheDocument();
+  });
+
   it('forces managers to onboard employees in their own department', async () => {
     const user = userEvent.setup();
     localStorage.setItem('atlas.session', JSON.stringify(demoSessions.manager));

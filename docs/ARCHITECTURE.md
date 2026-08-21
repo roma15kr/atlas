@@ -57,3 +57,7 @@ The API records each SQL migration before continuing. Migration checksums protec
 against silently changing applied files. The demo seed is enabled only by the
 local override; production skips it and bootstraps one director from a random
 runtime secret when the user table is empty.
+
+Atlas uses Ukrainian hryvnia (`UAH`) as its single operating currency. The API
+and database reject other deal currencies so dashboard, pipeline, report, and AI
+aggregates cannot mix incompatible monetary values.
