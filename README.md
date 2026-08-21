@@ -67,6 +67,7 @@ Socket.IO uses `/socket.io`. Nginx proxies all three paths to the API container.
 - [Architecture](docs/ARCHITECTURE.md)
 - [Deployment](docs/DEPLOYMENT.md)
 - [Operations](docs/OPERATIONS.md)
+- [Онбординг сотрудников](docs/onboarding/README.md)
 - [Security policy](SECURITY.md)
 - [Original product brief](prompt_virtualny_ofis.md)
 
