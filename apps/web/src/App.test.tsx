@@ -36,6 +36,21 @@ describe('role-aware routing', () => {
     expect(screen.queryByRole('button', { name: 'Добавить сотрудника' })).not.toBeInTheDocument();
   });
 
+  it('scopes demo alerts to the current employee', async () => {
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.employee));
+    renderAt('/');
+    expect(await screen.findByText('Риск по следующим шагам')).toBeInTheDocument();
+    expect(screen.queryByText('Нет согласия на мониторинг')).not.toBeInTheDocument();
+  });
+
+  it('scopes demo messages to accessible employee clients', async () => {
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.employee));
+    renderAt('/messages');
+    expect(await screen.findByText('София Тёрнер')).toBeInTheDocument();
+    expect(screen.queryByText('Павел Орлов')).not.toBeInTheDocument();
+    expect(screen.queryByText('Мария Белова')).not.toBeInTheDocument();
+  });
+
   it('forces managers to onboard employees in their own department', async () => {
     const user = userEvent.setup();
     localStorage.setItem('atlas.session', JSON.stringify(demoSessions.manager));

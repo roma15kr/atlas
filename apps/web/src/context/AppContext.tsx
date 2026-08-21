@@ -383,11 +383,21 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     if (!session || roleRank[session.user.role] >= roleRank.MANAGER) return items;
     return items.filter((item) => item.ownerId === session.user.id || item.assigneeId === session.user.id);
   };
+  const scopedClients = scoped(clients);
+  const scopedDeals = scoped(deals);
+  const scopedTasks = scoped(tasks);
+  const accessibleClientIds = new Set(scopedClients.map((client) => client.id));
+  const visibleAlerts = !session || session.user.role !== 'EMPLOYEE'
+    ? alerts
+    : alerts.filter((alert) => alert.userName === session.user.fullName);
+  const visibleMessages = !session || session.user.role !== 'EMPLOYEE'
+    ? messages
+    : messages.filter((message) => !message.clientId || accessibleClientIds.has(message.clientId));
 
   const value = useMemo<WorkspaceValue>(() => ({
     users: visibleUsers,
-    clients: scoped(clients), deals: scoped(deals), stages, tasks: scoped(tasks), documents, reports, alerts,
-    achievements, integrations, messages, audit,
+    clients: scopedClients, deals: scopedDeals, stages, tasks: scopedTasks, documents, reports, alerts: visibleAlerts,
+    achievements, integrations, messages: visibleMessages, audit,
     dataStatus, createTeamMember, addClient, updateClient, addDeal, addStage, moveDeal, moveTask, addTask, addDocument, addReport, acknowledgeAlert,
   // scoped is intentionally derived from current session and collections.
   // eslint-disable-next-line react-hooks/exhaustive-deps
