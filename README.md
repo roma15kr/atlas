@@ -16,7 +16,10 @@ Production: [atlas.141.94.30.173.sslip.io](https://atlas.141.94.30.173.sslip.io)
 - JWT authentication with rotating refresh sessions, login throttling, and
   `DIRECTOR`, `MANAGER`, and `EMPLOYEE` scopes.
 - Live Socket.IO presence with heartbeat expiry and presence history.
-- Department- and owner-scoped CRM clients, deals, comments, and sales stages.
+- Department- and owner-scoped CRM clients, deals, and comments.
+- Multiple sales funnels with director-managed stages (rename, recolor, reorder,
+  won/lost outcome, delete with deal relocation) and per-funnel access for chosen
+  departments and people.
 - Director-only bulk CSV export with audit records for access and denied attempts.
 - Personal tasks, due dates, deal links, and a three-column Kanban workflow.
 - Private document metadata, versions, upload/download checks, and MinIO storage.

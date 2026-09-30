@@ -7,6 +7,7 @@ export interface User {
   fullName: string;
   role: Role;
   department: string;
+  departmentId?: string;
   jobTitle: string;
   jobDescription?: string;
   specialty?: string;
@@ -49,20 +50,41 @@ export interface Deal {
   companyName: string;
   ownerId: string;
   ownerName: string;
-  stage: string;
+  funnelId: string;
+  stage: DealStageSummary;
   value: number;
   currency: 'UAH';
   probability: number;
   expectedCloseAt: string;
 }
 
-export interface DealStage {
+export type StageOutcome = 'OPEN' | 'WON' | 'LOST';
+
+export interface DealStageSummary {
   id: string;
-  key: string;
   name: string;
   color: string;
+  outcome: StageOutcome;
+}
+
+export interface DealStage extends DealStageSummary {
+  funnelId: string;
   sortOrder: number;
-  isClosed: boolean;
+  /** Director-only: deals currently in this stage. */
+  dealCount?: number;
+}
+
+export type FunnelAccessMode = 'COMPANY' | 'RESTRICTED';
+
+export interface Funnel {
+  id: string;
+  name: string;
+  sortOrder: number;
+  stages: DealStage[];
+  /** Access details are returned to directors only. */
+  accessMode?: FunnelAccessMode;
+  departmentIds?: string[];
+  userIds?: string[];
 }
 
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';

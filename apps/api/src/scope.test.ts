@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canManageUser, recordScope } from "./scope";
+import { canManageUser, funnelAccessSql, recordScope } from "./scope";
 import type { AuthContext } from "./types";
 
 const base: AuthContext = {
@@ -31,6 +31,30 @@ describe("recordScope", () => {
       sql: "company_id = $1",
       values: [base.companyId]
     });
+  });
+});
+
+describe("funnelAccessSql", () => {
+  it("limits directors only by company", () => {
+    const scope = funnelAccessSql({ ...base, role: "DIRECTOR" }, "d.funnel_id");
+    expect(scope.values).toEqual([base.companyId]);
+    expect(scope.sql).toBe("d.funnel_id IN (SELECT af.id FROM deal_funnels af WHERE af.company_id = $1)");
+  });
+
+  it("admits other roles through company-wide funnels or user and department grants", () => {
+    for (const role of ["MANAGER", "EMPLOYEE"] as const) {
+      const scope = funnelAccessSql({ ...base, role }, "d.funnel_id");
+      expect(scope.values).toEqual([base.companyId, base.userId, base.departmentId]);
+      expect(scope.sql).toContain("af.access_mode = 'COMPANY'");
+      expect(scope.sql).toContain("ga.user_id = $2 OR ga.department_id = $3");
+    }
+  });
+
+  it("numbers parameters after an existing record scope", () => {
+    const record = recordScope(base, { company: "d.company_id", department: "d.department_id", owner: "d.owner_id" }, 2);
+    const funnel = funnelAccessSql(base, "d.funnel_id", 2 + record.values.length);
+    expect(funnel.sql).toContain("af.company_id = $4");
+    expect(funnel.sql).toContain("ga.user_id = $5 OR ga.department_id = $6");
   });
 });
 

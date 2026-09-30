@@ -28,6 +28,25 @@ export function recordScope(
   return { sql: clauses.join(" AND "), values };
 }
 
+/**
+ * Restricts a funnel id column to funnels the user may open: every company funnel for a
+ * director, otherwise company-wide funnels plus funnels granted to the user or their department.
+ * Combine with recordScope() for deals; funnel access is a gate, not a replacement for role scope.
+ */
+export function funnelAccessSql(auth: AuthContext, funnelColumn: string, startIndex = 1): ScopeSql {
+  const funnels = `SELECT af.id FROM deal_funnels af WHERE af.company_id = $${startIndex}`;
+  if (auth.role === "DIRECTOR") {
+    return { sql: `${funnelColumn} IN (${funnels})`, values: [auth.companyId] };
+  }
+  return {
+    sql: `${funnelColumn} IN (${funnels} AND (af.access_mode = 'COMPANY' OR EXISTS (
+      SELECT 1 FROM deal_funnel_access ga
+      WHERE ga.funnel_id = af.id AND (ga.user_id = $${startIndex + 1} OR ga.department_id = $${startIndex + 2})
+    )))`,
+    values: [auth.companyId, auth.userId, auth.departmentId]
+  };
+}
+
 export function canManageUser(auth: AuthContext, target: { id: string; company_id: string; department_id: string | null }): boolean {
   if (target.company_id !== auth.companyId) return false;
   if (auth.role === "DIRECTOR") return true;

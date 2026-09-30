@@ -6,6 +6,7 @@ import { requireAuth, requireRoles } from "../auth";
 import { query } from "../db";
 import { asyncHandler } from "../errors";
 import { pagination } from "../http";
+import { funnelAccessSql } from "../scope";
 
 export const reportsRouter = Router();
 
@@ -46,7 +47,7 @@ reportsRouter.post("/", requireRoles("DIRECTOR", "MANAGER"), asyncHandler(async 
   const departmentId = target?.department_id ?? (auth.role === "MANAGER" ? auth.departmentId : null);
   const periodStart = input.periodStart.toISOString().slice(0, 10);
   const periodEnd = input.periodEnd.toISOString().slice(0, 10);
-  const metrics = await reportMetrics(auth.companyId, target?.id ?? null, target ? null : departmentId, periodStart, periodEnd);
+  const metrics = await reportMetrics(auth, auth.companyId, target?.id ?? null, target ? null : departmentId, periodStart, periodEnd);
   const result = await query(
     `INSERT INTO reports
       (company_id, department_id, created_by, target_user_id, name, metrics, period_start, period_end, schedule, status, result)
@@ -75,12 +76,15 @@ async function resolveTarget(
 }
 
 async function reportMetrics(
+  auth: ReturnType<typeof requireAuth>,
   companyId: string,
   userId: string | null,
   departmentId: string | null,
   start: string,
   end: string
 ): Promise<Record<string, unknown>> {
+  // Deal metrics only count funnels the report creator may open.
+  const dealAccess = funnelAccessSql(auth, "d.funnel_id", 6);
   const [kpi, deals, tasks, attendance] = await Promise.all([
     query<{ progress: number }>(
       `SELECT COALESCE(sum(LEAST(k.actual / NULLIF(k.target, 0), 1) * k.weight) / NULLIF(sum(k.weight), 0), 0)::float8 AS progress
@@ -89,12 +93,12 @@ async function reportMetrics(
       [companyId, userId, departmentId]
     ),
     query<{ total: number; won: number; value: number }>(
-      `SELECT count(*)::int AS total, count(*) FILTER (WHERE ds.is_closed AND d.stage <> 'LOST')::int AS won,
-              COALESCE(sum(d.value) FILTER (WHERE ds.is_closed AND d.stage <> 'LOST'), 0)::float8 AS value
-       FROM deals d LEFT JOIN deal_stages ds ON ds.company_id = d.company_id AND ds.key = d.stage
+      `SELECT count(*)::int AS total, count(*) FILTER (WHERE ds.outcome = 'WON')::int AS won,
+              COALESCE(sum(d.value) FILTER (WHERE ds.outcome = 'WON'), 0)::float8 AS value
+       FROM deals d JOIN deal_stages ds ON ds.id = d.stage_id
        WHERE d.company_id=$1 AND ($2::uuid IS NULL OR d.owner_id=$2) AND ($3::uuid IS NULL OR d.department_id=$3)
-         AND d.created_at::date BETWEEN $4::date AND $5::date`,
-      [companyId, userId, departmentId, start, end]
+         AND d.created_at::date BETWEEN $4::date AND $5::date AND ${dealAccess.sql}`,
+      [companyId, userId, departmentId, start, end, ...dealAccess.values]
     ),
     query<{ total: number; done: number; overdue: number }>(
       `SELECT count(*)::int AS total, count(*) FILTER (WHERE status = 'DONE')::int AS done,

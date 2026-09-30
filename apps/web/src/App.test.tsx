@@ -88,4 +88,48 @@ describe('role-aware routing', () => {
     await user.click(screen.getByRole('button', { name: 'Готово' }));
     expect(screen.getAllByText('Дарья Лебедева').length).toBeGreaterThan(0);
   });
+
+  it('lets a director switch funnels and open funnel settings', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.director));
+    renderAt('/sales');
+    expect(await screen.findByRole('region', { name: 'Переговоры' })).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Воронка'), 'Опт');
+    expect(await screen.findByRole('region', { name: 'Согласование объёма' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Переговоры' })).not.toBeInTheDocument();
+    expect(screen.getByText('Оптовая партия')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Настроить воронки' }));
+    expect(await screen.findByRole('heading', { name: 'Настройка воронок' })).toBeInTheDocument();
+  });
+
+  it('gives managers no funnel configuration controls', async () => {
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.manager));
+    renderAt('/sales');
+    expect(await screen.findByRole('region', { name: 'Переговоры' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Настроить воронки' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Настроить этапы' })).not.toBeInTheDocument();
+  });
+
+  it('redirects a manager away from funnel settings', async () => {
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.manager));
+    renderAt('/sales/settings');
+    expect(await screen.findByText(/Добрый день, Михаил/)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Настройка воронок' })).not.toBeInTheDocument();
+  });
+
+  it('lets a director add, reorder and restrict stages in demo mode', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.director));
+    renderAt('/sales/settings');
+    await user.type(await screen.findByLabelText('Название нового этапа'), 'Согласование');
+    await user.click(screen.getByRole('button', { name: 'Добавить этап' }));
+    expect(await screen.findByLabelText('Название этапа Согласование')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Поднять этап Согласование' }));
+    const names = screen.getAllByLabelText(/^Название этапа /).map((input) => (input as HTMLInputElement).value);
+    expect(names.indexOf('Согласование')).toBeLessThan(names.indexOf('Проиграна'));
+    await user.click(screen.getByRole('button', { name: 'Только выбранные' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Продажи' }));
+    await user.click(screen.getByRole('button', { name: 'Сохранить доступ' }));
+    expect(await screen.findAllByLabelText('Ограниченный доступ')).toHaveLength(2);
+  });
 });

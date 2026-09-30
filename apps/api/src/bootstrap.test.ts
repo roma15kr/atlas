@@ -18,13 +18,17 @@ describe("production default catalogs", () => {
     mocks.transaction.mockReset().mockImplementation(async (work) => work({ query: mocks.clientQuery }));
   });
 
-  it("idempotently initializes deal stages and achievement definitions", async () => {
+  it("seeds a default funnel only for companies without one, then achievement definitions", async () => {
     await ensureDefaultCatalogs();
-    expect(mocks.clientQuery).toHaveBeenCalledTimes(2);
+    expect(mocks.clientQuery).toHaveBeenCalledTimes(3);
     const statements = mocks.clientQuery.mock.calls.map(([sql]) => String(sql));
-    expect(statements[0]).toContain("INSERT INTO deal_stages");
-    expect(statements[0]).toContain("ON CONFLICT (company_id, key) DO NOTHING");
-    expect(statements[1]).toContain("INSERT INTO achievement_definitions");
-    expect(statements[1]).toContain("ON CONFLICT (company_id, code) DO NOTHING");
+    expect(statements[0]).toContain("pg_advisory_xact_lock");
+    expect(mocks.clientQuery.mock.calls[0]![1]).toEqual(["atlas-default-funnels"]);
+    expect(statements[1]).toContain("INSERT INTO deal_funnels");
+    expect(statements[1]).toContain("WHERE NOT EXISTS (SELECT 1 FROM deal_funnels f WHERE f.company_id = c.id)");
+    expect(statements[1]).toContain("INSERT INTO deal_stages");
+    expect(statements[1]).not.toContain("ON CONFLICT");
+    expect(statements[2]).toContain("INSERT INTO achievement_definitions");
+    expect(statements[2]).toContain("ON CONFLICT (company_id, code) DO NOTHING");
   });
 });

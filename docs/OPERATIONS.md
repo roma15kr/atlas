@@ -31,6 +31,21 @@ fresh PostgreSQL database with `pg_restore --clean --if-exists`, restore the
 document mirror to the configured MinIO bucket, then start the API and run the
 smoke test. Test this procedure quarterly with a disposable environment.
 
+## Deploying migration 004 (CRM funnels)
+
+`database/004_crm_funnels.sql` moves every company's stages and deals into one
+company-wide funnel and drops the legacy `deals.stage`, `deal_stages.key`, and
+`deal_stages.is_closed` columns. It cannot be rolled back in place. Immediately
+before deploying it, take a manual dump next to the daily backups:
+
+```bash
+docker compose exec backup sh -c 'f="/backups/atlas-pre-004-$(date -u +%Y%m%dT%H%M%SZ).dump"; pg_dump --format=custom --file="$f" && pg_restore --list "$f" >/dev/null && ls -l "$f"'
+```
+
+After the deploy, confirm the Sales board shows the same deals per stage and the
+dashboard pipeline is unchanged. To roll back, stop the API, restore that dump
+with the procedure above, and redeploy the previous image.
+
 ## Secret rotation
 
 Rotate one dependency at a time and confirm health after each change. Database,

@@ -707,3 +707,34 @@ input[type="checkbox"] { width: 16px; min-height: 16px; accent-color: var(--prim
   .onboarding-password input { flex-basis: calc(100% - 45px); }
   .onboarding-password .button { width: 100%; }
 }
+
+/* Funnel settings */
+.funnel-settings { display: grid; grid-template-columns: minmax(220px, 280px) minmax(0, 1fr); gap: 14px; align-items: start; }
+.funnel-settings__list { display: flex; flex-direction: column; gap: 4px; }
+.funnel-settings__item { width: 100%; padding: 9px 10px; display: flex; align-items: center; gap: 9px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text); text-align: left; }
+.funnel-settings__item span { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.funnel-settings__item small { color: var(--muted); font-size: 11px; }
+.funnel-settings__item:hover { background: #f1f4f3; }
+.funnel-settings__item.is-active { border-color: var(--line); background: #eef2f1; }
+.funnel-settings__editor { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.funnel-settings__editor > .surface { display: flex; flex-direction: column; gap: 12px; }
+.funnel-settings__name { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+.funnel-settings__name .field { flex: 1 1 240px; }
+.stage-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.stage-list > li { display: flex; align-items: center; gap: 6px; padding: 6px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+.stage-list > li[draggable="true"] { cursor: grab; }
+.stage-row { min-width: 0; flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.stage-row input[type="color"] { width: 34px; height: 30px; padding: 2px; flex: 0 0 34px; }
+.stage-row input:not([type]), .stage-row input[type="text"] { min-width: 140px; flex: 1 1 160px; }
+.stage-row select { width: auto; min-width: 110px; }
+.stage-row--new { padding: 6px; border: 1px dashed #cdd6d3; border-radius: 6px; }
+.stage-dot { width: 7px; height: 7px; margin-right: 4px; display: inline-block; border-radius: 2px; }
+.access-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.access-grid fieldset { min-width: 0; margin: 0; padding: 10px; display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+.access-grid legend { padding: 0 4px; color: var(--muted); font-size: 11px; font-weight: 650; }
+.access-grid label { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+.access-grid label small { margin-left: auto; color: var(--muted); font-size: 10px; }
+.access-hint { grid-column: 1 / -1; color: var(--muted); font-size: 11px; }
+@media (max-width: 900px) {
+  .funnel-settings, .access-grid { grid-template-columns: minmax(0, 1fr); }
+}

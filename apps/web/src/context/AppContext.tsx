@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { io, type Socket } from 'socket.io-client';
-import { api, ApiError, sessionStore } from '../lib/api';
+import { api, ApiError, listAll, sessionStore } from '../lib/api';
 import {
   demoAchievements,
   demoAlerts,
@@ -11,12 +11,13 @@ import {
   demoIntegrations,
   demoMessages,
   demoReports,
-  demoStages,
+  demoFunnels,
   demoTasks,
   demoUsers,
+  canOpenFunnel,
   fallbackSession,
 } from '../data/demo';
-import type { Achievement, Alert, AuditEvent, ChannelMessage, Client, CompanyDocument, Deal, DealStage, Integration, Kpi, Report, Role, Session, User, WorkTask } from '../types';
+import type { Achievement, Alert, AuditEvent, ChannelMessage, Client, CompanyDocument, Deal, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Integration, Kpi, Report, Role, Session, User, WorkTask } from '../types';
 
 const roleRank: Record<Role, number> = { EMPLOYEE: 1, MANAGER: 2, DIRECTOR: 3 };
 export const DEMO_MODE = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true';
@@ -56,6 +57,7 @@ const normalizeUser = (source: Record<string, unknown>): User => ({
   fullName: String(source.fullName ?? source.full_name ?? source.username ?? ''),
   role: (source.role as Role) ?? 'EMPLOYEE',
   department: String(source.department ?? source.departmentName ?? source.department_name ?? 'Без отдела'),
+  departmentId: (source.departmentId ?? source.department_id ?? undefined) as string | undefined,
   jobTitle: String(source.jobTitle ?? source.job_title ?? ''),
   jobDescription: (source.jobDescription ?? source.job_description) as string | undefined,
   specialty: source.specialty ? String(source.specialty) : undefined,
@@ -75,7 +77,14 @@ const normalizeClient = (source: Record<string, unknown>): Client => {
 const normalizeDeal = (source: Record<string, unknown>): Deal => {
   const owner = source.owner as { id?: string; fullName?: string } | undefined;
   const client = source.client as { companyName?: string } | undefined;
-  return { id: String(source.id), clientId: String(source.clientId ?? ''), title: String(source.title ?? ''), companyName: String(source.companyName ?? client?.companyName ?? ''), ownerId: String(source.ownerId ?? owner?.id ?? ''), ownerName: String(source.ownerName ?? owner?.fullName ?? ''), stage: String(source.stage ?? 'APPLICATION'), value: Number(source.value ?? 0), currency: 'UAH', probability: Number(source.probability ?? 0), expectedCloseAt: String(source.expectedCloseAt ?? '') };
+  const stage = (source.stage ?? {}) as Partial<DealStageSummary>;
+  return {
+    id: String(source.id), clientId: String(source.clientId ?? ''), title: String(source.title ?? ''),
+    companyName: String(source.companyName ?? client?.companyName ?? ''), ownerId: String(source.ownerId ?? owner?.id ?? ''),
+    ownerName: String(source.ownerName ?? owner?.fullName ?? ''), funnelId: String(source.funnelId ?? ''),
+    stage: { id: String(stage.id ?? ''), name: String(stage.name ?? ''), color: String(stage.color ?? '#6B7280'), outcome: stage.outcome ?? 'OPEN' },
+    value: Number(source.value ?? 0), currency: 'UAH', probability: Number(source.probability ?? 0), expectedCloseAt: String(source.expectedCloseAt ?? ''),
+  };
 };
 
 const normalizeTask = (source: Record<string, unknown>): WorkTask => {
@@ -183,11 +192,27 @@ export const useAuth = () => {
   return value;
 };
 
+export type StageInput = Pick<DealStage, 'name' | 'color' | 'outcome'>;
+export interface FunnelAccessInput { accessMode: FunnelAccessMode; departmentIds: string[]; userIds: string[] }
+
+/** Director-only funnel configuration; the API rejects and audits attempts by other roles. */
+export interface FunnelConfig {
+  createFunnel: (input: { name: string; stages: StageInput[] } & Partial<FunnelAccessInput>) => Promise<string>;
+  updateFunnel: (id: string, patch: { name?: string; sortOrder?: number }) => Promise<void>;
+  deleteFunnel: (id: string) => Promise<void>;
+  setFunnelAccess: (id: string, access: FunnelAccessInput) => Promise<void>;
+  addStage: (funnelId: string, stage: StageInput) => Promise<void>;
+  updateStage: (funnelId: string, stageId: string, patch: Partial<StageInput>) => Promise<void>;
+  reorderStages: (funnelId: string, stageIds: string[]) => Promise<void>;
+  deleteStage: (funnelId: string, stageId: string, moveToStageId?: string) => Promise<void>;
+}
+
 interface WorkspaceValue {
   users: User[];
   clients: Client[];
   deals: Deal[];
-  stages: DealStage[];
+  /** Funnels the current user may open, each with ordered stages. */
+  funnels: Funnel[];
   tasks: WorkTask[];
   documents: CompanyDocument[];
   reports: Report[];
@@ -201,8 +226,8 @@ interface WorkspaceValue {
   addClient: (client: Omit<Client, 'id' | 'updatedAt'>) => Promise<Client>;
   updateClient: (id: string, patch: Partial<Client>) => Promise<void>;
   addDeal: (deal: Omit<Deal, 'id'>) => Promise<void>;
-  addStage: (stage: Omit<DealStage, 'id'>) => Promise<void>;
-  moveDeal: (id: string, stage: string) => Promise<void>;
+  moveDeal: (id: string, stageId: string, funnelId?: string) => Promise<void>;
+  funnelConfig: FunnelConfig;
   moveTask: (id: string, status: WorkTask['status']) => Promise<void>;
   addTask: (task: Omit<WorkTask, 'id'>) => Promise<void>;
   addDocument: (file: File, folder: string, visibility: CompanyDocument['visibility']) => Promise<void>;
@@ -218,7 +243,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<User[]>(initialDemo ? demoUsers : []);
   const [clients, setClients] = useState<Client[]>(initialDemo ? demoClients : []);
   const [deals, setDeals] = useState<Deal[]>(initialDemo ? demoDeals : []);
-  const [stages, setStages] = useState<DealStage[]>(initialDemo ? demoStages : []);
+  const [funnels, setFunnels] = useState<Funnel[]>(initialDemo ? demoFunnels : []);
   const [tasks, setTasks] = useState<WorkTask[]>(initialDemo ? demoTasks : []);
   const [documents, setDocuments] = useState<CompanyDocument[]>(initialDemo ? demoDocuments : []);
   const [reports, setReports] = useState<Report[]>(initialDemo ? demoReports : []);
@@ -236,9 +261,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     let active = true;
     setDataStatus('loading');
     Promise.allSettled([
-      api.list<Record<string, unknown>>('team'), api.list<Record<string, unknown>>('clients'), api.list<Record<string, unknown>>('deals'),
+      api.list<Record<string, unknown>>('team'), api.list<Record<string, unknown>>('clients'), listAll<Record<string, unknown>>('deals'),
       api.list<Record<string, unknown>>('tasks'), api.list<CompanyDocument>('documents'),
-      api.list<Report>('reports'), api.list<Alert>('alerts'), api.list<DealStage>('deals/stages'),
+      api.list<Report>('reports'), api.list<Alert>('alerts'), api.list<Funnel>('funnels'),
       api.list<Achievement>('achievements'), api.list<Integration>('integrations'), api.list<ChannelMessage>('messages'), api.list<AuditEvent>('audit'),
     ]).then((results) => {
       if (!active) return;
@@ -248,7 +273,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         (items) => setDeals(items.map((item) => normalizeDeal(item as Record<string, unknown>))),
         (items) => setTasks(items.map((item) => normalizeTask(item as Record<string, unknown>))),
         (items) => setDocuments(items.map((item) => normalizeDocument(item as Record<string, unknown>))), (items) => setReports(items.map((item) => normalizeReport(item as Record<string, unknown>))),
-        (items) => setAlerts(items.map((item) => normalizeAlert(item as Record<string, unknown>))), (items) => setStages(items as DealStage[]),
+        (items) => setAlerts(items.map((item) => normalizeAlert(item as Record<string, unknown>))), (items) => setFunnels(items as Funnel[]),
         (items) => setAchievements(items as Achievement[]), (items) => setIntegrations(items as Integration[]),
         (items) => setMessages(items.map((item) => normalizeMessage(item as Record<string, unknown>))), (items) => setAudit(items.map((item) => normalizeAudit(item as Record<string, unknown>))),
       ];
@@ -267,11 +292,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!session) return;
     if (isDemo) {
-      setUsers(demoUsers); setClients(demoClients); setDeals(demoDeals); setStages(demoStages); setTasks(demoTasks);
+      setUsers(demoUsers); setClients(demoClients); setDeals(demoDeals); setFunnels(demoFunnels); setTasks(demoTasks);
       setDocuments(demoDocuments); setReports(demoReports); setAlerts(demoAlerts); setAchievements(demoAchievements);
       setIntegrations(demoIntegrations); setMessages(demoMessages); setAudit(demoAudit); setDataStatus('ready');
     } else {
-      setUsers([]); setClients([]); setDeals([]); setStages([]); setTasks([]); setDocuments([]); setReports([]);
+      setUsers([]); setClients([]); setDeals([]); setFunnels([]); setTasks([]); setDocuments([]); setReports([]);
       setAlerts([]); setAchievements([]); setIntegrations([]); setMessages([]); setAudit([]);
     }
   }, [session?.accessToken, isDemo]);
@@ -334,20 +359,72 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }, [remote]);
 
   const addDeal = useCallback(async (input: Omit<Deal, 'id'>) => {
-    const payload = { clientId: input.clientId, ownerId: input.ownerId, title: input.title, stage: input.stage, value: input.value, currency: input.currency, probability: input.probability, expectedCloseAt: input.expectedCloseAt };
+    const payload = { clientId: input.clientId, ownerId: input.ownerId, title: input.title, funnelId: input.funnelId, stageId: input.stage.id || undefined, value: input.value, currency: input.currency, probability: input.probability, expectedCloseAt: input.expectedCloseAt };
     const raw = await remote(() => api.create<Record<string, unknown>>('deals', payload));
     setDeals((current) => [raw ? normalizeDeal(raw) : { ...input, id: crypto.randomUUID() }, ...current]);
   }, [remote]);
 
-  const addStage = useCallback(async (input: Omit<DealStage, 'id'>) => {
-    const created = await remote(() => api.create<DealStage>('deals/stages', input));
-    setStages((current) => [...current, created ?? { ...input, id: crypto.randomUUID() }].sort((a, b) => a.sortOrder - b.sortOrder));
-  }, [remote]);
+  const moveDeal = useCallback(async (id: string, stageId: string, funnelId?: string) => {
+    const raw = await remote(() => api.update<Record<string, unknown>>('deals', id, funnelId ? { funnelId, stageId } : { stageId }));
+    setDeals((current) => current.map((deal) => {
+      if (deal.id !== id) return deal;
+      if (raw) return normalizeDeal(raw);
+      const stage = funnels.flatMap((funnel) => funnel.stages).find((item) => item.id === stageId);
+      return stage ? { ...deal, funnelId: stage.funnelId, stage: { id: stage.id, name: stage.name, color: stage.color, outcome: stage.outcome } } : deal;
+    }));
+  }, [remote, funnels]);
 
-  const moveDeal = useCallback(async (id: string, stage: string) => {
-    await remote(() => api.update<Deal>('deals', id, { stage }));
-    setDeals((current) => current.map((deal) => deal.id === id ? { ...deal, stage } : deal));
-  }, [remote]);
+  const reloadFunnels = useCallback(async (reloadDeals = false) => {
+    const [nextFunnels, nextDeals] = await Promise.all([
+      api.list<Funnel>('funnels'),
+      reloadDeals ? listAll<Record<string, unknown>>('deals') : Promise.resolve(null),
+    ]);
+    setFunnels(nextFunnels);
+    if (nextDeals) setDeals(nextDeals.map(normalizeDeal));
+  }, []);
+
+  // Demo sessions apply the same rules locally; real sessions persist through the API and reload.
+  const configure = useCallback(async (action: () => Promise<unknown>, local: (current: Funnel[]) => Funnel[], reloadDeals = false) => {
+    if (isDemo) { setFunnels((current) => local(current)); return; }
+    await remote(action);
+    await reloadFunnels(reloadDeals);
+  }, [isDemo, remote, reloadFunnels]);
+
+  const funnelConfig = useMemo<FunnelConfig>(() => {
+    const withStages = (current: Funnel[], funnelId: string, update: (stages: DealStage[]) => DealStage[]) =>
+      current.map((funnel) => funnel.id === funnelId ? { ...funnel, stages: update(funnel.stages) } : funnel);
+    return {
+      createFunnel: async (input) => {
+        let id: string = crypto.randomUUID();
+        await configure(async () => { id = (await api.create<{ id: string }>('funnels', input)).id; }, (current) => [...current, {
+          id, name: input.name, sortOrder: Math.max(0, ...current.map((funnel) => funnel.sortOrder)) + 10,
+          accessMode: input.accessMode ?? 'COMPANY', departmentIds: input.departmentIds ?? [], userIds: input.userIds ?? [],
+          stages: input.stages.map((stage, index) => ({ ...stage, id: crypto.randomUUID(), funnelId: id, sortOrder: (index + 1) * 10, dealCount: 0 })),
+        }]);
+        return id;
+      },
+      updateFunnel: (id, patch) => configure(() => api.update('funnels', id, patch),
+        (current) => current.map((funnel) => funnel.id === id ? { ...funnel, ...patch } : funnel).sort((a, b) => a.sortOrder - b.sortOrder)),
+      deleteFunnel: (id) => configure(() => api.remove('funnels', id), (current) => current.filter((funnel) => funnel.id !== id)),
+      setFunnelAccess: (id, access) => configure(() => api.put(`/funnels/${id}/access`, access),
+        (current) => current.map((funnel) => funnel.id === id ? { ...funnel, ...access } : funnel)),
+      addStage: (funnelId, stage) => configure(() => api.create(`funnels/${funnelId}/stages`, stage),
+        (current) => withStages(current, funnelId, (stages) => [...stages, { ...stage, id: crypto.randomUUID(), funnelId, sortOrder: Math.max(0, ...stages.map((item) => item.sortOrder)) + 10, dealCount: 0 }])),
+      updateStage: (funnelId, stageId, patch) => configure(() => api.update(`funnels/${funnelId}/stages`, stageId, patch),
+        (current) => withStages(current, funnelId, (stages) => stages.map((stage) => stage.id === stageId ? { ...stage, ...patch } : stage)), true),
+      reorderStages: (funnelId, stageIds) => configure(() => api.put(`/funnels/${funnelId}/stages/order`, { stageIds }),
+        (current) => withStages(current, funnelId, (stages) => stageIds.map((id, index) => ({ ...stages.find((stage) => stage.id === id)!, sortOrder: (index + 1) * 10 })))),
+      deleteStage: async (funnelId, stageId, moveToStageId) => {
+        const query = moveToStageId ? `?moveToStageId=${encodeURIComponent(moveToStageId)}` : '';
+        await configure(() => api.remove(`funnels/${funnelId}/stages`, `${stageId}${query}`),
+          (current) => withStages(current, funnelId, (stages) => stages.filter((stage) => stage.id !== stageId)), true);
+        if (isDemo && moveToStageId) {
+          const target = funnels.flatMap((funnel) => funnel.stages).find((stage) => stage.id === moveToStageId);
+          if (target) setDeals((current) => current.map((deal) => deal.stage.id === stageId ? { ...deal, stage: { id: target.id, name: target.name, color: target.color, outcome: target.outcome } } : deal));
+        }
+      },
+    };
+  }, [configure, funnels, isDemo]);
 
   const moveTask = useCallback(async (id: string, status: WorkTask['status']) => {
     await remote(() => api.update<WorkTask>('tasks', id, { status }));
@@ -383,8 +460,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     if (!session || roleRank[session.user.role] >= roleRank.MANAGER) return items;
     return items.filter((item) => item.ownerId === session.user.id || item.assigneeId === session.user.id);
   };
+  const visibleFunnels = !session ? funnels : funnels.filter((funnel) => canOpenFunnel(funnel, session.user));
+  const openFunnelIds = new Set(visibleFunnels.map((funnel) => funnel.id));
   const scopedClients = scoped(clients);
-  const scopedDeals = scoped(deals);
+  const scopedDeals = scoped(deals).filter((deal) => openFunnelIds.has(deal.funnelId));
   const scopedTasks = scoped(tasks);
   const accessibleClientIds = new Set(scopedClients.map((client) => client.id));
   const visibleAlerts = !session || session.user.role !== 'EMPLOYEE'
@@ -396,12 +475,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<WorkspaceValue>(() => ({
     users: visibleUsers,
-    clients: scopedClients, deals: scopedDeals, stages, tasks: scopedTasks, documents, reports, alerts: visibleAlerts,
+    clients: scopedClients, deals: scopedDeals, funnels: visibleFunnels, tasks: scopedTasks, documents, reports, alerts: visibleAlerts,
     achievements, integrations, messages: visibleMessages, audit,
-    dataStatus, createTeamMember, addClient, updateClient, addDeal, addStage, moveDeal, moveTask, addTask, addDocument, addReport, acknowledgeAlert,
+    dataStatus, createTeamMember, addClient, updateClient, addDeal, moveDeal, funnelConfig, moveTask, addTask, addDocument, addReport, acknowledgeAlert,
   // scoped is intentionally derived from current session and collections.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [visibleUsers, clients, deals, stages, tasks, documents, reports, alerts, achievements, integrations, messages, audit, dataStatus, createTeamMember, addClient, updateClient, addDeal, addStage, moveDeal, moveTask, addTask, addDocument, addReport, acknowledgeAlert, session]);
+  }), [visibleUsers, clients, deals, funnels, tasks, documents, reports, alerts, achievements, integrations, messages, audit, dataStatus, createTeamMember, addClient, updateClient, addDeal, moveDeal, funnelConfig, moveTask, addTask, addDocument, addReport, acknowledgeAlert, session]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

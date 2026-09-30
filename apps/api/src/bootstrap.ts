@@ -43,19 +43,26 @@ export async function bootstrapProduction(): Promise<void> {
 
 export async function ensureDefaultCatalogs(): Promise<void> {
   await transaction(async (client) => {
+    // Seed a funnel only for companies without one, so stages a director edited or deleted stay that way.
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", ["atlas-default-funnels"]);
     await client.query(
-      `INSERT INTO deal_stages (company_id, key, name, color, sort_order, is_closed)
-       SELECT c.id, stage.key, stage.name, stage.color, stage.sort_order, stage.is_closed
-       FROM companies c
+      `WITH created AS (
+         INSERT INTO deal_funnels (company_id, name, sort_order, access_mode)
+         SELECT c.id, 'Основная воронка', 10, 'COMPANY' FROM companies c
+         WHERE NOT EXISTS (SELECT 1 FROM deal_funnels f WHERE f.company_id = c.id)
+         RETURNING id, company_id
+       )
+       INSERT INTO deal_stages (company_id, funnel_id, name, color, sort_order, outcome)
+       SELECT created.company_id, created.id, stage.name, stage.color, stage.sort_order, stage.outcome
+       FROM created
        CROSS JOIN (VALUES
-         ('APPLICATION', 'Application', '#2563EB', 10, false),
-         ('NEGOTIATION', 'Negotiation', '#D97706', 20, false),
-         ('INVOICE', 'Invoice sent', '#7C3AED', 30, false),
-         ('PAYMENT', 'Payment', '#059669', 40, true),
-         ('SHIPMENT', 'Shipment', '#0891B2', 50, true),
-         ('LOST', 'Lost', '#DC2626', 60, true)
-       ) AS stage(key, name, color, sort_order, is_closed)
-       ON CONFLICT (company_id, key) DO NOTHING`
+         ('Заявка', '#2563EB', 10, 'OPEN'),
+         ('Переговоры', '#D97706', 20, 'OPEN'),
+         ('Счёт выставлен', '#7C3AED', 30, 'OPEN'),
+         ('Оплата', '#059669', 40, 'WON'),
+         ('Отгрузка', '#0891B2', 50, 'WON'),
+         ('Проиграна', '#DC2626', 60, 'LOST')
+       ) AS stage(name, color, sort_order, outcome)`
     );
     await client.query(
       `INSERT INTO achievement_definitions (company_id, code, name, description, icon, points)

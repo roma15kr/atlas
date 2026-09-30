@@ -32,7 +32,7 @@ const nav: Array<{ title?: string; items: NavItem[] }> = [
 ];
 
 const routeNames: Record<string, string> = {
-  '/': 'Дашборд', '/crm': 'CRM', '/sales': 'Воронка продаж', '/tasks': 'Мои задачи',
+  '/': 'Дашборд', '/crm': 'CRM', '/sales': 'Воронка продаж', '/sales/settings': 'Настройка воронок', '/tasks': 'Мои задачи',
   '/documents': 'Документы', '/team': 'Команда', '/reports': 'Отчёты',
   '/achievements': 'Достижения', '/messages': 'Сообщения', '/audit': 'Журнал аудита', '/profile': 'Профиль',
 };

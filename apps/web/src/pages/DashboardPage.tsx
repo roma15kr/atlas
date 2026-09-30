@@ -10,13 +10,13 @@ const weekday = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeri
 
 export function DashboardPage() {
   const { session } = useAuth();
-  const { users, clients, deals, stages, tasks, alerts, acknowledgeAlert, addTask } = useWorkspace();
+  const { users, clients, deals, tasks, alerts, acknowledgeAlert, addTask } = useWorkspace();
   const navigate = useNavigate();
   const [taskOpen, setTaskOpen] = useState(false);
   const user = session!.user;
   const isDirector = user.role === 'DIRECTOR';
   const online = users.filter((member) => member.online).length;
-  const activeDeals = deals.filter((deal) => !stages.find((stage) => stage.key === deal.stage)?.isClosed);
+  const activeDeals = deals.filter((deal) => deal.stage.outcome === 'OPEN');
   const pipeline = activeDeals.reduce((sum, deal) => sum + deal.value, 0);
   const completed = tasks.filter((task) => task.status === 'DONE').length;
   const dueSoon = tasks.filter((task) => task.status !== 'DONE' && new Date(task.dueAt).getTime() < Date.now() + 3 * 86400000).length;

@@ -28,6 +28,15 @@ department. Employees can access their own records. SQL predicates enforce the
 scope in addition to route-level role checks. Bulk CRM export is a director-only
 route, and both successful and rejected sensitive actions enter the audit log.
 
+Deals live in sales funnels. A funnel is open to the whole company or restricted
+to chosen departments and users; directors always see every funnel. Funnel access
+is a gate on top of the record scope, not a replacement: inside a funnel an
+employee still sees only their own deals and a manager only their department's.
+A deal's owner must be able to open its funnel. Deal lists, deal-linked task
+summaries, dashboard pipeline, reports, and AI pipeline metrics all apply the
+same funnel predicate. Only directors configure funnels, stages, and access;
+attempts by other roles are rejected and audited as `FUNNEL_CONFIG_DENIED`.
+
 Refresh tokens are rotated and stored as hashes. Access tokens are short-lived.
 Login attempts are rate-limited and repeated failures temporarily lock the
 account. Document objects stay private and are streamed only after an access
@@ -42,9 +51,12 @@ department -> users -> kpis
                   |-> achievements
                   |-> tasks -> optional deal
 
+deal_funnels -> deal_stages (ordered, outcome OPEN / WON / LOST)
+             -> deal_funnel_access (department or user grants)
+
 client -> contacts
        -> comments
-       -> deals -> stage
+       -> deals -> funnel + stage (database-enforced: the stage belongs to the funnel)
        -> documents -> document_versions -> object storage
 
 report_definitions -> report_runs

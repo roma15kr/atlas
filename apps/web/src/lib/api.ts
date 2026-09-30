@@ -56,6 +56,8 @@ const refreshAccessToken = async (): Promise<string | null> => {
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
   retry?: boolean;
+  /** Return the whole `{ data, meta }` payload instead of unwrapping `data`. */
+  envelope?: boolean;
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -84,8 +86,22 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
   if (response.status === 204) return undefined as T;
   const payload = await response.json() as { data?: T } | T;
+  if (options.envelope) return payload as T;
   if (payload && typeof payload === 'object' && 'data' in payload) return (payload as { data: T }).data;
   return payload as T;
+}
+
+const PAGE_SIZE = 100;
+
+/** Follows limit/offset pagination until every row the caller may see has been loaded. */
+export async function listAll<T>(resource: string, params: Record<string, string> = {}): Promise<T[]> {
+  const rows: T[] = [];
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const query = new URLSearchParams({ ...params, limit: String(PAGE_SIZE), offset: String(offset) });
+    const page = await apiRequest<{ data: T[]; meta?: { total?: number } }>(`/${resource}?${query}`, { envelope: true });
+    rows.push(...page.data);
+    if (page.data.length < PAGE_SIZE || rows.length >= (page.meta?.total ?? rows.length)) return rows;
+  }
 }
 
 export const api = {
@@ -97,6 +113,7 @@ export const api = {
   create: <T>(resource: string, body: unknown) => apiRequest<T>(`/${resource}`, { method: 'POST', body }),
   update: <T>(resource: string, id: string, body: unknown) => apiRequest<T>(`/${resource}/${id}`, { method: 'PATCH', body }),
   remove: (resource: string, id: string) => apiRequest<void>(`/${resource}/${id}`, { method: 'DELETE' }),
+  put: <T>(path: string, body: unknown) => apiRequest<T>(path, { method: 'PUT', body }),
   uploadDocument: (file: File, metadata: Record<string, string>) => {
     const form = new FormData();
     form.set('file', file);

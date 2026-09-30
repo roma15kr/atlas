@@ -4,13 +4,14 @@ import { query } from "../db";
 import { asyncHandler } from "../errors";
 import { presenceFor } from "../presence";
 import { recordScope } from "../scope";
+import { dealScope } from "./deals";
 
 export const dashboardRouter = Router();
 
 dashboardRouter.get("/", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
   const clientScope = recordScope(auth, { company: "c.company_id", department: "c.department_id", owner: "c.owner_id" });
-  const dealScope = recordScope(auth, { company: "d.company_id", department: "d.department_id", owner: "d.owner_id" });
+  const deals = dealScope(auth);
   const taskScope = recordScope(auth, { company: "t.company_id", department: "t.department_id", owner: "t.assignee_id" });
   const userScope = recordScope(auth, { company: "u.company_id", department: "u.department_id", owner: "u.id" });
   const alertScope = auth.role === "DIRECTOR"
@@ -22,12 +23,12 @@ dashboardRouter.get("/", asyncHandler(async (req, res) => {
   const [clients, pipeline, tasks, alerts, users] = await Promise.all([
     query<{ count: number }>(`SELECT count(*)::int AS count FROM clients c WHERE ${clientScope.sql}`, clientScope.values),
     query<{ total: number; weighted: number; open: number }>(
-      `SELECT COALESCE(sum(d.value), 0)::float8 AS total,
-              COALESCE(sum(d.value * d.probability / 100.0), 0)::float8 AS weighted,
-              count(*) FILTER (WHERE NOT COALESCE(ds.is_closed, false))::int AS open
-       FROM deals d LEFT JOIN deal_stages ds ON ds.company_id = d.company_id AND ds.key = d.stage
-       WHERE ${dealScope.sql}`,
-      dealScope.values
+      `SELECT COALESCE(sum(d.value) FILTER (WHERE ds.outcome = 'OPEN'), 0)::float8 AS total,
+              COALESCE(sum(d.value * d.probability / 100.0) FILTER (WHERE ds.outcome = 'OPEN'), 0)::float8 AS weighted,
+              count(*) FILTER (WHERE ds.outcome = 'OPEN')::int AS open
+       FROM deals d JOIN deal_stages ds ON ds.id = d.stage_id
+       WHERE ${deals.sql}`,
+      deals.values
     ),
     query<{ total: number; overdue: number; done: number }>(
       `SELECT count(*)::int AS total,

@@ -1,15 +1,15 @@
-import type { Achievement, Alert, AuditEvent, ChannelMessage, Client, CompanyDocument, Deal, DealStage, Integration, Report, Role, Session, User, WorkTask } from '../types';
+import type { Achievement, Alert, AuditEvent, ChannelMessage, Client, CompanyDocument, Deal, DealStage, Funnel, Integration, Report, Role, Session, User, WorkTask } from '../types';
 
 const ago = (hours: number) => new Date(Date.now() - hours * 3600000).toISOString();
 const ahead = (days: number) => new Date(Date.now() + days * 86400000).toISOString();
 
 export const demoUsers: User[] = [
-  { id: 'u1', username: 'director', fullName: 'Елена Морозова', role: 'DIRECTOR', department: 'Управление', jobTitle: 'Генеральный директор', specialty: 'Операционное управление', online: true, rating: 94, monitoringConsentAt: ago(500), kpis: [{ id: 'k1', name: 'Выручка компании', target: 12000000, actual: 9100000, unit: 'UAH', weight: 1, dueAt: ahead(11) }] },
-  { id: 'u2', username: 'manager', fullName: 'Михаил Волков', role: 'MANAGER', department: 'Продажи', jobTitle: 'Руководитель отдела', specialty: 'B2B-продажи', online: true, rating: 88, monitoringConsentAt: ago(400), kpis: [{ id: 'k2', name: 'План отдела', target: 6000000, actual: 4280000, unit: 'UAH', weight: .7, dueAt: ahead(11) }, { id: 'k3', name: 'Конверсия', target: 38, actual: 34, unit: '%', weight: .3, dueAt: ahead(11) }] },
-  { id: 'u3', username: 'employee', fullName: 'Анна Петрова', role: 'EMPLOYEE', department: 'Продажи', jobTitle: 'Аккаунт-менеджер', specialty: 'Развитие клиентов', online: true, rating: 91, monitoringConsentAt: ago(300), kpis: [{ id: 'k4', name: 'Закрытая выручка', target: 750000, actual: 485000, unit: 'UAH', weight: .6, dueAt: ahead(11) }, { id: 'k5', name: 'Встречи', target: 20, actual: 14, unit: 'встреч', weight: .4, dueAt: ahead(11) }] },
-  { id: 'u4', username: 'alex', fullName: 'Алексей Ким', role: 'EMPLOYEE', department: 'Продажи', jobTitle: 'Менеджер по развитию', specialty: 'Партнёрские продажи', online: false, lastSeen: ago(3), rating: 73, kpis: [{ id: 'k6', name: 'Закрытая выручка', target: 650000, actual: 220000, unit: 'UAH', weight: .7, dueAt: ahead(11) }] },
-  { id: 'u5', username: 'olga', fullName: 'Ольга Соколова', role: 'EMPLOYEE', department: 'Операции', jobTitle: 'Операционный менеджер', online: false, lastSeen: ago(19), rating: 86, monitoringConsentAt: ago(260), kpis: [{ id: 'k7', name: 'SLA заявок', target: 95, actual: 92, unit: '%', weight: 1, dueAt: ahead(11) }] },
-  { id: 'u6', username: 'ivan', fullName: 'Иван Смирнов', role: 'EMPLOYEE', department: 'Финансы', jobTitle: 'Финансовый аналитик', online: true, rating: 82, monitoringConsentAt: ago(200), kpis: [{ id: 'k8', name: 'Точность прогноза', target: 95, actual: 89, unit: '%', weight: 1, dueAt: ahead(11) }] },
+  { id: 'u1', username: 'director', fullName: 'Елена Морозова', role: 'DIRECTOR', department: 'Управление', departmentId: 'dep-admin', jobTitle: 'Генеральный директор', specialty: 'Операционное управление', online: true, rating: 94, monitoringConsentAt: ago(500), kpis: [{ id: 'k1', name: 'Выручка компании', target: 12000000, actual: 9100000, unit: 'UAH', weight: 1, dueAt: ahead(11) }] },
+  { id: 'u2', username: 'manager', fullName: 'Михаил Волков', role: 'MANAGER', department: 'Продажи', departmentId: 'dep-sales', jobTitle: 'Руководитель отдела', specialty: 'B2B-продажи', online: true, rating: 88, monitoringConsentAt: ago(400), kpis: [{ id: 'k2', name: 'План отдела', target: 6000000, actual: 4280000, unit: 'UAH', weight: .7, dueAt: ahead(11) }, { id: 'k3', name: 'Конверсия', target: 38, actual: 34, unit: '%', weight: .3, dueAt: ahead(11) }] },
+  { id: 'u3', username: 'employee', fullName: 'Анна Петрова', role: 'EMPLOYEE', department: 'Продажи', departmentId: 'dep-sales', jobTitle: 'Аккаунт-менеджер', specialty: 'Развитие клиентов', online: true, rating: 91, monitoringConsentAt: ago(300), kpis: [{ id: 'k4', name: 'Закрытая выручка', target: 750000, actual: 485000, unit: 'UAH', weight: .6, dueAt: ahead(11) }, { id: 'k5', name: 'Встречи', target: 20, actual: 14, unit: 'встреч', weight: .4, dueAt: ahead(11) }] },
+  { id: 'u4', username: 'alex', fullName: 'Алексей Ким', role: 'EMPLOYEE', department: 'Продажи', departmentId: 'dep-sales', jobTitle: 'Менеджер по развитию', specialty: 'Партнёрские продажи', online: false, lastSeen: ago(3), rating: 73, kpis: [{ id: 'k6', name: 'Закрытая выручка', target: 650000, actual: 220000, unit: 'UAH', weight: .7, dueAt: ahead(11) }] },
+  { id: 'u5', username: 'olga', fullName: 'Ольга Соколова', role: 'EMPLOYEE', department: 'Операции', departmentId: 'dep-ops', jobTitle: 'Операционный менеджер', online: false, lastSeen: ago(19), rating: 86, monitoringConsentAt: ago(260), kpis: [{ id: 'k7', name: 'SLA заявок', target: 95, actual: 92, unit: '%', weight: 1, dueAt: ahead(11) }] },
+  { id: 'u6', username: 'ivan', fullName: 'Иван Смирнов', role: 'EMPLOYEE', department: 'Финансы', departmentId: 'dep-fin', jobTitle: 'Финансовый аналитик', online: true, rating: 82, monitoringConsentAt: ago(200), kpis: [{ id: 'k8', name: 'Точность прогноза', target: 95, actual: 89, unit: '%', weight: 1, dueAt: ahead(11) }] },
 ];
 
 export const demoSessions: Record<string, Session> = Object.fromEntries(demoUsers.slice(0, 4).map((user) => [user.username, { user, accessToken: `demo-${user.role.toLowerCase()}` }])) as Record<string, Session>;
@@ -22,21 +22,38 @@ export const demoClients: Client[] = [
   { id: 'c5', name: 'Мария Белова', companyName: 'Forma', email: 'maria@forma.example', phone: '+7 812 555-72-10', source: 'Партнёр', status: 'ACTIVE', ownerId: 'u4', ownerName: 'Алексей Ким', notes: 'Готовы к пилоту на 15 мест.', updatedAt: ago(75) },
 ];
 
-export const demoDeals: Deal[] = [
-  { id: 'd1', clientId: 'c2', title: 'Стартовый пакет', companyName: 'Vertex Studio', ownerId: 'u4', ownerName: 'Алексей Ким', stage: 'APPLICATION', value: 1150000, currency: 'UAH', probability: 25, expectedCloseAt: ahead(32) },
-  { id: 'd2', clientId: 'c5', title: 'Пилот на 15 мест', companyName: 'Forma', ownerId: 'u4', ownerName: 'Алексей Ким', stage: 'NEGOTIATION', value: 780000, currency: 'UAH', probability: 60, expectedCloseAt: ahead(14) },
-  { id: 'd3', clientId: 'c1', title: 'Годовой план', companyName: 'Northstar Labs', ownerId: 'u3', ownerName: 'Анна Петрова', stage: 'NEGOTIATION', value: 3850000, currency: 'UAH', probability: 70, expectedCloseAt: ahead(18) },
-  { id: 'd4', clientId: 'c3', title: 'Продление договора', companyName: 'Arbor Group', ownerId: 'u3', ownerName: 'Анна Петрова', stage: 'INVOICE', value: 2620000, currency: 'UAH', probability: 85, expectedCloseAt: ahead(9) },
-  { id: 'd5', clientId: 'c4', title: 'Корпоративный контур', companyName: 'Север Строй', ownerId: 'u2', ownerName: 'Михаил Волков', stage: 'PAYMENT', value: 4400000, currency: 'UAH', probability: 95, expectedCloseAt: ahead(4) },
-  { id: 'd6', clientId: 'c1', title: 'Дополнительные места', companyName: 'Northstar Labs', ownerId: 'u3', ownerName: 'Анна Петрова', stage: 'SHIPPED', value: 640000, currency: 'UAH', probability: 100, expectedCloseAt: ago(36) },
+const mainStages: DealStage[] = [
+  { id: 's1', funnelId: 'f-main', name: 'Заявка', color: '#398078', sortOrder: 10, outcome: 'OPEN' },
+  { id: 's2', funnelId: 'f-main', name: 'Переговоры', color: '#3974a8', sortOrder: 20, outcome: 'OPEN' },
+  { id: 's3', funnelId: 'f-main', name: 'Счёт выставлен', color: '#b07627', sortOrder: 30, outcome: 'OPEN' },
+  { id: 's4', funnelId: 'f-main', name: 'Оплата', color: '#765ca8', sortOrder: 40, outcome: 'OPEN' },
+  { id: 's5', funnelId: 'f-main', name: 'Отгрузка', color: '#3f7d52', sortOrder: 50, outcome: 'WON' },
+  { id: 's6', funnelId: 'f-main', name: 'Проиграна', color: '#b4473f', sortOrder: 60, outcome: 'LOST' },
+];
+const wholesaleStages: DealStage[] = [
+  { id: 'w1', funnelId: 'f-wholesale', name: 'Запрос прайса', color: '#398078', sortOrder: 10, outcome: 'OPEN' },
+  { id: 'w2', funnelId: 'f-wholesale', name: 'Согласование объёма', color: '#b07627', sortOrder: 20, outcome: 'OPEN' },
+  { id: 'w3', funnelId: 'f-wholesale', name: 'Поставка', color: '#3f7d52', sortOrder: 30, outcome: 'WON' },
 ];
 
-export const demoStages: DealStage[] = [
-  { id: 's1', key: 'APPLICATION', name: 'Заявка', color: '#398078', sortOrder: 10, isClosed: false },
-  { id: 's2', key: 'NEGOTIATION', name: 'Переговоры', color: '#3974a8', sortOrder: 20, isClosed: false },
-  { id: 's3', key: 'INVOICE', name: 'Счёт выставлен', color: '#b07627', sortOrder: 30, isClosed: false },
-  { id: 's4', key: 'PAYMENT', name: 'Оплата', color: '#765ca8', sortOrder: 40, isClosed: false },
-  { id: 's5', key: 'SHIPPED', name: 'Отгрузка', color: '#3f7d52', sortOrder: 50, isClosed: true },
+export const demoFunnels: Funnel[] = [
+  { id: 'f-main', name: 'Основная воронка', sortOrder: 10, stages: mainStages, accessMode: 'COMPANY', departmentIds: [], userIds: [] },
+  { id: 'f-wholesale', name: 'Опт', sortOrder: 20, stages: wholesaleStages, accessMode: 'RESTRICTED', departmentIds: ['dep-sales'], userIds: [] },
+];
+
+const stageSummary = (id: string) => {
+  const stage = [...mainStages, ...wholesaleStages].find((item) => item.id === id)!;
+  return { id: stage.id, name: stage.name, color: stage.color, outcome: stage.outcome };
+};
+
+export const demoDeals: Deal[] = [
+  { id: 'd1', clientId: 'c2', title: 'Стартовый пакет', companyName: 'Vertex Studio', ownerId: 'u4', ownerName: 'Алексей Ким', funnelId: 'f-main', stage: stageSummary('s1'), value: 1150000, currency: 'UAH', probability: 25, expectedCloseAt: ahead(32) },
+  { id: 'd2', clientId: 'c5', title: 'Пилот на 15 мест', companyName: 'Forma', ownerId: 'u4', ownerName: 'Алексей Ким', funnelId: 'f-main', stage: stageSummary('s2'), value: 780000, currency: 'UAH', probability: 60, expectedCloseAt: ahead(14) },
+  { id: 'd3', clientId: 'c1', title: 'Годовой план', companyName: 'Northstar Labs', ownerId: 'u3', ownerName: 'Анна Петрова', funnelId: 'f-main', stage: stageSummary('s2'), value: 3850000, currency: 'UAH', probability: 70, expectedCloseAt: ahead(18) },
+  { id: 'd4', clientId: 'c3', title: 'Продление договора', companyName: 'Arbor Group', ownerId: 'u3', ownerName: 'Анна Петрова', funnelId: 'f-main', stage: stageSummary('s3'), value: 2620000, currency: 'UAH', probability: 85, expectedCloseAt: ahead(9) },
+  { id: 'd5', clientId: 'c4', title: 'Корпоративный контур', companyName: 'Север Строй', ownerId: 'u2', ownerName: 'Михаил Волков', funnelId: 'f-main', stage: stageSummary('s4'), value: 4400000, currency: 'UAH', probability: 95, expectedCloseAt: ahead(4) },
+  { id: 'd6', clientId: 'c1', title: 'Дополнительные места', companyName: 'Northstar Labs', ownerId: 'u3', ownerName: 'Анна Петрова', funnelId: 'f-main', stage: stageSummary('s5'), value: 640000, currency: 'UAH', probability: 100, expectedCloseAt: ago(36) },
+  { id: 'd7', clientId: 'c3', title: 'Оптовая партия', companyName: 'Arbor Group', ownerId: 'u3', ownerName: 'Анна Петрова', funnelId: 'f-wholesale', stage: stageSummary('w2'), value: 5200000, currency: 'UAH', probability: 50, expectedCloseAt: ahead(21) },
 ];
 
 export const demoTasks: WorkTask[] = [
@@ -97,5 +114,9 @@ export const fallbackSession = (username: string, password: string): Session | n
   if (password !== 'AtlasDemo2026!') return null;
   return demoSessions[username] ?? null;
 };
+
+/** Mirrors the server's funnel gate for demo sessions; real responses are already filtered by the API. */
+export const canOpenFunnel = (funnel: Funnel, user: User) => user.role === 'DIRECTOR' || !funnel.accessMode || funnel.accessMode === 'COMPANY'
+  || Boolean(funnel.userIds?.includes(user.id)) || Boolean(user.departmentId && funnel.departmentIds?.includes(user.departmentId));
 
 export const canManageTeam = (role: Role) => role === 'DIRECTOR' || role === 'MANAGER';

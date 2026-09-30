@@ -6,7 +6,8 @@ import { requireAuth } from "../auth";
 import { query } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { asOptionalDate, pagination, updatedFields } from "../http";
-import { recordScope } from "../scope";
+import { funnelAccessSql, recordScope } from "../scope";
+import { dealScope } from "./deals";
 
 const taskInput = z.object({
   assigneeId: z.string().uuid().optional(),
@@ -37,9 +38,10 @@ tasksRouter.get("/", asyncHandler(async (req, res) => {
   if (filters.status) { values.push(filters.status); clauses.push(`t.status = $${values.length}`); }
   if (filters.assigneeId) { values.push(filters.assigneeId); clauses.push(`t.assignee_id = $${values.length}`); }
   if (filters.dealId) { values.push(filters.dealId); clauses.push(`t.deal_id = $${values.length}`); }
-  values.push(page.limit, page.offset);
+  const dealAccess = funnelAccessSql(auth, "d.funnel_id", values.length + 1);
+  values.push(...dealAccess.values, page.limit, page.offset);
   const result = await query(
-    `SELECT ${taskColumns()}, count(*) OVER()::int AS "totalCount"
+    `SELECT ${taskColumns(dealAccess.sql)}, count(*) OVER()::int AS "totalCount"
      FROM tasks t JOIN users u ON u.id = t.assignee_id LEFT JOIN deals d ON d.id = t.deal_id
      WHERE ${clauses.join(" AND ")}
      ORDER BY t.status, t.position, t.due_at NULLS LAST
@@ -106,29 +108,32 @@ tasksRouter.delete("/:id", asyncHandler(async (req, res) => {
 }));
 
 async function assertDealVisible(auth: ReturnType<typeof requireAuth>, id: string): Promise<void> {
-  const scope = recordScope(auth, { company: "company_id", department: "department_id", owner: "owner_id" }, 2);
-  const result = await query(`SELECT id FROM deals WHERE id = $1 AND ${scope.sql}`, [id, ...scope.values]);
+  const scope = dealScope(auth, 2);
+  const result = await query(`SELECT d.id FROM deals d WHERE d.id = $1 AND ${scope.sql}`, [id, ...scope.values]);
   if (!result.rowCount) throw new ApiError(404, "DEAL_NOT_FOUND", "Deal not found");
 }
 
 async function scopedTask(auth: ReturnType<typeof requireAuth>, id: string): Promise<Record<string, unknown>> {
   const scope = recordScope(auth, { company: "t.company_id", department: "t.department_id", owner: "t.assignee_id" }, 2);
+  const dealAccess = funnelAccessSql(auth, "d.funnel_id", 2 + scope.values.length);
   const result = await query(
-    `SELECT ${taskColumns()}
+    `SELECT ${taskColumns(dealAccess.sql)}
      FROM tasks t JOIN users u ON u.id = t.assignee_id LEFT JOIN deals d ON d.id = t.deal_id
      WHERE t.id = $1 AND ${scope.sql}`,
-    [id, ...scope.values]
+    [id, ...scope.values, ...dealAccess.values]
   );
   if (!result.rows[0]) throw new ApiError(404, "TASK_NOT_FOUND", "Task not found");
   return result.rows[0];
 }
 
-function taskColumns(): string {
+/** The linked deal summary is hidden from viewers who cannot open the deal's funnel. */
+function taskColumns(dealFunnelAccessSql: string): string {
   return `t.id, t.title, t.description, t.status, t.priority, t.position, t.assignee_id AS "assigneeId",
-    t.created_by AS "createdBy", t.deal_id AS "dealId", t.due_at AS "dueAt",
+    t.created_by AS "createdBy", CASE WHEN ${dealFunnelAccessSql} THEN t.deal_id END AS "dealId", t.due_at AS "dueAt",
     t.completed_at AS "completedAt", t.created_at AS "createdAt", t.updated_at AS "updatedAt",
     json_build_object('id', u.id, 'fullName', u.full_name) AS assignee,
-    CASE WHEN d.id IS NULL THEN NULL ELSE json_build_object('id', d.id, 'title', d.title) END AS deal`;
+    CASE WHEN d.id IS NOT NULL AND ${dealFunnelAccessSql}
+      THEN json_build_object('id', d.id, 'title', d.title) END AS deal`;
 }
 
 function stripTotal(row: Record<string, unknown>): Record<string, unknown> {

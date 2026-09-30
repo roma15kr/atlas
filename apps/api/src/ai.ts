@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { config } from "./config";
 import { query } from "./db";
+import { funnelAccessSql } from "./scope";
 import type { AuthContext } from "./types";
 
 export type AiMode = "ADVICE" | "EVALUATION" | "FORECAST";
@@ -14,7 +15,7 @@ interface SystemMetrics {
 }
 
 export async function analyzeWork(auth: AuthContext, targetId: string, mode: AiMode): Promise<Record<string, unknown>> {
-  const metrics = await systemMetrics(auth.companyId, targetId);
+  const metrics = await systemMetrics(auth, targetId);
   const rules = ruleBased(metrics, mode);
   if (!config.ANTHROPIC_API_KEY) return { ...rules, source: "RULES", metrics };
 
@@ -48,7 +49,10 @@ export async function analyzeWork(auth: AuthContext, targetId: string, mode: AiM
   }
 }
 
-async function systemMetrics(companyId: string, userId: string): Promise<SystemMetrics> {
+async function systemMetrics(auth: AuthContext, userId: string): Promise<SystemMetrics> {
+  const companyId = auth.companyId;
+  // Pipeline figures only include funnels the requester may open.
+  const dealAccess = funnelAccessSql(auth, "d.funnel_id", 3);
   const [user, kpi, tasks, pipeline, presence] = await Promise.all([
     query<{ id: string; role: string; jobTitle: string | null }>(
       `SELECT id, role, job_title AS "jobTitle" FROM users WHERE id = $1 AND company_id = $2`, [userId, companyId]
@@ -63,11 +67,11 @@ async function systemMetrics(companyId: string, userId: string): Promise<SystemM
        FROM tasks WHERE assignee_id=$1 AND company_id=$2`, [userId, companyId]
     ),
     query<{ openDeals: number; openValue: number; weightedValue: number }>(
-      `SELECT count(*) FILTER (WHERE NOT COALESCE(ds.is_closed,false))::int AS "openDeals",
-              COALESCE(sum(d.value) FILTER (WHERE NOT COALESCE(ds.is_closed,false)),0)::float8 AS "openValue",
-              COALESCE(sum(d.value*d.probability/100.0) FILTER (WHERE NOT COALESCE(ds.is_closed,false)),0)::float8 AS "weightedValue"
-       FROM deals d LEFT JOIN deal_stages ds ON ds.company_id=d.company_id AND ds.key=d.stage
-       WHERE d.owner_id=$1 AND d.company_id=$2`, [userId, companyId]
+      `SELECT count(*) FILTER (WHERE ds.outcome='OPEN')::int AS "openDeals",
+              COALESCE(sum(d.value) FILTER (WHERE ds.outcome='OPEN'),0)::float8 AS "openValue",
+              COALESCE(sum(d.value*d.probability/100.0) FILTER (WHERE ds.outcome='OPEN'),0)::float8 AS "weightedValue"
+       FROM deals d JOIN deal_stages ds ON ds.id=d.stage_id
+       WHERE d.owner_id=$1 AND d.company_id=$2 AND ${dealAccess.sql}`, [userId, companyId, ...dealAccess.values]
     ),
     query<{ activeDays30: number; lastEventAt: string | null }>(
       `SELECT count(DISTINCT occurred_at::date) FILTER (WHERE event='ONLINE' AND occurred_at > now()-interval '30 days')::int AS "activeDays30",

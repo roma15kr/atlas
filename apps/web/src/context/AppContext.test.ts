@@ -20,3 +20,17 @@ describe('team onboarding policy', () => {
     expect(() => constrainTeamMemberInput(demoUsers[2], input)).toThrow('Недостаточно прав');
   });
 });
+
+describe('funnel access gate', () => {
+  it('opens restricted funnels only to directors, granted departments and granted users', async () => {
+    const { canOpenFunnel, demoFunnels } = await import('../data/demo');
+    const wholesale = demoFunnels.find((funnel) => funnel.accessMode === 'RESTRICTED')!;
+    const [director, manager, employee] = demoUsers;
+    const outsider = { ...employee!, id: 'x', departmentId: 'dep-ops' };
+    expect(canOpenFunnel(wholesale, director!)).toBe(true);
+    expect(canOpenFunnel(wholesale, manager!)).toBe(true);
+    expect(canOpenFunnel(wholesale, outsider)).toBe(false);
+    expect(canOpenFunnel({ ...wholesale, userIds: ['x'] }, outsider)).toBe(true);
+    expect(canOpenFunnel({ ...wholesale, accessMode: undefined }, outsider)).toBe(true);
+  });
+});
