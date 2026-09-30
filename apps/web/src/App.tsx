@@ -4,6 +4,8 @@ import { LoadingState } from './components/ui';
 import { useAuth } from './context/AppContext';
 import { AchievementsPage } from './pages/AchievementsPage';
 import { AuditPage } from './pages/AuditPage';
+import { BoardSettingsPage } from './pages/BoardSettingsPage';
+import { BoardsPage } from './pages/BoardsPage';
 import { ClientPage } from './pages/ClientPage';
 import { CrmPage } from './pages/CrmPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -22,7 +24,7 @@ function ProtectedLayout() {
   const { session, loading } = useAuth(); const location = useLocation();
   if (loading) return <div className="app-loading"><LoadingState label="Открываем рабочее пространство" /></div>;
   if (!session) return <Navigate to="/login" state={{ from: location.pathname }} replace />;
-  return <AppShell><Routes><Route path="/" element={<DashboardPage />} /><Route path="/crm" element={<CrmPage />} /><Route path="/crm/:id" element={<ClientPage />} /><Route path="/sales" element={<SalesPage />} /><Route path="/sales/settings" element={<RoleGate roles={['DIRECTOR']}><FunnelSettingsPage /></RoleGate>} /><Route path="/tasks" element={<TasksPage />} /><Route path="/documents" element={<DocumentsPage />} /><Route path="/team" element={<TeamPage />} /><Route path="/reports" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><ReportsPage /></RoleGate>} /><Route path="/achievements" element={<AchievementsPage />} /><Route path="/messages" element={<MessagesPage />} /><Route path="/audit" element={<RoleGate roles={['DIRECTOR']}><AuditPage /></RoleGate>} /><Route path="/profile" element={<ProfilePage />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></AppShell>;
+  return <AppShell><Routes><Route path="/" element={<DashboardPage />} /><Route path="/crm" element={<CrmPage />} /><Route path="/crm/:id" element={<ClientPage />} /><Route path="/sales" element={<SalesPage />} /><Route path="/sales/settings" element={<RoleGate roles={['DIRECTOR']}><FunnelSettingsPage /></RoleGate>} /><Route path="/tasks" element={<TasksPage />} /><Route path="/boards" element={<BoardsPage />} /><Route path="/boards/settings" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><BoardSettingsPage /></RoleGate>} /><Route path="/boards/:id/settings" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><BoardSettingsPage /></RoleGate>} /><Route path="/documents" element={<DocumentsPage />} /><Route path="/team" element={<TeamPage />} /><Route path="/reports" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><ReportsPage /></RoleGate>} /><Route path="/achievements" element={<AchievementsPage />} /><Route path="/messages" element={<MessagesPage />} /><Route path="/audit" element={<RoleGate roles={['DIRECTOR']}><AuditPage /></RoleGate>} /><Route path="/profile" element={<ProfilePage />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></AppShell>;
 }
 
 function RoleGate({ roles, children }: { roles: Role[]; children: React.ReactNode }) {

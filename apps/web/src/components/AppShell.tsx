@@ -1,6 +1,6 @@
 import {
   BarChart3, Bell, BookOpenCheck, BriefcaseBusiness, ChevronLeft, ChevronRight,
-  ClipboardList, FileText, Gauge, LayoutDashboard, LogOut, Menu, MessageSquare,
+  ClipboardList, FileText, Gauge, SquareKanban, LayoutDashboard, LogOut, Menu, MessageSquare,
   PanelLeftClose, Search, Settings, ShieldCheck, Trophy, Users, X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -17,6 +17,7 @@ const nav: Array<{ title?: string; items: NavItem[] }> = [
     { label: 'CRM', to: '/crm', icon: BriefcaseBusiness },
     { label: 'Воронка', to: '/sales', icon: BarChart3 },
     { label: 'Мои задачи', to: '/tasks', icon: ClipboardList },
+    { label: 'Доски', to: '/boards', icon: SquareKanban },
     { label: 'Документы', to: '/documents', icon: FileText },
   ] },
   { title: 'КОМАНДА', items: [
@@ -32,7 +33,7 @@ const nav: Array<{ title?: string; items: NavItem[] }> = [
 ];
 
 const routeNames: Record<string, string> = {
-  '/': 'Дашборд', '/crm': 'CRM', '/sales': 'Воронка продаж', '/sales/settings': 'Настройка воронок', '/tasks': 'Мои задачи',
+  '/': 'Дашборд', '/crm': 'CRM', '/sales': 'Воронка продаж', '/sales/settings': 'Настройка воронок', '/tasks': 'Мои задачи', '/boards': 'Доски задач', '/boards/settings': 'Настройка досок',
   '/documents': 'Документы', '/team': 'Команда', '/reports': 'Отчёты',
   '/achievements': 'Достижения', '/messages': 'Сообщения', '/audit': 'Журнал аудита', '/profile': 'Профиль',
 };
@@ -46,7 +47,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const user = session!.user;
   const openAlerts = alerts.filter((alert) => !alert.acknowledged).length;
-  const pageName = useMemo(() => location.pathname.startsWith('/crm/') ? 'Карточка клиента' : routeNames[location.pathname] ?? 'Atlas', [location.pathname]);
+  const pageName = useMemo(() => location.pathname.startsWith('/crm/') ? 'Карточка клиента' : /^\/boards\/[^/]+\/settings$/.test(location.pathname) ? 'Настройка досок' : routeNames[location.pathname] ?? 'Atlas', [location.pathname]);
 
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
   useEffect(() => { localStorage.setItem('atlas.sidebar.collapsed', String(collapsed)); }, [collapsed]);

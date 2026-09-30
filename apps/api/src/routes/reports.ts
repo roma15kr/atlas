@@ -101,10 +101,14 @@ async function reportMetrics(
       [companyId, userId, departmentId, start, end, ...dealAccess.values]
     ),
     query<{ total: number; done: number; overdue: number }>(
-      `SELECT count(*)::int AS total, count(*) FILTER (WHERE status = 'DONE')::int AS done,
-              count(*) FILTER (WHERE status <> 'DONE' AND due_at < now())::int AS overdue
-       FROM tasks WHERE company_id=$1 AND ($2::uuid IS NULL OR assignee_id=$2) AND ($3::uuid IS NULL OR department_id=$3)
-         AND created_at::date BETWEEN $4::date AND $5::date`,
+      // A person's report counts the tasks they are assigned to; a team report counts each task once.
+      `SELECT count(*)::int AS total, count(*) FILTER (WHERE s.category = 'DONE')::int AS done,
+              count(*) FILTER (WHERE s.category <> 'DONE' AND t.due_at < now())::int AS overdue
+       FROM tasks t JOIN task_board_stages s ON s.id = t.stage_id
+       WHERE t.company_id=$1
+         AND ($2::uuid IS NULL OR EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.user_id = $2))
+         AND ($3::uuid IS NULL OR t.department_id=$3)
+         AND t.created_at::date BETWEEN $4::date AND $5::date`,
       [companyId, userId, departmentId, start, end]
     ),
     query<{ activeDays: number; firstSeenAt: string | null; lastSeenAt: string | null }>(

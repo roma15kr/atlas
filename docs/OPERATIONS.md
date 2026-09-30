@@ -79,6 +79,26 @@ After the deploy, confirm the Sales board shows the same deals per stage and the
 dashboard pipeline is unchanged. To roll back, stop the API, restore that dump
 with the procedure above, and redeploy the previous image.
 
+## Deploying migration 005 (task boards)
+
+`database/005_task_boards.sql` gives every department a "Задачи отдела" board with
+the stages Нужно сделать / В работе / Готово, moves each task to its department's
+board by status, copies assignees into `task_assignees`, and puts department-less
+tasks on one "Задачи руководства" board per company with their assignees as
+members. It then drops `tasks.status`, `tasks.assignee_id` and the `task_status`
+type, so it cannot be rolled back in place. New departments get a default board
+from a database trigger. Immediately before deploying, take a manual dump:
+
+```bash
+docker compose exec backup sh -c 'f="/backups/atlas-pre-005-$(date -u +%Y%m%dT%H%M%SZ).dump"; pg_dump --format=custom --file="$f" && pg_restore --list "$f" >/dev/null && ls -l "$f"'
+```
+
+After the deploy, check that task counts per stage on each department board match
+the old To do / In progress / Done counts and that the dashboard task metric is
+unchanged for a director. Tell employees that boards are shared: they now see
+their colleagues' tasks on their department's boards. To roll back, stop the
+API, restore that dump with the procedure above, and redeploy the previous image.
+
 ## Secret rotation
 
 Rotate one dependency at a time and confirm health after each change. Database

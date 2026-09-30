@@ -1,4 +1,4 @@
-import type { Achievement, Alert, AuditEvent, ChannelMessage, Client, CompanyDocument, Deal, DealStage, Funnel, Integration, Report, Role, Session, User, WorkTask } from '../types';
+import type { Achievement, Alert, AuditEvent, BoardUser, ChannelMessage, Client, CompanyDocument, Deal, DealStage, Funnel, Integration, Report, Role, Session, TaskBoard, TaskCategory, TaskStage, User, WorkTask } from '../types';
 
 const ago = (hours: number) => new Date(Date.now() - hours * 3600000).toISOString();
 const ahead = (days: number) => new Date(Date.now() + days * 86400000).toISOString();
@@ -56,12 +56,39 @@ export const demoDeals: Deal[] = [
   { id: 'd7', clientId: 'c3', title: 'Оптовая партия', companyName: 'Arbor Group', ownerId: 'u3', ownerName: 'Анна Петрова', funnelId: 'f-wholesale', stage: stageSummary('w2'), value: 5200000, currency: 'UAH', probability: 50, expectedCloseAt: ahead(21) },
 ];
 
+const boardStages = (boardId: string, stages: Array<[string, string, string, TaskCategory]>): TaskStage[] =>
+  stages.map(([id, name, color, category], index) => ({ id, boardId, name, color, category, sortOrder: (index + 1) * 10 }));
+const defaultBoardStages = (boardId: string, prefix: string) => boardStages(boardId, [
+  [`${prefix}1`, 'Нужно сделать', '#687472', 'TODO'], [`${prefix}2`, 'В работе', '#a66c20', 'ACTIVE'], [`${prefix}3`, 'Готово', '#39815a', 'DONE'],
+]);
+
+export const demoTaskBoards: TaskBoard[] = [
+  { id: 'b-admin', name: 'Задачи отдела', departmentId: 'dep-admin', departmentName: 'Управление', sortOrder: 10, canManage: false, stages: defaultBoardStages('b-admin', 'ba'), memberIds: [] },
+  { id: 'b-sales', name: 'Задачи отдела', departmentId: 'dep-sales', departmentName: 'Продажи', sortOrder: 10, canManage: false, stages: defaultBoardStages('b-sales', 'bs'), memberIds: [] },
+  { id: 'b-launch', name: 'Запуск продукта', departmentId: 'dep-sales', departmentName: 'Продажи', sortOrder: 20, canManage: false, memberIds: ['u5'], stages: boardStages('b-launch', [
+    ['bl1', 'Бэклог', '#687472', 'TODO'], ['bl2', 'Разработка', '#366e9e', 'ACTIVE'], ['bl3', 'Проверка', '#765ca8', 'ACTIVE'], ['bl4', 'Готово', '#39815a', 'DONE'],
+  ]) },
+  { id: 'b-ops', name: 'Задачи отдела', departmentId: 'dep-ops', departmentName: 'Операции', sortOrder: 10, canManage: false, stages: defaultBoardStages('b-ops', 'bo'), memberIds: [] },
+  { id: 'b-fin', name: 'Задачи отдела', departmentId: 'dep-fin', departmentName: 'Финансы', sortOrder: 10, canManage: false, stages: defaultBoardStages('b-fin', 'bf'), memberIds: [] },
+];
+
+const onStage = (boardId: string, stageId: string) => {
+  const board = demoTaskBoards.find((item) => item.id === boardId)!;
+  const stage = board.stages.find((item) => item.id === stageId)!;
+  return { boardId, boardName: board.name, stage: { id: stage.id, name: stage.name, color: stage.color, category: stage.category } };
+};
+const people = (...ids: string[]) => ids.map((id) => { const user = demoUsers.find((item) => item.id === id)!; return { id, fullName: user.fullName }; });
+
 export const demoTasks: WorkTask[] = [
-  { id: 't1', title: 'Подготовить коммерческое предложение', description: 'Сверить объём и условия поставки.', status: 'IN_PROGRESS', assigneeId: 'u3', assigneeName: 'Анна Петрова', dealId: 'd3', dealTitle: 'Northstar Labs · Годовой план', dueAt: ahead(2), priority: 'HIGH' },
-  { id: 't2', title: 'Обновить недельный прогноз', description: 'Проверить следующие шаги по каждой сделке.', status: 'TODO', assigneeId: 'u3', assigneeName: 'Анна Петрова', dueAt: ahead(4), priority: 'NORMAL' },
-  { id: 't3', title: 'Согласовать дату демонстрации', description: 'Отправить три доступных окна.', status: 'TODO', assigneeId: 'u4', assigneeName: 'Алексей Ким', dealId: 'd1', dealTitle: 'Vertex Studio · Стартовый пакет', dueAt: ahead(1), priority: 'HIGH' },
-  { id: 't4', title: 'Загрузить протокол встречи', description: 'Добавить файл в карточку клиента.', status: 'DONE', assigneeId: 'u3', assigneeName: 'Анна Петрова', dealId: 'd4', dealTitle: 'Arbor Group · Продление', dueAt: ago(5), priority: 'NORMAL' },
-  { id: 't5', title: 'Проверить договор пилота', description: 'Сверить реквизиты и приложение.', status: 'IN_PROGRESS', assigneeId: 'u4', assigneeName: 'Алексей Ким', dealId: 'd2', dealTitle: 'Forma · Пилот', dueAt: ahead(6), priority: 'NORMAL' },
+  { id: 't1', title: 'Подготовить коммерческое предложение', description: 'Сверить объём и условия поставки.', ...onStage('b-sales', 'bs2'), assignees: people('u3'), createdBy: 'u2', dealId: 'd3', dealTitle: 'Northstar Labs · Годовой план', dueAt: ahead(2), priority: 'HIGH' },
+  { id: 't2', title: 'Обновить недельный прогноз', description: 'Проверить следующие шаги по каждой сделке.', ...onStage('b-sales', 'bs1'), assignees: people('u3'), createdBy: 'u3', dueAt: ahead(4), priority: 'NORMAL' },
+  { id: 't3', title: 'Согласовать дату демонстрации', description: 'Отправить три доступных окна.', ...onStage('b-sales', 'bs1'), assignees: people('u4'), createdBy: 'u2', dealId: 'd1', dealTitle: 'Vertex Studio · Стартовый пакет', dueAt: ahead(1), priority: 'HIGH' },
+  { id: 't4', title: 'Загрузить протокол встречи', description: 'Добавить файл в карточку клиента.', ...onStage('b-sales', 'bs3'), assignees: people('u3'), createdBy: 'u3', dealId: 'd4', dealTitle: 'Arbor Group · Продление', dueAt: ago(5), completedAt: ago(8), priority: 'NORMAL' },
+  { id: 't5', title: 'Проверить договор пилота', description: 'Сверить реквизиты и приложение.', ...onStage('b-sales', 'bs2'), assignees: people('u4'), createdBy: 'u4', dealId: 'd2', dealTitle: 'Forma · Пилот', dueAt: ahead(6), priority: 'NORMAL' },
+  { id: 't6', title: 'Сценарий демо-звонка', description: 'Структура показа и ответы на частые вопросы.', ...onStage('b-launch', 'bl2'), assignees: people('u2', 'u3', 'u4', 'u5'), createdBy: 'u2', dueAt: ahead(3), priority: 'HIGH' },
+  { id: 't7', title: 'Проверить выгрузку заказов', description: 'Сверить поля заказа с операционным отделом.', ...onStage('b-launch', 'bl3'), assignees: people('u5'), createdBy: 'u2', dueAt: ahead(5), priority: 'NORMAL' },
+  { id: 't8', title: 'Прайс для партнёров', description: 'Согласовать скидки с финансами.', ...onStage('b-launch', 'bl1'), assignees: people('u3', 'u4'), createdBy: 'u3', dueAt: ahead(9), priority: 'LOW' },
+  { id: 't9', title: 'Инвентаризация склада', description: 'Пересчитать остатки перед кварталом.', ...onStage('b-ops', 'bo1'), assignees: people('u5'), createdBy: 'u5', dueAt: ahead(7), priority: 'NORMAL' },
 ];
 
 export const demoDocuments: CompanyDocument[] = [
@@ -118,5 +145,18 @@ export const fallbackSession = (username: string, password: string): Session | n
 /** Mirrors the server's funnel gate for demo sessions; real responses are already filtered by the API. */
 export const canOpenFunnel = (funnel: Funnel, user: User) => user.role === 'DIRECTOR' || !funnel.accessMode || funnel.accessMode === 'COMPANY'
   || Boolean(funnel.userIds?.includes(user.id)) || Boolean(user.departmentId && funnel.departmentIds?.includes(user.departmentId));
+
+/** Mirrors the server's board rules for demo sessions: directors, the board's department and extra members open a board. */
+export const canOpenBoard = (board: TaskBoard, user: User) => user.role === 'DIRECTOR'
+  || Boolean(board.departmentId && board.departmentId === user.departmentId) || Boolean(board.memberIds?.includes(user.id));
+
+/** Directors manage every board, department heads only their own department's boards. */
+export const canManageBoard = (board: Pick<TaskBoard, 'departmentId'>, user: User) => user.role === 'DIRECTOR'
+  || (user.role === 'MANAGER' && Boolean(user.departmentId) && board.departmentId === user.departmentId);
+
+export const demoBoardUsers = (board: TaskBoard): BoardUser[] => demoUsers.filter((user) => canOpenBoard(board, user)).map((user) => ({
+  id: user.id, fullName: user.fullName, role: user.role, jobTitle: user.jobTitle, departmentId: user.departmentId ?? null,
+  departmentName: user.department, isMember: Boolean(board.memberIds?.includes(user.id)),
+}));
 
 export const canManageTeam = (role: Role) => role === 'DIRECTOR' || role === 'MANAGER';

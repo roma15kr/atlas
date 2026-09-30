@@ -1,7 +1,8 @@
-import { ArrowDown, ArrowLeft, ArrowUp, CircleCheck, CircleDot, CircleX, GripVertical, Layers, Lock, Pencil, Plus, Trash2, Users } from 'lucide-react';
-import { useMemo, useState, type DragEvent, type FormEvent } from 'react';
+import { ArrowLeft, CircleCheck, CircleDot, CircleX, Layers, Lock, Pencil, Plus, Trash2, Users } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Badge, Button, Dialog, EmptyState, Field, IconButton, PageHeader, SectionHeader, Segmented, SelectField, Surface } from '../components/ui';
+import { DeleteStageDialog as SharedDeleteStageDialog, NameDialog, StageDialog as SharedStageDialog, StageRows, useSubmit, type EditableStage, type KindOptions } from '../components/stageSettings';
+import { Badge, Button, Dialog, EmptyState, PageHeader, SectionHeader, Segmented, Surface } from '../components/ui';
 import { useWorkspace, type FunnelAccessInput, type StageInput } from '../context/AppContext';
 import { plural } from '../lib/format';
 import { funnelErrorMessage } from '../lib/funnelErrors';
@@ -11,14 +12,13 @@ const STAGES: [string, string, string] = ['этап', 'этапа', 'этапо�
 const DEALS: [string, string, string] = ['сделка', 'сделки', 'сделок'];
 const FUNNELS: [string, string, string] = ['воронка', 'воронки', 'воронок'];
 
-const outcomes: Record<StageOutcome, { label: string; tone: 'neutral' | 'success' | 'danger'; hint: string }> = {
+const outcomes: KindOptions<StageOutcome> = {
   OPEN: { label: 'Открыт', tone: 'neutral', hint: 'Сделки в работе, входят в сумму воронки' },
   WON: { label: 'Успех', tone: 'success', hint: 'Выигранные сделки, в отчётах считаются успешными' },
   LOST: { label: 'Проигрыш', tone: 'danger', hint: 'Проигранные сделки, не входят в сумму в работе' },
 };
 
-/** Presets reuse colors already on the Sales board; any color can still be chosen. */
-export const stageColorPresets = ['#398078', '#176f68', '#366e9e', '#765ca8', '#a66c20', '#b07627', '#39815a', '#a44444'];
+export { stageColorPresets } from '../components/stageSettings';
 
 const defaultStages: StageInput[] = [
   { name: 'Новая', color: '#366e9e', outcome: 'OPEN' },
@@ -37,6 +37,7 @@ type DialogState =
   | null;
 
 const dealTotal = (funnel: Funnel) => funnel.stages.reduce((sum, stage) => sum + (stage.dealCount ?? 0), 0);
+const editable = (stage: DealStage): EditableStage<StageOutcome> => ({ id: stage.id, name: stage.name, color: stage.color, kind: stage.outcome, count: stage.dealCount ?? 0 });
 
 export function FunnelSettingsPage() {
   const { funnels, funnelConfig, users } = useWorkspace();
@@ -44,23 +45,14 @@ export function FunnelSettingsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<DialogState>(null);
   const [pageError, setPageError] = useState('');
-  const [dragged, setDragged] = useState<string | null>(null);
   const funnel = funnels.find((item) => item.id === selectedId) ?? funnels[0];
   const stageCount = funnels.reduce((sum, item) => sum + item.stages.length, 0);
   const close = () => setDialog(null);
 
-  const move = (from: number, to: number) => {
-    if (!funnel || to < 0 || to >= funnel.stages.length || from === to) return;
-    const ids = funnel.stages.map((stage) => stage.id);
-    const [moved] = ids.splice(from, 1);
-    ids.splice(to, 0, moved!);
+  const reorder = (stageIds: string[]) => {
+    if (!funnel) return;
     setPageError('');
-    void funnelConfig.reorderStages(funnel.id, ids).catch((reason: unknown) => setPageError(funnelErrorMessage(reason, 'Порядок этапов не сохранён')));
-  };
-  const drop = (event: DragEvent, index: number) => {
-    event.preventDefault();
-    if (dragged && funnel) move(funnel.stages.findIndex((stage) => stage.id === dragged), index);
-    setDragged(null);
+    void funnelConfig.reorderStages(funnel.id, stageIds).catch((reason: unknown) => setPageError(funnelErrorMessage(reason, 'Порядок этапов не сохранён')));
   };
 
   return <>
@@ -95,18 +87,10 @@ export function FunnelSettingsPage() {
         <Surface className="funnel-card">
           <SectionHeader title="Этапы" meta={<Badge tone="info">{funnel.stages.length}</Badge>} action={<Button variant="secondary" icon={Plus} onClick={() => setDialog({ kind: 'stage' })}>Добавить этап</Button>} />
           <p className="funnel-card__hint">Порядок этапов совпадает с колонками на доске. Перетащите строку или используйте стрелки.</p>
-          <ol className="stage-rows">{funnel.stages.map((stage, index) => <li key={stage.id} draggable onDragStart={() => setDragged(stage.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => drop(event, index)} className={dragged === stage.id ? 'is-dragging' : ''}>
-            <span className="drag-handle" aria-hidden="true"><GripVertical size={15} /></span>
-            <i className="color-marker" style={{ background: stage.color }} aria-hidden="true" />
-            <span className="stage-rows__name"><strong>{stage.name}</strong><small>{plural(stage.dealCount ?? 0, DEALS)}</small></span>
-            <Badge tone={outcomes[stage.outcome].tone}>{outcomes[stage.outcome].label}</Badge>
-            <span className="row-actions">
-              <IconButton label={`Переместить выше: ${stage.name}`} icon={ArrowUp} disabled={index === 0} onClick={() => move(index, index - 1)} />
-              <IconButton label={`Переместить ниже: ${stage.name}`} icon={ArrowDown} disabled={index === funnel.stages.length - 1} onClick={() => move(index, index + 1)} />
-              <IconButton label={`Изменить этап ${stage.name}`} icon={Pencil} onClick={() => setDialog({ kind: 'stage', stage })} />
-              <IconButton label={`Удалить этап ${stage.name}`} icon={Trash2} disabled={funnel.stages.length === 1} title={funnel.stages.length === 1 ? 'Нельзя удалить последний этап' : `Удалить этап ${stage.name}`} onClick={() => setDialog({ kind: 'delete-stage', stage })} />
-            </span>
-          </li>)}</ol>
+          <StageRows stages={funnel.stages.map(editable)} kinds={outcomes} countForms={DEALS} onReorder={reorder}
+            deleteBlockedReason={() => funnel.stages.length === 1 ? 'Нельзя удалить последний этап' : undefined}
+            onEdit={(stage) => setDialog({ kind: 'stage', stage: funnel.stages.find((item) => item.id === stage.id) })}
+            onDelete={(stage) => setDialog({ kind: 'delete-stage', stage: funnel.stages.find((item) => item.id === stage.id)! })} />
         </Surface>
 
         <Surface className="funnel-card">
@@ -123,8 +107,8 @@ export function FunnelSettingsPage() {
       </div>
     </div>}
 
-    {dialog?.kind === 'create' && <NameDialog title="Новая воронка" description="Будут созданы этапы «Новая», «В работе», «Успех» и «Проигрыш» — их можно изменить после создания." submitLabel="Создать воронку" initial="" onClose={close} onSubmit={async (name) => { const id = await funnelConfig.createFunnel({ name, stages: defaultStages }); setSelectedId(id); }} />}
-    {dialog?.kind === 'rename' && funnel && <NameDialog title="Переименовать воронку" submitLabel="Сохранить" initial={funnel.name} onClose={close} onSubmit={(name) => funnelConfig.updateFunnel(funnel.id, { name })} />}
+    {dialog?.kind === 'create' && <NameDialog label="Название воронки" placeholder="Например, Опт" describeError={funnelErrorMessage} title="Новая воронка" description="Будут созданы этапы «Новая», «В работе», «Успех» и «Проигрыш» — их можно изменить после создания." submitLabel="Создать воронку" initial="" onClose={close} onSubmit={async (name) => { const id = await funnelConfig.createFunnel({ name, stages: defaultStages }); setSelectedId(id); }} />}
+    {dialog?.kind === 'rename' && funnel && <NameDialog label="Название воронки" placeholder="Например, Опт" describeError={funnelErrorMessage} title="Переименовать воронку" submitLabel="Сохранить" initial={funnel.name} onClose={close} onSubmit={(name) => funnelConfig.updateFunnel(funnel.id, { name })} />}
     {dialog?.kind === 'delete-funnel' && funnel && <DeleteFunnelDialog funnel={funnel} onClose={close} onDelete={async () => { await funnelConfig.deleteFunnel(funnel.id); setSelectedId(null); }} />}
     {dialog?.kind === 'stage' && funnel && <StageDialog stage={dialog.stage} onClose={close} onSubmit={(input) => dialog.stage ? funnelConfig.updateStage(funnel.id, dialog.stage.id, changedFields(dialog.stage, input)) : funnelConfig.addStage(funnel.id, input)} />}
     {dialog?.kind === 'delete-stage' && funnel && <DeleteStageDialog stage={dialog.stage} stages={funnel.stages} onClose={close} onDelete={(target) => funnelConfig.deleteStage(funnel.id, dialog.stage.id, target)} />}
@@ -151,29 +135,8 @@ function changedFields(stage: DealStage, input: StageInput): Partial<StageInput>
   return patch;
 }
 
-/** Shared submit handling: keeps the dialog open with a Russian error when the API rejects the change. */
-function useSubmit(onClose: () => void) {
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const run = async (action: () => Promise<unknown>, fallback: string) => {
-    setSaving(true); setError('');
-    try { await action(); onClose(); } catch (reason) { setError(funnelErrorMessage(reason, fallback)); } finally { setSaving(false); }
-  };
-  return { saving, error, run };
-}
-
-function NameDialog({ title, description, submitLabel, initial, onClose, onSubmit }: { title: string; description?: string; submitLabel: string; initial: string; onClose: () => void; onSubmit: (name: string) => Promise<unknown> }) {
-  const [name, setName] = useState(initial);
-  const { saving, error, run } = useSubmit(onClose);
-  const trimmed = name.trim();
-  const submit = (event: FormEvent) => { event.preventDefault(); void run(() => onSubmit(trimmed), 'Название не сохранено'); };
-  return <Dialog open title={title} description={description} size="sm" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Отмена</Button><Button type="submit" form="funnel-name-form" disabled={saving || !trimmed || trimmed === initial}>{saving ? 'Сохраняем…' : submitLabel}</Button></>}>
-    <form id="funnel-name-form" className="form-grid" onSubmit={submit}><Field label="Название воронки" className="field--wide"><input value={name} onChange={(event) => setName(event.target.value)} maxLength={100} required placeholder="Например, Опт" autoFocus /></Field>{error && <div className="form-error field--wide" role="alert">{error}</div>}</form>
-  </Dialog>;
-}
-
 function DeleteFunnelDialog({ funnel, onClose, onDelete }: { funnel: Funnel; onClose: () => void; onDelete: () => Promise<unknown> }) {
-  const { saving, error, run } = useSubmit(onClose);
+  const { saving, error, run } = useSubmit(onClose, funnelErrorMessage);
   const deals = dealTotal(funnel);
   return <Dialog open title={`Удалить воронку «${funnel.name}»?`} description={deals ? `В воронке ${plural(deals, DEALS)}. Перенесите их в другую воронку, чтобы удалить её.` : 'Этапы и настройки доступа будут удалены. Действие нельзя отменить.'} size="sm" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Отмена</Button><Button variant="danger" disabled={saving || deals > 0} onClick={() => void run(onDelete, 'Воронка не удалена')}>Удалить</Button></>}>
     {error ? <div className="form-error" role="alert">{error}</div> : <p className="dialog-text">{deals ? 'Сделки переносятся на доске продаж: откройте сделку и выберите другую воронку.' : 'Сотрудники перестанут видеть эту воронку на доске продаж.'}</p>}
@@ -181,30 +144,11 @@ function DeleteFunnelDialog({ funnel, onClose, onDelete }: { funnel: Funnel; onC
 }
 
 export function StageDialog({ stage, onClose, onSubmit }: { stage?: DealStage; onClose: () => void; onSubmit: (input: StageInput) => Promise<unknown> }) {
-  const [draft, setDraft] = useState<StageInput>({ name: stage?.name ?? '', color: stage?.color ?? stageColorPresets[0]!, outcome: stage?.outcome ?? 'OPEN' });
-  const { saving, error, run } = useSubmit(onClose);
-  const name = draft.name.trim();
-  const unchanged = Boolean(stage) && name === stage!.name && draft.color.toLowerCase() === stage!.color.toLowerCase() && draft.outcome === stage!.outcome;
-  const submit = (event: FormEvent) => { event.preventDefault(); void run(() => onSubmit({ ...draft, name }), stage ? 'Этап не сохранён' : 'Этап не добавлен'); };
-  return <Dialog open title={stage ? 'Изменить этап' : 'Новый этап'} description={stage ? undefined : 'Этап появится последней колонкой на доске. Порядок можно изменить.'} onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Отмена</Button><Button type="submit" form="stage-form" disabled={saving || !name || unchanged}>{saving ? 'Сохраняем…' : stage ? 'Сохранить' : 'Добавить этап'}</Button></>}>
-    <form id="stage-form" className="form-grid" onSubmit={submit}>
-      <Field label="Название" className="field--wide"><input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} maxLength={100} required placeholder="Например, Согласование" autoFocus /></Field>
-      <Field label="Цвет" className="field--wide"><span className="color-presets" role="radiogroup" aria-label="Цвет этапа">{stageColorPresets.map((color) => <button key={color} type="button" role="radio" aria-checked={draft.color.toLowerCase() === color} aria-label={`Цвет ${color}`} className={draft.color.toLowerCase() === color ? 'is-active' : ''} style={{ background: color }} onClick={() => setDraft({ ...draft, color })} />)}<label className={`color-presets__custom ${stageColorPresets.includes(draft.color.toLowerCase()) ? '' : 'is-active'}`} title="Другой цвет"><input type="color" aria-label="Другой цвет" value={draft.color} onChange={(event) => setDraft({ ...draft, color: event.target.value })} /></label></span></Field>
-      <div className="field field--wide"><SelectField label="Итог этапа" value={draft.outcome} onChange={(event) => setDraft({ ...draft, outcome: event.target.value as StageOutcome })}>{(Object.keys(outcomes) as StageOutcome[]).map((value) => <option key={value} value={value}>{outcomes[value].label}</option>)}</SelectField><small>{outcomes[draft.outcome].hint}</small></div>
-      {error && <div className="form-error field--wide" role="alert">{error}</div>}
-    </form>
-  </Dialog>;
+  return <SharedStageDialog stage={stage && editable(stage)} kinds={outcomes} kindLabel="Итог этапа" defaultKind="OPEN" placement="Этап появится последней колонкой на доске. Порядок можно изменить." describeError={funnelErrorMessage} onClose={onClose} onSubmit={(input) => onSubmit({ name: input.name, color: input.color, outcome: input.kind })} />;
 }
 
 export function DeleteStageDialog({ stage, stages, onClose, onDelete }: { stage: DealStage; stages: DealStage[]; onClose: () => void; onDelete: (moveToStageId?: string) => Promise<unknown> }) {
-  const [target, setTarget] = useState('');
-  const { saving, error, run } = useSubmit(onClose);
-  const count = stage.dealCount ?? 0;
-  const needsTarget = count > 0;
-  return <Dialog open title={`Удалить этап «${stage.name}»?`} description={needsTarget ? `В этапе ${plural(count, DEALS)}. Выберите, куда их перенести.` : 'В этапе нет сделок.'} size="sm" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Отмена</Button><Button variant="danger" disabled={saving || (needsTarget && !target)} onClick={() => void run(() => onDelete(needsTarget ? target : undefined), 'Этап не удалён')}>{needsTarget ? 'Перенести и удалить' : 'Удалить'}</Button></>}>
-    {needsTarget && <SelectField label="Перенести сделки в этап" value={target} onChange={(event) => setTarget(event.target.value)} required><option value="">Выберите этап</option>{stages.filter((item) => item.id !== stage.id).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</SelectField>}
-    {error && <div className="form-error" role="alert">{error}</div>}
-  </Dialog>;
+  return <SharedDeleteStageDialog stage={editable(stage)} stages={stages.map(editable)} countForms={DEALS} recordsLabel="сделки" describeError={funnelErrorMessage} onClose={onClose} onDelete={onDelete} />;
 }
 
 export function AccessDialog({ funnel, onClose, onSubmit }: { funnel: Funnel; onClose: () => void; onSubmit: (access: FunnelAccessInput) => Promise<unknown> }) {
@@ -212,7 +156,7 @@ export function AccessDialog({ funnel, onClose, onSubmit }: { funnel: Funnel; on
   const [mode, setMode] = useState<FunnelAccessMode>(funnel.accessMode ?? 'COMPANY');
   const [departmentIds, setDepartmentIds] = useState<string[]>(funnel.departmentIds ?? []);
   const [userIds, setUserIds] = useState<string[]>(funnel.userIds ?? []);
-  const { saving, error, run } = useSubmit(onClose);
+  const { saving, error, run } = useSubmit(onClose, funnelErrorMessage);
   const departments = useMemo(() => [...new Map(users.filter((user) => user.departmentId).map((user) => [user.departmentId!, user.department])).entries()]
     .sort((a, b) => a[1].localeCompare(b[1], 'ru')), [users]);
   const toggle = (list: string[], id: string) => list.includes(id) ? list.filter((item) => item !== id) : [...list, id];

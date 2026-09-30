@@ -42,6 +42,29 @@ summaries, dashboard pipeline, reports, and AI pipeline metrics all apply the
 same funnel predicate. Only directors configure funnels, stages, and access;
 attempts by other roles are rejected and audited as `FUNNEL_CONFIG_DENIED`.
 
+Tasks live on task boards, and boards are shared rather than owner-scoped. A user
+opens a board when they are a director of the company, the board belongs to their
+department, or they were added as an extra member; a board without a department
+is a director board that only directors and its members open. Everyone who opens a
+board sees and moves all of its tasks, and every assignee must be able to open it
+(`boardAccessSql` and `boardUserAccessSql` in `scope.ts`). A task can be deleted by
+its creator or a board manager. Board configuration (boards, stages, members) is
+limited to directors and to managers for their own department's boards; other
+attempts return 403 `BOARD_MANAGER_ONLY` and are audited as
+`TASK_BOARD_CONFIG_DENIED` with the board's department. Each stage has a category
+(`TODO`, `ACTIVE`, `DONE`); done-task metrics, `completed_at` and the "Мои задачи"
+columns all follow the category, so custom stage names keep reports correct.
+Reports and AI metrics count a shared task once per assignee.
+
+Task board endpoints (`/api/v1/task-boards`): `GET /` (boards with ordered stages,
+task counts, `canManage`, and `memberIds` for managers), `POST /`, `PATCH` and
+`DELETE /:id` (only when empty), `PUT /:id/members`, `GET /:id/users` (people who
+can open the board), `GET /:id/candidates` (managers only), and stage `POST
+/:id/stages`, `PATCH /:id/stages/:stageId`, `PUT /:id/stages/order`, `DELETE
+/:id/stages/:stageId?moveToStageId=`. `/api/v1/tasks` takes `boardId`, `stageId`
+and `assigneeIds`, and filters by `boardId`, `stageId`, `category`, `priority`,
+`dealId` and `assignee=me|<id>`.
+
 Refresh tokens are rotated and stored as hashes. Access tokens are short-lived.
 Login attempts are rate-limited and repeated failures temporarily lock the
 account. Document objects stay private and are streamed only after an access
@@ -54,7 +77,13 @@ department -> users -> kpis
                   |-> refresh_tokens
                   |-> presence_events
                   |-> achievements
-                  |-> tasks -> optional deal
+
+department -> task_boards (NULL department = director board)
+               -> task_board_stages (ordered, category TODO / ACTIVE / DONE)
+               -> task_board_members (extra members from any department)
+               -> tasks -> board + stage (database-enforced: the stage belongs to the board)
+                        -> task_assignees (one or more users)
+                        -> optional deal
 
 deal_funnels -> deal_stages (ordered, outcome OPEN / WON / LOST)
              -> deal_funnel_access (department or user grants)

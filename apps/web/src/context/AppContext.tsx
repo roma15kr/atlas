@@ -12,12 +12,16 @@ import {
   demoMessages,
   demoReports,
   demoFunnels,
+  demoTaskBoards,
   demoTasks,
   demoUsers,
+  canManageBoard,
+  canOpenBoard,
   canOpenFunnel,
+  demoBoardUsers,
   fallbackSession,
 } from '../data/demo';
-import type { Achievement, Alert, AuditEvent, ChannelMessage, Client, CompanyDocument, Deal, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Integration, Kpi, Report, Role, Session, User, WorkTask } from '../types';
+import type { Achievement, Alert, AuditEvent, BoardUser, ChannelMessage, Client, CompanyDocument, Deal, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Integration, Kpi, Report, Role, Session, TaskAssignee, TaskBoard, TaskCategory, TaskPriority, TaskStage, TaskStageSummary, User, WorkTask } from '../types';
 
 const roleRank: Record<Role, number> = { EMPLOYEE: 1, MANAGER: 2, DIRECTOR: 3 };
 export const DEMO_MODE = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true';
@@ -88,9 +92,18 @@ const normalizeDeal = (source: Record<string, unknown>): Deal => {
 };
 
 const normalizeTask = (source: Record<string, unknown>): WorkTask => {
-  const assignee = source.assignee as { id?: string; fullName?: string } | undefined;
-  const deal = source.deal as { id?: string; title?: string } | undefined;
-  return { id: String(source.id), title: String(source.title ?? ''), description: String(source.description ?? ''), status: (source.status as WorkTask['status']) ?? 'TODO', assigneeId: String(source.assigneeId ?? assignee?.id ?? ''), assigneeName: String(source.assigneeName ?? assignee?.fullName ?? ''), dealId: (source.dealId ?? deal?.id) as string | undefined, dealTitle: (source.dealTitle ?? deal?.title) as string | undefined, dueAt: String(source.dueAt ?? ''), priority: (source.priority as WorkTask['priority']) ?? 'NORMAL' };
+  const deal = source.deal as { id?: string; title?: string } | null | undefined;
+  const stage = (source.stage ?? {}) as Partial<TaskStageSummary>;
+  const assignees = Array.isArray(source.assignees) ? source.assignees as Array<Record<string, unknown>> : [];
+  return {
+    id: String(source.id), title: String(source.title ?? ''), description: String(source.description ?? ''),
+    boardId: String(source.boardId ?? ''), boardName: String(source.boardName ?? ''),
+    stage: { id: String(stage.id ?? ''), name: String(stage.name ?? ''), color: String(stage.color ?? '#6B7280'), category: stage.category ?? 'TODO' },
+    assignees: assignees.map((item) => ({ id: String(item.id), fullName: String(item.fullName ?? ''), avatarUrl: (item.avatarUrl ?? undefined) as string | undefined })),
+    createdBy: (source.createdBy ?? undefined) as string | undefined, canDelete: source.canDelete === undefined ? undefined : Boolean(source.canDelete),
+    dealId: (source.dealId ?? deal?.id ?? undefined) as string | undefined, dealTitle: (source.dealTitle ?? deal?.title ?? undefined) as string | undefined,
+    dueAt: String(source.dueAt ?? ''), completedAt: (source.completedAt ?? null) as string | null, priority: (source.priority as TaskPriority) ?? 'NORMAL',
+  };
 };
 
 const normalizeDocument = (source: Record<string, unknown>): CompanyDocument => ({
@@ -207,12 +220,44 @@ export interface FunnelConfig {
   deleteStage: (funnelId: string, stageId: string, moveToStageId?: string) => Promise<void>;
 }
 
+export interface TaskInput {
+  boardId: string;
+  stageId?: string;
+  assigneeIds: string[];
+  title: string;
+  description?: string;
+  dueAt?: string | null;
+  priority: TaskPriority;
+  dealId?: string | null;
+}
+
+export interface BoardStageInput { name: string; color: string; category: TaskCategory }
+
+/** Board configuration for directors and department heads; the API rejects and audits anyone else. */
+export interface TaskBoardConfig {
+  createBoard: (input: { name: string; departmentId: string | null; stages: BoardStageInput[]; memberIds?: string[] }) => Promise<string>;
+  updateBoard: (id: string, patch: { name?: string; sortOrder?: number }) => Promise<void>;
+  deleteBoard: (id: string) => Promise<void>;
+  setMembers: (id: string, userIds: string[]) => Promise<void>;
+  addStage: (boardId: string, stage: BoardStageInput) => Promise<void>;
+  updateStage: (boardId: string, stageId: string, patch: Partial<BoardStageInput>) => Promise<void>;
+  reorderStages: (boardId: string, stageIds: string[]) => Promise<void>;
+  deleteStage: (boardId: string, stageId: string, moveToStageId?: string) => Promise<void>;
+  /** Everyone who can open the board, i.e. who can be assigned to its tasks. */
+  boardUsers: (boardId: string) => Promise<BoardUser[]>;
+  /** Active non-director users of any department, for choosing extra members. */
+  memberCandidates: (boardId: string) => Promise<BoardUser[]>;
+}
+
 interface WorkspaceValue {
   users: User[];
   clients: Client[];
   deals: Deal[];
   /** Funnels the current user may open, each with ordered stages. */
   funnels: Funnel[];
+  /** Task boards the current user may open, each with ordered stages. */
+  taskBoards: TaskBoard[];
+  /** Every task on those boards. */
   tasks: WorkTask[];
   documents: CompanyDocument[];
   reports: Report[];
@@ -228,8 +273,12 @@ interface WorkspaceValue {
   addDeal: (deal: Omit<Deal, 'id'>) => Promise<void>;
   moveDeal: (id: string, stageId: string, funnelId?: string) => Promise<void>;
   funnelConfig: FunnelConfig;
-  moveTask: (id: string, status: WorkTask['status']) => Promise<void>;
-  addTask: (task: Omit<WorkTask, 'id'>) => Promise<void>;
+  addTask: (input: TaskInput) => Promise<WorkTask>;
+  updateTask: (id: string, patch: Partial<TaskInput>) => Promise<void>;
+  /** Moves a task to a stage, optionally on another board. */
+  moveTask: (id: string, stageId: string, boardId?: string) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
+  taskBoardConfig: TaskBoardConfig;
   addDocument: (file: File, folder: string, visibility: CompanyDocument['visibility']) => Promise<void>;
   addReport: (report: Omit<Report, 'id' | 'createdAt' | 'status'>) => Promise<void>;
   acknowledgeAlert: (id: string) => Promise<void>;
@@ -245,6 +294,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [deals, setDeals] = useState<Deal[]>(initialDemo ? demoDeals : []);
   const [funnels, setFunnels] = useState<Funnel[]>(initialDemo ? demoFunnels : []);
   const [tasks, setTasks] = useState<WorkTask[]>(initialDemo ? demoTasks : []);
+  const [taskBoards, setTaskBoards] = useState<TaskBoard[]>(initialDemo ? demoTaskBoards : []);
   const [documents, setDocuments] = useState<CompanyDocument[]>(initialDemo ? demoDocuments : []);
   const [reports, setReports] = useState<Report[]>(initialDemo ? demoReports : []);
   const [alerts, setAlerts] = useState<Alert[]>(initialDemo ? demoAlerts : []);
@@ -262,9 +312,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     setDataStatus('loading');
     Promise.allSettled([
       api.list<Record<string, unknown>>('team'), api.list<Record<string, unknown>>('clients'), listAll<Record<string, unknown>>('deals'),
-      api.list<Record<string, unknown>>('tasks'), api.list<CompanyDocument>('documents'),
+      listAll<Record<string, unknown>>('tasks'), api.list<CompanyDocument>('documents'),
       api.list<Report>('reports'), api.list<Alert>('alerts'), api.list<Funnel>('funnels'),
       api.list<Achievement>('achievements'), api.list<Integration>('integrations'), api.list<ChannelMessage>('messages'), api.list<AuditEvent>('audit'),
+      api.list<TaskBoard>('task-boards'),
     ]).then((results) => {
       if (!active) return;
       const setters: Array<(value: unknown[]) => void> = [
@@ -276,6 +327,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         (items) => setAlerts(items.map((item) => normalizeAlert(item as Record<string, unknown>))), (items) => setFunnels(items as Funnel[]),
         (items) => setAchievements(items as Achievement[]), (items) => setIntegrations(items as Integration[]),
         (items) => setMessages(items.map((item) => normalizeMessage(item as Record<string, unknown>))), (items) => setAudit(items.map((item) => normalizeAudit(item as Record<string, unknown>))),
+        (items) => setTaskBoards(items as TaskBoard[]),
       ];
       let fulfilled = 0;
       results.forEach((result, index) => {
@@ -292,11 +344,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!session) return;
     if (isDemo) {
-      setUsers(demoUsers); setClients(demoClients); setDeals(demoDeals); setFunnels(demoFunnels); setTasks(demoTasks);
+      setUsers(demoUsers); setClients(demoClients); setDeals(demoDeals); setFunnels(demoFunnels); setTasks(demoTasks); setTaskBoards(demoTaskBoards);
       setDocuments(demoDocuments); setReports(demoReports); setAlerts(demoAlerts); setAchievements(demoAchievements);
       setIntegrations(demoIntegrations); setMessages(demoMessages); setAudit(demoAudit); setDataStatus('ready');
     } else {
-      setUsers([]); setClients([]); setDeals([]); setFunnels([]); setTasks([]); setDocuments([]); setReports([]);
+      setUsers([]); setClients([]); setDeals([]); setFunnels([]); setTasks([]); setTaskBoards([]); setDocuments([]); setReports([]);
       setAlerts([]); setAchievements([]); setIntegrations([]); setMessages([]); setAudit([]);
     }
   }, [session?.accessToken, isDemo]);
@@ -426,15 +478,135 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     };
   }, [configure, funnels, isDemo]);
 
-  const moveTask = useCallback(async (id: string, status: WorkTask['status']) => {
-    await remote(() => api.update<WorkTask>('tasks', id, { status }));
-    setTasks((current) => current.map((task) => task.id === id ? { ...task, status } : task));
+  const stageSummary = (stage: TaskStage): TaskStageSummary => ({ id: stage.id, name: stage.name, color: stage.color, category: stage.category });
+  const demoPeople = (ids: string[]): TaskAssignee[] => ids.map((id) => ({ id, fullName: demoUsers.find((user) => user.id === id)?.fullName ?? '' }));
+
+  /** Demo sessions apply the server's task rules locally: default stage, default assignee and completion time. */
+  const applyLocally = useCallback((task: WorkTask, patch: Partial<TaskInput>): WorkTask => {
+    const board = taskBoards.find((item) => item.id === (patch.boardId ?? task.boardId));
+    const stage = board?.stages.find((item) => item.id === patch.stageId);
+    const next: WorkTask = {
+      ...task,
+      ...(patch.title !== undefined ? { title: patch.title } : {}),
+      ...(patch.description !== undefined ? { description: patch.description } : {}),
+      ...(patch.priority !== undefined ? { priority: patch.priority } : {}),
+      ...(patch.dueAt !== undefined ? { dueAt: patch.dueAt ?? '' } : {}),
+      ...(patch.assigneeIds ? { assignees: demoPeople(patch.assigneeIds) } : {}),
+    };
+    if (!board || !stage) return next;
+    const wasDone = task.stage.category === 'DONE';
+    const isDone = stage.category === 'DONE';
+    return { ...next, boardId: board.id, boardName: board.name, stage: stageSummary(stage), completedAt: wasDone === isDone ? task.completedAt : isDone ? new Date().toISOString() : null };
+  }, [taskBoards]);
+
+  const addTask = useCallback(async (input: TaskInput) => {
+    const raw = await remote(() => api.create<Record<string, unknown>>('tasks', input));
+    let created: WorkTask;
+    if (raw) created = normalizeTask(raw);
+    else {
+      const board = taskBoards.find((item) => item.id === input.boardId);
+      const stage = board?.stages.find((item) => item.id === input.stageId) ?? board?.stages.find((item) => item.category === 'TODO');
+      if (!board || !stage) throw new Error('Доска недоступна');
+      created = {
+        id: crypto.randomUUID(), title: input.title, description: input.description ?? '', boardId: board.id, boardName: board.name,
+        stage: stageSummary(stage), assignees: demoPeople(input.assigneeIds.length ? input.assigneeIds : [session!.user.id]), createdBy: session?.user.id,
+        dueAt: input.dueAt ?? '', completedAt: stage.category === 'DONE' ? new Date().toISOString() : null, priority: input.priority,
+      };
+    }
+    setTasks((current) => [created, ...current]);
+    return created;
+  }, [remote, session, taskBoards]);
+
+  const updateTask = useCallback(async (id: string, patch: Partial<TaskInput>) => {
+    const raw = await remote(() => api.update<Record<string, unknown>>('tasks', id, patch));
+    setTasks((current) => current.map((task) => task.id !== id ? task : raw ? normalizeTask(raw) : applyLocally(task, patch)));
+  }, [remote, applyLocally]);
+
+  const moveTask = useCallback((id: string, stageId: string, boardId?: string) => updateTask(id, boardId ? { boardId, stageId } : { stageId }), [updateTask]);
+
+  const deleteTask = useCallback(async (id: string) => {
+    await remote(() => api.remove('tasks', id));
+    setTasks((current) => current.filter((task) => task.id !== id));
   }, [remote]);
 
-  const addTask = useCallback(async (input: Omit<WorkTask, 'id'>) => {
-    const created = await remote(() => api.create<WorkTask>('tasks', input));
-    setTasks((current) => [{ ...input, id: created?.id ?? crypto.randomUUID() }, ...current]);
-  }, [remote]);
+  const reloadTaskBoards = useCallback(async (reloadTasks = false) => {
+    const [nextBoards, nextTasks] = await Promise.all([
+      api.list<TaskBoard>('task-boards'),
+      reloadTasks ? listAll<Record<string, unknown>>('tasks') : Promise.resolve(null),
+    ]);
+    setTaskBoards(nextBoards);
+    if (nextTasks) setTasks(nextTasks.map(normalizeTask));
+  }, []);
+
+  const configureBoards = useCallback(async (action: () => Promise<unknown>, local: (current: TaskBoard[]) => TaskBoard[], reloadTasks = false) => {
+    // Computing the demo result first lets a rule violation reject the promise instead of breaking a render.
+    if (isDemo) { setTaskBoards(local(taskBoards)); return; }
+    await remote(action);
+    await reloadTaskBoards(reloadTasks);
+  }, [isDemo, remote, reloadTaskBoards, taskBoards]);
+
+  const taskBoardConfig = useMemo<TaskBoardConfig>(() => {
+    const withStages = (current: TaskBoard[], boardId: string, update: (stages: TaskStage[]) => TaskStage[]) =>
+      current.map((board) => board.id === boardId ? { ...board, stages: update(board.stages) } : board);
+    const requireCategories = (stages: TaskStage[]) => {
+      if (!stages.some((stage) => stage.category === 'TODO') || !stages.some((stage) => stage.category === 'DONE')) {
+        throw new ApiError('A board needs at least one TODO stage and one DONE stage', 400, undefined, 'STAGE_CATEGORY_REQUIRED');
+      }
+      return stages;
+    };
+    // Demo stage edits also move the affected tasks, as the server does.
+    const retagTasks = (stageId: string, stage: TaskStage | undefined, target?: TaskStage) => setTasks((current) => current.map((task) => {
+      if (task.stage.id !== stageId) return task;
+      const next = target ?? stage;
+      if (!next) return task;
+      const wasDone = task.stage.category === 'DONE'; const isDone = next.category === 'DONE';
+      return { ...task, stage: stageSummary(next), completedAt: wasDone === isDone ? task.completedAt : isDone ? new Date().toISOString() : null };
+    }));
+    return {
+      createBoard: async (input) => {
+        let id: string = crypto.randomUUID();
+        const department = input.departmentId ? demoUsers.find((user) => user.departmentId === input.departmentId)?.department ?? null : null;
+        await configureBoards(async () => { id = (await api.create<{ id: string }>('task-boards', input)).id; }, (current) => [...current, {
+          id, name: input.name, departmentId: input.departmentId, departmentName: department, canManage: true, memberIds: input.memberIds ?? [],
+          sortOrder: Math.max(0, ...current.filter((board) => board.departmentId === input.departmentId).map((board) => board.sortOrder)) + 10,
+          stages: input.stages.map((stage, index) => ({ ...stage, id: crypto.randomUUID(), boardId: id, sortOrder: (index + 1) * 10 })),
+        }]);
+        return id;
+      },
+      updateBoard: async (id, patch) => {
+        await configureBoards(() => api.update('task-boards', id, patch), (current) => current.map((board) => board.id === id ? { ...board, ...patch } : board), true);
+        if (isDemo && patch.name) setTasks((current) => current.map((task) => task.boardId === id ? { ...task, boardName: patch.name! } : task));
+      },
+      deleteBoard: (id) => configureBoards(() => api.remove('task-boards', id), (current) => current.filter((board) => board.id !== id)),
+      setMembers: (id, userIds) => configureBoards(() => api.put(`/task-boards/${id}/members`, { userIds }),
+        (current) => current.map((board) => board.id === id ? { ...board, memberIds: [...new Set(userIds)] } : board)),
+      addStage: (boardId, stage) => configureBoards(() => api.create(`task-boards/${boardId}/stages`, stage),
+        (current) => withStages(current, boardId, (stages) => [...stages, { ...stage, id: crypto.randomUUID(), boardId, sortOrder: Math.max(0, ...stages.map((item) => item.sortOrder)) + 10 }])),
+      updateStage: async (boardId, stageId, patch) => {
+        let updated: TaskStage | undefined;
+        await configureBoards(() => api.update(`task-boards/${boardId}/stages`, stageId, patch),
+          (current) => withStages(current, boardId, (stages) => requireCategories(stages.map((stage) => stage.id === stageId ? (updated = { ...stage, ...patch }) : stage))), true);
+        if (isDemo) retagTasks(stageId, updated);
+      },
+      reorderStages: (boardId, stageIds) => configureBoards(() => api.put(`/task-boards/${boardId}/stages/order`, { stageIds }),
+        (current) => withStages(current, boardId, (stages) => stageIds.map((id, index) => ({ ...stages.find((stage) => stage.id === id)!, sortOrder: (index + 1) * 10 })))),
+      deleteStage: async (boardId, stageId, moveToStageId) => {
+        const query = moveToStageId ? `?moveToStageId=${encodeURIComponent(moveToStageId)}` : '';
+        const target = taskBoards.find((board) => board.id === boardId)?.stages.find((stage) => stage.id === moveToStageId);
+        await configureBoards(() => api.remove(`task-boards/${boardId}/stages`, `${stageId}${query}`),
+          (current) => withStages(current, boardId, (stages) => requireCategories(stages.filter((stage) => stage.id !== stageId))), true);
+        if (isDemo && target) retagTasks(stageId, undefined, target);
+      },
+      boardUsers: async (boardId) => {
+        if (isDemo) { const board = taskBoards.find((item) => item.id === boardId); return board ? demoBoardUsers(board) : []; }
+        return api.list<BoardUser>(`task-boards/${boardId}/users`);
+      },
+      memberCandidates: async (boardId) => {
+        if (isDemo) return demoUsers.filter((user) => user.role !== 'DIRECTOR').map((user) => ({ id: user.id, fullName: user.fullName, jobTitle: user.jobTitle, departmentId: user.departmentId ?? null, departmentName: user.department }));
+        return api.list<BoardUser>(`task-boards/${boardId}/candidates`);
+      },
+    };
+  }, [configureBoards, isDemo, taskBoards]);
 
   const addDocument = useCallback(async (file: File, folder: string, visibility: CompanyDocument['visibility']) => {
     const created = await remote(() => api.uploadDocument(file, { folder, visibility }) as Promise<CompanyDocument>);
@@ -456,15 +628,24 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     if (session.user.role === 'MANAGER') return users.filter((user) => user.department === session.user.department);
     return users.filter((user) => user.id === session.user.id);
   }, [session, users]);
-  const scoped = <T extends { ownerId?: string; assigneeId?: string }>(items: T[]) => {
+  const scoped = <T extends { ownerId?: string }>(items: T[]) => {
     if (!session || roleRank[session.user.role] >= roleRank.MANAGER) return items;
-    return items.filter((item) => item.ownerId === session.user.id || item.assigneeId === session.user.id);
+    return items.filter((item) => item.ownerId === session.user.id);
   };
   const visibleFunnels = !session ? funnels : funnels.filter((funnel) => canOpenFunnel(funnel, session.user));
   const openFunnelIds = new Set(visibleFunnels.map((funnel) => funnel.id));
   const scopedClients = scoped(clients);
   const scopedDeals = scoped(deals).filter((deal) => openFunnelIds.has(deal.funnelId));
-  const scopedTasks = scoped(tasks);
+  // Boards are shared: members see every task on a board they can open. The API already filters real sessions.
+  const visibleBoards = useMemo(() => !session || !isDemo ? taskBoards : taskBoards.filter((board) => canOpenBoard(board, session.user)).map((board) => {
+    const canManage = canManageBoard(board, session.user);
+    return { ...board, canManage, memberIds: canManage ? board.memberIds ?? [] : undefined };
+  }), [session, isDemo, taskBoards]);
+  const visibleTasks = useMemo(() => {
+    const boards = new Map(visibleBoards.map((board) => [board.id, board]));
+    return tasks.filter((task) => boards.has(task.boardId)).map((task) => !isDemo || !session ? task
+      : { ...task, canDelete: task.createdBy === session.user.id || boards.get(task.boardId)!.canManage });
+  }, [tasks, visibleBoards, isDemo, session]);
   const accessibleClientIds = new Set(scopedClients.map((client) => client.id));
   const visibleAlerts = !session || session.user.role !== 'EMPLOYEE'
     ? alerts
@@ -475,12 +656,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<WorkspaceValue>(() => ({
     users: visibleUsers,
-    clients: scopedClients, deals: scopedDeals, funnels: visibleFunnels, tasks: scopedTasks, documents, reports, alerts: visibleAlerts,
+    clients: scopedClients, deals: scopedDeals, funnels: visibleFunnels, taskBoards: visibleBoards, tasks: visibleTasks, documents, reports, alerts: visibleAlerts,
     achievements, integrations, messages: visibleMessages, audit,
-    dataStatus, createTeamMember, addClient, updateClient, addDeal, moveDeal, funnelConfig, moveTask, addTask, addDocument, addReport, acknowledgeAlert,
+    dataStatus, createTeamMember, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert,
   // scoped is intentionally derived from current session and collections.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [visibleUsers, clients, deals, funnels, tasks, documents, reports, alerts, achievements, integrations, messages, audit, dataStatus, createTeamMember, addClient, updateClient, addDeal, moveDeal, funnelConfig, moveTask, addTask, addDocument, addReport, acknowledgeAlert, session]);
+  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, integrations, messages, audit, dataStatus, createTeamMember, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, session]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

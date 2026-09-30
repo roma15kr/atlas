@@ -87,18 +87,65 @@ export interface Funnel {
   userIds?: string[];
 }
 
-export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
+export type TaskCategory = 'TODO' | 'ACTIVE' | 'DONE';
+
+export interface TaskStageSummary {
+  id: string;
+  name: string;
+  color: string;
+  category: TaskCategory;
+}
+
+export interface TaskStage extends TaskStageSummary {
+  boardId: string;
+  sortOrder: number;
+}
+
+export interface TaskBoard {
+  id: string;
+  name: string;
+  /** Null for a director board. */
+  departmentId: string | null;
+  departmentName: string | null;
+  sortOrder: number;
+  canManage: boolean;
+  stages: TaskStage[];
+  /** Extra members from other departments; returned to board managers only. */
+  memberIds?: string[];
+}
+
+export interface TaskAssignee {
+  id: string;
+  fullName: string;
+  avatarUrl?: string;
+}
+
+/** A user who can open a board, i.e. who can be assigned to its tasks. */
+export interface BoardUser extends TaskAssignee {
+  role?: Role;
+  jobTitle?: string;
+  departmentId?: string | null;
+  departmentName?: string | null;
+  isMember?: boolean;
+}
+
+export type TaskPriority = 'LOW' | 'NORMAL' | 'HIGH';
+
 export interface WorkTask {
   id: string;
   title: string;
   description: string;
-  status: TaskStatus;
-  assigneeId: string;
-  assigneeName: string;
+  boardId: string;
+  boardName: string;
+  stage: TaskStageSummary;
+  assignees: TaskAssignee[];
+  createdBy?: string;
+  canDelete?: boolean;
   dealId?: string;
   dealTitle?: string;
   dueAt: string;
-  priority: 'LOW' | 'NORMAL' | 'HIGH';
+  completedAt?: string | null;
+  priority: TaskPriority;
 }
 
 export interface CompanyDocument {

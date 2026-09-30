@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canManageUser, funnelAccessSql, recordScope } from "./scope";
+import { boardAccessSql, boardManageSql, boardUserAccessSql, canManageUser, funnelAccessSql, recordScope } from "./scope";
 import type { AuthContext } from "./types";
 
 const base: AuthContext = {
@@ -71,5 +71,61 @@ describe("canManageUser", () => {
     const manager = { ...base, role: "MANAGER" as const };
     expect(canManageUser(manager, { id: "x", company_id: base.companyId, department_id: base.departmentId })).toBe(true);
     expect(canManageUser(manager, { id: "x", company_id: base.companyId, department_id: null })).toBe(false);
+  });
+});
+
+describe("boardAccessSql", () => {
+  it("gives directors every company board", () => {
+    expect(boardAccessSql({ ...base, role: "DIRECTOR" }, "t.board_id", 4)).toEqual({
+      sql: "t.board_id IN (SELECT ab.id FROM task_boards ab WHERE ab.company_id = $4)",
+      values: [base.companyId]
+    });
+  });
+
+  it("gives others their department's boards and boards they are members of", () => {
+    for (const role of ["MANAGER", "EMPLOYEE"] as const) {
+      const access = boardAccessSql({ ...base, role }, "t.board_id", 2);
+      expect(access.sql).toContain("ab.company_id = $2");
+      expect(access.sql).toContain("ab.department_id = $3");
+      expect(access.sql).toContain("am.board_id = ab.id AND am.user_id = $4");
+      expect(access.values).toEqual([base.companyId, base.departmentId, base.userId]);
+    }
+  });
+
+  it("does not open director boards to users without a department", () => {
+    const access = boardAccessSql({ ...base, departmentId: null }, "b.id");
+    // department_id = NULL is never true, so only membership remains.
+    expect(access.sql).not.toContain("IS NOT DISTINCT FROM");
+    expect(access.values).toEqual([base.companyId, null, base.userId]);
+  });
+});
+
+describe("boardManageSql", () => {
+  it("lets directors manage every company board", () => {
+    expect(boardManageSql({ ...base, role: "DIRECTOR" }, "b.id", 3)).toEqual({
+      sql: "b.id IN (SELECT mb.id FROM task_boards mb WHERE mb.company_id = $3)",
+      values: [base.companyId]
+    });
+  });
+
+  it("lets managers manage only their department's boards", () => {
+    expect(boardManageSql({ ...base, role: "MANAGER" }, "b.id", 2)).toEqual({
+      sql: "b.id IN (SELECT mb.id FROM task_boards mb WHERE mb.company_id = $2 AND mb.department_id = $3)",
+      values: [base.companyId, base.departmentId]
+    });
+  });
+
+  it("gives employees and department-less managers nothing", () => {
+    expect(boardManageSql(base, "b.id")).toEqual({ sql: "FALSE", values: [] });
+    expect(boardManageSql({ ...base, role: "MANAGER", departmentId: null }, "b.id")).toEqual({ sql: "FALSE", values: [] });
+  });
+});
+
+describe("boardUserAccessSql", () => {
+  it("applies the board rule to arbitrary user and board rows", () => {
+    const sql = boardUserAccessSql("u", "b");
+    expect(sql).toContain("u.company_id = b.company_id AND u.status = 'ACTIVE'");
+    expect(sql).toContain("u.role = 'DIRECTOR' OR u.department_id = b.department_id");
+    expect(sql).toContain("um.board_id = b.id AND um.user_id = u.id");
   });
 });

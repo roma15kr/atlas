@@ -68,7 +68,7 @@ export function assertExactOrder(existingIds: string[], submittedIds: string[]):
   const existing = new Set(existingIds);
   const submitted = new Set(submittedIds);
   if (submitted.size !== submittedIds.length || submitted.size !== existing.size || [...submitted].some((id) => !existing.has(id))) {
-    throw new ApiError(400, "INVALID_STAGE_ORDER", "Stage order must list every stage of the funnel exactly once");
+    throw new ApiError(400, "INVALID_STAGE_ORDER", "Stage order must list every stage exactly once");
   }
 }
 

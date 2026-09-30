@@ -23,6 +23,7 @@ import { funnelsRouter } from "./routes/funnels";
 import { integrationsRouter } from "./routes/integrations";
 import { messagesRouter } from "./routes/messages";
 import { reportsRouter } from "./routes/reports";
+import { taskBoardsRouter } from "./routes/taskBoards";
 import { tasksRouter } from "./routes/tasks";
 import { teamRouter } from "./routes/team";
 
@@ -69,6 +70,7 @@ app.use("/api/v1/team", teamRouter);
 app.use("/api/v1/clients", crmReadLimiter, clientsRouter);
 app.use("/api/v1/funnels", funnelsRouter);
 app.use("/api/v1/deals", dealsRouter);
+app.use("/api/v1/task-boards", taskBoardsRouter);
 app.use("/api/v1/tasks", tasksRouter);
 app.use("/api/v1/documents", documentsRouter);
 app.use("/api/v1/reports", reportsRouter);

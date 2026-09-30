@@ -21,7 +21,11 @@ Production: [atlas.141.94.30.173.sslip.io](https://atlas.141.94.30.173.sslip.io)
   won/lost outcome, delete with deal relocation) and per-funnel access for chosen
   departments and people.
 - Director-only bulk CSV export with audit records for access and denied attempts.
-- Personal tasks, due dates, deal links, and a three-column Kanban workflow.
+- Task boards per department, several per department, with configurable stages
+  (category Not started / In progress / Done) managed by the department head or a
+  director; boards are shared with the department plus invited people from other
+  departments. Tasks have several assignees, due dates and deal links, and
+  "Мои задачи" shows everything assigned to you across boards.
 - Private document metadata, versions, upload/download checks, and file storage
   on a dedicated volume with nightly backups.
 - Team profiles, KPI progress, achievement scoring, reports, and alert review.

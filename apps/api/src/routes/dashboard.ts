@@ -12,7 +12,12 @@ dashboardRouter.get("/", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
   const clientScope = recordScope(auth, { company: "c.company_id", department: "c.department_id", owner: "c.owner_id" });
   const deals = dealScope(auth);
-  const taskScope = recordScope(auth, { company: "t.company_id", department: "t.department_id", owner: "t.assignee_id" });
+  // Employees see the tasks assigned to them, managers the tasks on their department's boards.
+  const taskScope = auth.role === "DIRECTOR"
+    ? { sql: "t.company_id = $1", values: [auth.companyId] }
+    : auth.role === "MANAGER"
+      ? { sql: "t.company_id = $1 AND b.department_id = $2", values: [auth.companyId, auth.departmentId] }
+      : { sql: "t.company_id = $1 AND EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.user_id = $2)", values: [auth.companyId, auth.userId] };
   const userScope = recordScope(auth, { company: "u.company_id", department: "u.department_id", owner: "u.id" });
   const alertScope = auth.role === "DIRECTOR"
     ? { sql: "a.company_id = $1", values: [auth.companyId] }
@@ -32,9 +37,10 @@ dashboardRouter.get("/", asyncHandler(async (req, res) => {
     ),
     query<{ total: number; overdue: number; done: number }>(
       `SELECT count(*)::int AS total,
-              count(*) FILTER (WHERE t.status <> 'DONE' AND t.due_at < now())::int AS overdue,
-              count(*) FILTER (WHERE t.status = 'DONE')::int AS done
-       FROM tasks t WHERE ${taskScope.sql}`,
+              count(*) FILTER (WHERE s.category <> 'DONE' AND t.due_at < now())::int AS overdue,
+              count(*) FILTER (WHERE s.category = 'DONE')::int AS done
+       FROM tasks t JOIN task_boards b ON b.id = t.board_id JOIN task_board_stages s ON s.id = t.stage_id
+       WHERE ${taskScope.sql}`,
       taskScope.values
     ),
     query(

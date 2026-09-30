@@ -62,9 +62,10 @@ async function systemMetrics(auth: AuthContext, userId: string): Promise<SystemM
        FROM kpis WHERE user_id = $1 AND company_id = $2`, [userId, companyId]
     ),
     query<{ total: number; done: number; overdue: number }>(
-      `SELECT count(*)::int AS total, count(*) FILTER (WHERE status='DONE')::int AS done,
-              count(*) FILTER (WHERE status<>'DONE' AND due_at<now())::int AS overdue
-       FROM tasks WHERE assignee_id=$1 AND company_id=$2`, [userId, companyId]
+      `SELECT count(*)::int AS total, count(*) FILTER (WHERE s.category='DONE')::int AS done,
+              count(*) FILTER (WHERE s.category<>'DONE' AND t.due_at<now())::int AS overdue
+       FROM tasks t JOIN task_assignees ta ON ta.task_id=t.id JOIN task_board_stages s ON s.id=t.stage_id
+       WHERE ta.user_id=$1 AND t.company_id=$2`, [userId, companyId]
     ),
     query<{ openDeals: number; openValue: number; weightedValue: number }>(
       `SELECT count(*) FILTER (WHERE ds.outcome='OPEN')::int AS "openDeals",

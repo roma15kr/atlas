@@ -1,25 +1,28 @@
 import { Activity, ArrowUpRight, Banknote, Bot, CalendarDays, Check, Clock3, FileWarning, Plus, Target, TrendingUp, UserCheck, Users } from 'lucide-react';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Avatar, Badge, Button, Dialog, EmptyState, Field, Meter, PageHeader, SectionHeader, SelectField, Surface } from '../components/ui';
+import { TaskDialog } from '../components/TaskDialog';
+import { Avatar, Badge, Button, EmptyState, Meter, PageHeader, SectionHeader, Surface } from '../components/ui';
 import { useAuth, useWorkspace } from '../context/AppContext';
 import { formatDate, formatMoney, relativeTime } from '../lib/format';
-import type { WorkTask } from '../types';
+import { defaultBoard, isAssignedTo, rememberedBoard } from '../lib/boards';
+import type { TaskBoard, User, WorkTask } from '../types';
 
 const weekday = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 
 export function DashboardPage() {
   const { session } = useAuth();
-  const { users, clients, deals, tasks, alerts, acknowledgeAlert, addTask } = useWorkspace();
+  const { users, clients, deals, tasks: allTasks, taskBoards, alerts, acknowledgeAlert } = useWorkspace();
   const navigate = useNavigate();
   const [taskOpen, setTaskOpen] = useState(false);
   const user = session!.user;
+  const tasks = useMemo(() => dashboardTasks(allTasks, taskBoards, user), [allTasks, taskBoards, user]);
   const isDirector = user.role === 'DIRECTOR';
   const online = users.filter((member) => member.online).length;
   const activeDeals = deals.filter((deal) => deal.stage.outcome === 'OPEN');
   const pipeline = activeDeals.reduce((sum, deal) => sum + deal.value, 0);
-  const completed = tasks.filter((task) => task.status === 'DONE').length;
-  const dueSoon = tasks.filter((task) => task.status !== 'DONE' && new Date(task.dueAt).getTime() < Date.now() + 3 * 86400000).length;
+  const completed = tasks.filter((task) => task.stage.category === 'DONE').length;
+  const dueSoon = tasks.filter((task) => task.stage.category !== 'DONE' && task.dueAt && new Date(task.dueAt).getTime() < Date.now() + 3 * 86400000).length;
   const kpi = user.kpis.length ? Math.round(user.kpis.reduce((sum, item) => sum + Math.min(1, item.actual / item.target) * item.weight, 0) / user.kpis.reduce((sum, item) => sum + item.weight, 0) * 100) : 0;
   const chart = isDirector ? users.map((member) => ({ label: member.fullName.split(' ')[0], value: member.rating })) : user.kpis.map((item) => ({ label: item.name, value: Math.round(Math.min(1, item.actual / item.target) * 100) }));
   const chartAverage = chart.length ? Math.round(chart.reduce((sum, item) => sum + item.value, 0) / chart.length) : 0;
@@ -50,10 +53,10 @@ export function DashboardPage() {
       </Surface>
       <Surface className="today-panel">
         <SectionHeader title="Сегодня" meta={<CalendarDays size={16} />} action={<button className="text-button" onClick={() => navigate('/tasks')}>Все задачи</button>} />
-        <div className="today-list">{tasks.filter((task) => task.status !== 'DONE').slice(0, 4).map((task) => <button key={task.id} onClick={() => navigate('/tasks')}><i className={task.priority === 'HIGH' ? 'priority-high' : ''} /><span><strong>{task.title}</strong><small>{task.dealTitle ?? task.assigneeName}</small></span><time>{formatDate(task.dueAt)}</time></button>)}</div>
+        <div className="today-list">{tasks.filter((task) => task.stage.category !== 'DONE').slice(0, 4).map((task) => <button key={task.id} onClick={() => navigate('/tasks')}><i className={task.priority === 'HIGH' ? 'priority-high' : ''} /><span><strong>{task.title}</strong><small>{task.dealTitle ?? task.boardName}</small></span><time>{formatDate(task.dueAt)}</time></button>)}</div>
       </Surface>
     </div>
-    <TaskDialog open={taskOpen} onClose={() => setTaskOpen(false)} users={users} onSave={addTask} />
+    {taskOpen && taskBoards.length > 0 && <TaskDialog boardId={defaultBoard(taskBoards, user, rememberedBoard(user.id))?.id} onClose={() => setTaskOpen(false)} />}
   </>;
 }
 
@@ -61,20 +64,10 @@ function Metric({ label, value, note, icon: Icon, tone }: { label: string; value
   return <Surface className="metric"><span className={`metric__icon metric__icon--${tone}`}><Icon size={19} /></span><div><span>{label}</span><strong>{value}</strong><small>{note}</small></div></Surface>;
 }
 
-export function TaskDialog({ open, onClose, users, onSave }: { open: boolean; onClose: () => void; users: Array<{ id: string; fullName: string }>; onSave: (task: Omit<WorkTask, 'id'>) => Promise<void> }) {
-  const { session } = useAuth();
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const assigneeId = String(form.get('assigneeId'));
-    setSaving(true); setError('');
-    try {
-      await onSave({ title: String(form.get('title')), description: String(form.get('description') ?? ''), status: 'TODO', assigneeId, assigneeName: users.find((user) => user.id === assigneeId)?.fullName ?? session!.user.fullName, dueAt: new Date(String(form.get('dueAt'))).toISOString(), priority: form.get('priority') as WorkTask['priority'] });
-      onClose();
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Задача не создана'); }
-    finally { setSaving(false); }
-  };
-  return <Dialog open={open} title="Новая задача" description="Задача появится в личной доске исполнителя" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Отмена</Button><Button type="submit" form="task-form" disabled={saving}>{saving ? 'Сохраняем…' : 'Создать'}</Button></>}><form id="task-form" className="form-grid" onSubmit={(event) => void submit(event)}><Field label="Название" className="field--wide"><input name="title" required placeholder="Что нужно сделать" /></Field><Field label="Описание" className="field--wide"><textarea name="description" rows={3} placeholder="Контекст и ожидаемый результат" /></Field><SelectField label="Исполнитель" name="assigneeId" defaultValue={session!.user.id}>{users.map((member) => <option value={member.id} key={member.id}>{member.fullName}</option>)}</SelectField><SelectField label="Приоритет" name="priority" defaultValue="NORMAL"><option value="LOW">Низкий</option><option value="NORMAL">Обычный</option><option value="HIGH">Высокий</option></SelectField><Field label="Срок"><input name="dueAt" type="date" required defaultValue={new Date(Date.now() + 86400000).toISOString().slice(0, 10)} /></Field>{error && <div className="form-error field--wide" role="alert">{error}</div>}</form></Dialog>;
+/** Dashboard task scope: employees their own assigned tasks, heads their department's boards, directors everything. */
+export function dashboardTasks(tasks: WorkTask[], boards: TaskBoard[], user: User): WorkTask[] {
+  if (user.role === 'DIRECTOR') return tasks;
+  if (user.role === 'EMPLOYEE') return tasks.filter((task) => isAssignedTo(task, user.id));
+  const own = new Set(boards.filter((board) => board.departmentId && board.departmentId === user.departmentId).map((board) => board.id));
+  return tasks.filter((task) => own.has(task.boardId));
 }

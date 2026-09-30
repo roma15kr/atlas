@@ -19,7 +19,7 @@ export async function writeAudit(req: Request, input: AuditInput): Promise<void>
      VALUES ($1, $2, $3, $4, $5, $6, $7::inet, $8, $9::jsonb)`,
     [
       input.auth?.companyId ?? null,
-      input.departmentId ?? input.auth?.departmentId ?? null,
+      input.departmentId !== undefined ? input.departmentId : input.auth?.departmentId ?? null,
       input.auth?.userId ?? null,
       input.action,
       input.entityType,

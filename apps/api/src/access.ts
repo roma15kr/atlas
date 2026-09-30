@@ -1,6 +1,6 @@
 import { query } from "./db";
 import { ApiError } from "./errors";
-import { canManageUser, funnelAccessSql } from "./scope";
+import { boardAccessSql, boardUserAccessSql, canManageUser, funnelAccessSql } from "./scope";
 import type { AuthContext, Role } from "./types";
 
 export interface TargetUser {
@@ -37,5 +37,24 @@ export async function canAccessFunnel(auth: AuthContext, funnelId: string): Prom
 export async function assertOwnerFunnelAccess(owner: TargetUser, funnelId: string): Promise<void> {
   if (!await canAccessFunnel(authForUser(owner), funnelId)) {
     throw new ApiError(403, "OWNER_FUNNEL_ACCESS_REQUIRED", "The deal owner has no access to this funnel");
+  }
+}
+
+export async function canAccessBoard(auth: AuthContext, boardId: string): Promise<boolean> {
+  const access = boardAccessSql(auth, "b.id", 2);
+  const result = await query(`SELECT 1 FROM task_boards b WHERE b.id = $1 AND ${access.sql}`, [boardId, ...access.values]);
+  return Boolean(result.rowCount);
+}
+
+/** Every assignee must be an active user who can open the board, otherwise they would own tasks they cannot see. */
+export async function assertAssigneesBoardAccess(boardId: string, userIds: string[]): Promise<void> {
+  const unique = [...new Set(userIds)];
+  if (!unique.length) return;
+  const result = await query<{ id: string }>(
+    `SELECT u.id FROM users u JOIN task_boards b ON b.id = $1 WHERE u.id = ANY($2::uuid[]) AND ${boardUserAccessSql("u", "b")}`,
+    [boardId, unique]
+  );
+  if (result.rows.length !== unique.length) {
+    throw new ApiError(403, "ASSIGNEE_BOARD_ACCESS_REQUIRED", "Every assignee must be able to open the board");
   }
 }

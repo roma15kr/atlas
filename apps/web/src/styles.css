@@ -745,3 +745,15 @@ input[type="checkbox"] { width: 16px; min-height: 16px; accent-color: var(--prim
   .team-profile__actions { width: 100%; margin-left: 0; }
   .stage-rows .row-actions .icon-button { width: 30px; height: 30px; flex-basis: 30px; }
 }
+
+/* Task boards */
+.task-card__title { margin-top: 5px; padding: 0; display: block; border: 0; background: none; color: var(--text); font-size: 11px; font-weight: 700; line-height: 1.4; text-align: left; cursor: pointer; }
+.task-card__title:hover { color: var(--primary); }
+.avatar-stack { display: inline-flex; align-items: center; }
+.avatar-stack .avatar { width: 22px; height: 22px; font-size: 8px; box-shadow: 0 0 0 2px var(--surface); }
+.avatar-stack .avatar + .avatar { margin-left: -6px; }
+.avatar-stack i { margin-left: 4px; color: var(--muted); font-size: 9px; font-style: normal; font-weight: 650; }
+.dialog-footer__start { margin-right: auto; }
+.form-hint { color: var(--muted); font-size: 11px; }
+.page-hint { margin-top: 10px; color: var(--muted); font-size: 12px; }
+.member-rows > li { gap: 9px; padding-left: 4px; }
