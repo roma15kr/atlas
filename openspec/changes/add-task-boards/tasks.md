@@ -69,5 +69,5 @@
 ## 6. Integration check
 
 - [x] 6.1 Run `npm run typecheck && npm test && npm run build` and verify all pass.
-- [ ] 6.2 Commit, push, deploy to the Coolify test app, and run the end-to-end scenarios against it. Verify all pass and the existing funnels suite still passes.
-- [ ] 6.3 Run `openspec validate add-task-boards --strict` and verify it passes.
+- [x] 6.2 Commit, push, deploy to the Coolify test app, and run the end-to-end scenarios against it. Verify all pass and the existing funnels suite still passes.
+- [x] 6.3 Run `openspec validate add-task-boards --strict` and verify it passes.
