@@ -25,7 +25,7 @@
 ## 4. Integration check
 
 - [x] 4.1 Run `npm run typecheck && npm test && npm run build` and verify all pass.
-- [ ] 4.2 Deploy to the Coolify test app together with `add-multiple-crm-funnels`. Verify:
+- [x] 4.2 Deploy to the Coolify test app together with `add-multiple-crm-funnels`. Verify:
   - the deployment pulls no MinIO image and finishes
   - `/health` returns 200 with `features.storage: local`
   - a document uploads, downloads byte-identically, and takes a new version

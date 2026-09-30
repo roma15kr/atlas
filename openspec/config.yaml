@@ -19,6 +19,7 @@ rules:
   design:
     - State the role/department access rules for any new data or endpoint
     - Call out new migrations and audit events explicitly
+    - For web UI changes, follow the ui-design-system spec (tokens, type scale, padded cards, read-only lists, dialog editing, one primary action)
   tasks:
     - Include typecheck, test, and build verification (npm run typecheck && npm test && npm run build)
 

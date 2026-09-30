@@ -47,3 +47,11 @@ export const fileSize = (bytes: number) => {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} КБ`;
   return `${(bytes / 1024 / 1024).toFixed(1)} МБ`;
 };
+
+/** Russian plural: plural(3, ['этап', 'этапа', 'этапов']) → '3 этапа'. */
+export const plural = (count: number, [one, few, many]: [string, string, string]) => {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  const word = mod10 === 1 && mod100 !== 11 ? one : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14) ? few : many;
+  return `${count} ${word}`;
+};

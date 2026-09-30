@@ -117,19 +117,27 @@ describe('role-aware routing', () => {
     expect(screen.queryByRole('heading', { name: 'Настройка воронок' })).not.toBeInTheDocument();
   });
 
-  it('lets a director add, reorder and restrict stages in demo mode', async () => {
+  it('lets a director add, reorder and restrict stages through dialogs in demo mode', async () => {
     const user = userEvent.setup();
     localStorage.setItem('atlas.session', JSON.stringify(demoSessions.director));
     renderAt('/sales/settings');
-    await user.type(await screen.findByLabelText('Название нового этапа'), 'Согласование');
+    expect(await screen.findByRole('heading', { name: 'Настройка воронок' })).toBeInTheDocument();
+    expect(document.querySelector('.team-layout input, .team-layout select, .team-layout textarea')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Добавить этап' }));
-    expect(await screen.findByLabelText('Название этапа Согласование')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Поднять этап Согласование' }));
-    const names = screen.getAllByLabelText(/^Название этапа /).map((input) => (input as HTMLInputElement).value);
+    const stageDialog = screen.getByRole('dialog');
+    await user.type(within(stageDialog).getByLabelText('Название'), 'Согласование');
+    await user.click(within(stageDialog).getByRole('button', { name: 'Добавить этап' }));
+    expect(await screen.findByText('Согласование')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Переместить выше: Согласование' }));
+    const names = [...document.querySelectorAll('.stage-rows__name strong')].map((node) => node.textContent);
     expect(names.indexOf('Согласование')).toBeLessThan(names.indexOf('Проиграна'));
-    await user.click(screen.getByRole('button', { name: 'Только выбранные' }));
-    await user.click(screen.getByRole('checkbox', { name: 'Продажи' }));
-    await user.click(screen.getByRole('button', { name: 'Сохранить доступ' }));
-    expect(await screen.findAllByLabelText('Ограниченный доступ')).toHaveLength(2);
+    await user.click(screen.getByRole('button', { name: 'Изменить доступ' }));
+    const accessDialog = screen.getByRole('dialog');
+    await user.click(within(accessDialog).getByRole('button', { name: 'Только выбранные' }));
+    await user.click(within(accessDialog).getByRole('checkbox', { name: 'Продажи' }));
+    await user.click(within(accessDialog).getByRole('button', { name: 'Сохранить доступ' }));
+    expect(await screen.findByText('Только выбранные отделы и сотрудники')).toBeInTheDocument();
+    expect(screen.getAllByText('Ограничен')).toHaveLength(2);
   });
 });

@@ -14,3 +14,13 @@ describe('format helpers', () => {
     expect(roleLabel.DIRECTOR).toBe('Директор');
   });
 });
+
+describe('plural', () => {
+  it('picks the Russian plural form', async () => {
+    const { plural } = await import('./format');
+    const forms: [string, string, string] = ['этап', 'этапа', 'этапов'];
+    expect([1, 2, 5, 11, 12, 21, 22, 25, 111].map((count) => plural(count, forms))).toEqual([
+      '1 этап', '2 этапа', '5 этапов', '11 этапов', '12 этапов', '21 этап', '22 этапа', '25 этапов', '111 этапов',
+    ]);
+  });
+});
