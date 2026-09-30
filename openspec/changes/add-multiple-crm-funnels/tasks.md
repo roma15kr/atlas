@@ -101,7 +101,7 @@
 ## 7. Integration check
 
 - [x] 7.1 Run `npm run typecheck && npm test && npm run build` and verify all pass.
-- [ ] 7.2 On the local compose stack with demo data, walk through the spec scenarios end to end:
+- [x] 7.2 On the local compose stack with demo data, walk through the spec scenarios end to end:
   - director creates "Опт" restricted to "Продажи"
   - employee in another department cannot see it
   - manager of "Продажи" sees only their department's deals
@@ -109,5 +109,5 @@
   - restart the API
   - check audit events
 
-  Verify that each step matches `specs/crm-funnels/spec.md`.
+  Verify that each step matches `specs/crm-funnels/spec.md`. (Done on the Coolify test app at commit f11b2a5: 69/69 scenario checks passed, with a test cast created through the API.)
 - [x] 7.3 Run `openspec validate add-multiple-crm-funnels --strict` and verify it passes.
