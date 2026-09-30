@@ -1,0 +1,54 @@
+schema: spec-driven
+
+context: |
+  Atlas: self-hosted virtual office for a ~20-person company team (path to 100+ users).
+  Docker-first modular monolith; npm workspaces in apps/api and apps/web, Node.js 22.
+  API: TypeScript, Express, zod, pg (PostgreSQL), redis, Socket.IO presence, MinIO object storage, pino, vitest + supertest.
+  Web: React + TypeScript + Vite, served by Nginx on a single origin; vitest.
+  UI is Russian-first, optimized for desktop Chrome.
+  Roles: DIRECTOR (company-wide), MANAGER (own department), EMPLOYEE (own records);
+  scope is enforced by SQL predicates in addition to route-level role checks.
+  Sensitive actions (successful and denied) are written to the audit log.
+  Single operating currency is UAH; API and DB reject other deal currencies.
+  Integrations (Claude, Gmail, Outlook, Telegram, WhatsApp, Viber) are adapters that report
+  "disabled" until server-side credentials exist; secrets never reach the web bundle.
+  SQL migrations are checksummed and must never be edited after being applied; add new files.
+  Conventional commits (feat:, fix(web):, docs:). See docs/ARCHITECTURE.md, docs/OPERATIONS.md.
+
+rules:
+  design:
+    - State the role/department access rules for any new data or endpoint
+    - Call out new migrations and audit events explicitly
+  tasks:
+    - Include typecheck, test, and build verification (npm run typecheck && npm test && npm run build)
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+# Example:
+#   context: |
+#     Tech stack: TypeScript, React, Node.js
+#     We use conventional commits
+#     Domain: e-commerce platform
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing
