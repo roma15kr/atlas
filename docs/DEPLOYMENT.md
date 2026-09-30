@@ -22,5 +22,6 @@ The API creates the first director only when the production user table is empty;
 the demo seed is never applied. Sign in as that director and create the real
 manager and employee accounts from **Команда**. After the first healthy deployment,
 store the bootstrap credential securely, replicate the verified database and
-object backup volumes to encrypted off-server storage, perform a restore drill,
+document backup volumes (`postgres_backups`, `object_backups`) to encrypted
+off-server storage, perform a restore drill,
 and rotate the Coolify API token used during provisioning.

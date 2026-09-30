@@ -22,14 +22,47 @@ directory and does not print them.
 ## Backups and restore
 
 The `backup` container writes a verified PostgreSQL custom-format dump every 24
-hours. The `object-backup` container mirrors the private document bucket. Both
-write `last-success` markers used by their health checks.
+hours. The `document-backup` container copies every document file it has not
+copied before from the `documents_data` volume into `object_backups/current/`,
+keeping each file's storage key as its path. Files are never modified after
+upload, so this copy is complete. Both containers write `last-success` markers
+used by their health checks.
 
 Replicate `postgres_backups` and `object_backups` to encrypted storage on a
 different host. On restore, stop API writes, restore the selected dump into a
-fresh PostgreSQL database with `pg_restore --clean --if-exists`, restore the
-document mirror to the configured MinIO bucket, then start the API and run the
-smoke test. Test this procedure quarterly with a disposable environment.
+fresh PostgreSQL database with `pg_restore --clean --if-exists`, copy the
+document files back, then start the API and run the smoke test:
+
+```bash
+docker compose stop api
+uid_gid="$(docker compose run --rm --no-deps --entrypoint id api -u atlas):$(docker compose run --rm --no-deps --entrypoint id api -g atlas)"
+docker compose run --rm --no-deps -v "$(docker volume ls -q | grep '_object_backups$'):/from:ro" \
+  --entrypoint sh api -c "cp -a /from/current/. /data/documents/"
+docker run --rm -v "$(docker volume ls -q | grep '_documents_data$'):/to" postgres:16-alpine chown -R "$uid_gid" /to
+docker compose start api
+```
+
+Test this procedure quarterly with a disposable environment.
+
+If `/health` reports `storage: error` after a deploy, the document volume is not
+writable by the API user. Fix ownership with the last `docker run ... chown`
+line above.
+
+## Moving documents out of MinIO (one time)
+
+Releases before the switch to the document volume stored files in MinIO, whose
+images are no longer published. Installations that already hold documents move
+them once:
+
+1. Before deploying the new release, confirm the old `object-backup` container
+   reported a recent `last-success`. Its `object_backups/current/` mirror holds
+   every file under the same storage keys the database uses.
+2. Deploy the new release, then run the restore commands above (the `cp -a` and
+   `chown` lines). They copy `object_backups/current/` into `documents_data`.
+3. Open a few documents in **Документы** and download them.
+4. Delete the unused `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`, and `S3_*`
+   variables from Coolify, and, once the documents are verified, remove the
+   orphaned volume with `docker volume rm <project>_minio_data`.
 
 ## Deploying migration 004 (CRM funnels)
 
@@ -48,9 +81,8 @@ with the procedure above, and redeploy the previous image.
 
 ## Secret rotation
 
-Rotate one dependency at a time and confirm health after each change. Database,
-Redis, MinIO root, and MinIO application credentials require coordinated server
-and API updates. Changing `JWT_SECRET` invalidates access tokens; changing
+Rotate one dependency at a time and confirm health after each change. Database
+and Redis credentials require coordinated server and API updates. Changing `JWT_SECRET` invalidates access tokens; changing
 `REFRESH_TOKEN_SECRET` invalidates refresh sessions. Schedule both together and
 expect every user to sign in again.
 

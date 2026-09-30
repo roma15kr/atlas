@@ -2,7 +2,7 @@
 
 Atlas handles employee activity metadata and customer records. Treat reports of
 authorization bypass, cross-department data exposure, export access, session
-handling, object-storage access, and audit tampering as high priority.
+handling, document file access, and audit tampering as high priority.
 
 Do not open a public issue containing a vulnerability, real customer data,
 credentials, tokens, database dumps, or deployment logs with secrets. Report the
@@ -11,10 +11,10 @@ expected scope, reproduction steps, and the smallest useful evidence set.
 
 ## Deployment baseline
 
-- Use unique high-entropy database, Redis, JWT, refresh-token, and object-storage
-  secrets. Never reuse the Coolify API token as an application secret.
+- Use unique high-entropy database, Redis, JWT, and refresh-token secrets. Never reuse the Coolify API token as an application secret.
 - Require HTTPS and `COOKIE_SECURE=true` in production; startup rejects weaker settings.
-- Make PostgreSQL, Redis, MinIO, and the API reachable only on the internal network.
+- Make PostgreSQL, Redis, and the API reachable only on the internal network; the
+  document volume is mounted only into the API and, read-only, the backup job.
 - Keep `SEED_DEMO_DATA=false` in production and protect the one-time director
   bootstrap password as an operational secret.
 - Restrict Coolify and GitHub access to named administrators with 2FA.

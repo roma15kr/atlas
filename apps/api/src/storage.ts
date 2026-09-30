@@ -88,19 +88,26 @@ export class S3ObjectStorage implements ObjectStorage {
   }
 }
 
-function configuredStorage(): ObjectStorage {
-  if (config.S3_ENDPOINT && config.S3_ACCESS_KEY && config.S3_SECRET_KEY) {
-    return new S3ObjectStorage(config.S3_BUCKET, {
-      endpoint: config.S3_ENDPOINT,
-      region: config.S3_REGION,
-      accessKey: config.S3_ACCESS_KEY,
-      secretKey: config.S3_SECRET_KEY
-    });
-  }
-  if (config.NODE_ENV === "production") {
-    throw new Error("S3_ENDPOINT, S3_ACCESS_KEY and S3_SECRET_KEY are required in production");
-  }
-  return new LocalObjectStorage(config.STORAGE_DIR);
+export interface StorageSettings {
+  STORAGE_DIR: string;
+  S3_ENDPOINT?: string;
+  S3_REGION: string;
+  S3_BUCKET: string;
+  S3_ACCESS_KEY?: string;
+  S3_SECRET_KEY?: string;
 }
 
-export const objectStorage: ObjectStorage = configuredStorage();
+/** Uses S3 only when fully configured; otherwise document files live on the local document volume. */
+export function selectStorage(settings: StorageSettings): ObjectStorage {
+  if (settings.S3_ENDPOINT && settings.S3_ACCESS_KEY && settings.S3_SECRET_KEY) {
+    return new S3ObjectStorage(settings.S3_BUCKET, {
+      endpoint: settings.S3_ENDPOINT,
+      region: settings.S3_REGION,
+      accessKey: settings.S3_ACCESS_KEY,
+      secretKey: settings.S3_SECRET_KEY
+    });
+  }
+  return new LocalObjectStorage(settings.STORAGE_DIR);
+}
+
+export const objectStorage: ObjectStorage = selectStorage(config);

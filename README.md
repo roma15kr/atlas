@@ -6,8 +6,8 @@ achievements, operational alerts, and communication integrations into one
 role-aware workspace.
 
 The interface is Russian-first and optimized for desktop Chrome. The runtime is
-fully containerized and exposes a single web origin; PostgreSQL, Redis, object
-storage, and the API remain private behind the gateway.
+fully containerized and exposes a single web origin; PostgreSQL, Redis, the
+document volume, and the API remain private behind the gateway.
 
 Production: [atlas.141.94.30.173.sslip.io](https://atlas.141.94.30.173.sslip.io)
 
@@ -22,7 +22,8 @@ Production: [atlas.141.94.30.173.sslip.io](https://atlas.141.94.30.173.sslip.io)
   departments and people.
 - Director-only bulk CSV export with audit records for access and denied attempts.
 - Personal tasks, due dates, deal links, and a three-column Kanban workflow.
-- Private document metadata, versions, upload/download checks, and MinIO storage.
+- Private document metadata, versions, upload/download checks, and file storage
+  on a dedicated volume with nightly backups.
 - Team profiles, KPI progress, achievement scoring, reports, and alert review.
 - Director/manager team onboarding with strong initial-password policy and
   department-safe role assignment.

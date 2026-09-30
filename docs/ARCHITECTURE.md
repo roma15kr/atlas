@@ -11,9 +11,14 @@ connections for presence.
 - `api`: TypeScript HTTP API, background policy checks, and Socket.IO presence gateway.
 - `postgres`: source of truth for identity, CRM, work, files, reports, and audit history.
 - `redis`: ephemeral presence, session coordination, and rate-limit counters.
-- `minio`: private S3-compatible object storage for document bodies.
+- `documents_data` volume: document file bodies, mounted only into `api`.
 - `backup`: verified daily PostgreSQL dumps with 14-day retention.
-- `object-backup`: daily private document-bucket mirrors for restore operations.
+- `document-backup`: daily copy of new document files into a separate backup volume.
+
+Document files are immutable: every upload and every new version gets its own
+random storage key, so backups only copy files they have not seen. The volume
+ties the API to one instance; running several API replicas would need shared
+storage, which the API supports through optional `S3_*` settings.
 
 External integrations are adapter boundaries. An adapter reports `disabled`
 until its server-side credentials are configured; secrets never enter the web
@@ -57,7 +62,7 @@ deal_funnels -> deal_stages (ordered, outcome OPEN / WON / LOST)
 client -> contacts
        -> comments
        -> deals -> funnel + stage (database-enforced: the stage belongs to the funnel)
-       -> documents -> document_versions -> object storage
+       -> documents -> document_versions -> files on the document volume
 
 report_definitions -> report_runs
 audit_events

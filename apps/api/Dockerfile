@@ -12,7 +12,8 @@ RUN npm prune --omit=dev --workspace @atlas/api --include-workspace-root=false
 FROM node:22-alpine AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
-RUN addgroup -S atlas && adduser -S atlas -G atlas
+RUN addgroup -S atlas && adduser -S atlas -G atlas \
+  && mkdir -p /data/documents && chown atlas:atlas /data/documents
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/api/package.json ./apps/api/package.json
 COPY --from=build /app/apps/api/dist ./apps/api/dist
