@@ -35,4 +35,4 @@
 ## 5. Verification
 
 - [x] 5.1 Run `npm run typecheck && npm test && npm run build` and `openspec validate add-team-chat --strict`. All must pass.
-- [ ] 5.2 End-to-end against a local API with two browser sessions (director and employee): a live DM, a mention badge, private channel visibility, and removal cutting off events. Record the results in `design.md` implementation notes.
+- [x] 5.2 End-to-end against a local API with two browser sessions (director and employee): a live DM, a mention badge, private channel visibility, and removal cutting off events. Record the results in `design.md` implementation notes.
