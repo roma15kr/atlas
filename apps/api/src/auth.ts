@@ -63,15 +63,19 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
   try {
     const tokenAuth = verifyAccessToken(value.slice(7));
     const current = await query<{
-      id: string; company_id: string; department_id: string | null; username: string; role: Role;
+      id: string; company_id: string; department_id: string | null; username: string; role: Role; must_change_password: boolean;
     }>(
-      `SELECT id, company_id, department_id, username, role
+      `SELECT id, company_id, department_id, username, role, must_change_password
        FROM users WHERE id = $1 AND company_id = $2 AND status = 'ACTIVE'`,
       [tokenAuth.userId, tokenAuth.companyId]
     );
     const user = current.rows[0];
     if (!user || (user.role === "MANAGER" && !user.department_id)) {
       throw new ApiError(401, "ACCOUNT_UNAVAILABLE", "Account is no longer available");
+    }
+    // After an administrative reset only the /auth routes (me, password) stay usable.
+    if (user.must_change_password && !req.originalUrl.startsWith("/api/v1/auth/")) {
+      throw new ApiError(403, "PASSWORD_CHANGE_REQUIRED", "Change your password to continue");
     }
     req.auth = {
       userId: user.id,

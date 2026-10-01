@@ -11,6 +11,7 @@ import { writeAudit } from "../audit";
 import { query, transaction } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { loginLimiter } from "../middleware";
+import { passwordSchema } from "./team";
 import type { AuthContext, Role } from "../types";
 
 interface UserRow {
@@ -32,6 +33,7 @@ interface UserRow {
   last_login_at: Date | null;
   monitoring_consent_at: Date | null;
   monitoring_consent_version: string | null;
+  must_change_password: boolean;
 }
 
 const loginSchema = z.object({
@@ -153,6 +155,40 @@ authRouter.get("/me", authenticate, asyncHandler(async (req, res) => {
   res.json({ data: await enrichedPublicUser(user) });
 }));
 
+const passwordChangeSchema = z.object({
+  currentPassword: z.string().min(1).max(200),
+  newPassword: passwordSchema
+});
+
+/** Changes the caller's password, ends every other session and starts a fresh one in this browser. */
+authRouter.post("/password", authenticate, asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const input = passwordChangeSchema.parse(req.body);
+  const current = (await query<UserRow>(`${userSelect()} WHERE u.id = $1 AND u.company_id = $2`, [auth.userId, auth.companyId])).rows[0];
+  if (!current) throw new ApiError(404, "USER_NOT_FOUND", "User not found");
+  if (!await bcrypt.compare(input.currentPassword, current.password_hash)) {
+    await writeAudit(req, { auth, action: "PASSWORD_CHANGE_DENIED", entityType: "user", entityId: auth.userId, metadata: { reason: "invalid_current_password" } });
+    throw new ApiError(400, "INVALID_CURRENT_PASSWORD", "Current password is incorrect");
+  }
+  if (await bcrypt.compare(input.newPassword, current.password_hash)) {
+    throw new ApiError(400, "PASSWORD_REUSED", "Choose a password different from the current one");
+  }
+  const passwordHash = await bcrypt.hash(input.newPassword, 12);
+  const refresh = newRefreshToken();
+  await transaction(async (client) => {
+    await client.query(
+      "UPDATE users SET password_hash = $1, must_change_password = false, password_changed_at = now() WHERE id = $2",
+      [passwordHash, auth.userId]
+    );
+    await client.query("UPDATE refresh_tokens SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL", [auth.userId]);
+    await insertRefreshToken(client, auth.userId, refresh, req);
+  });
+  await writeAudit(req, { auth, action: "PASSWORD_CHANGED", entityType: "user", entityId: auth.userId });
+  setRefreshCookie(res, refresh.raw);
+  const user = (await query<UserRow>(`${userSelect()} WHERE u.id = $1`, [auth.userId])).rows[0]!;
+  res.json({ data: { accessToken: signAccessToken(authFromUser(user)), user: await enrichedPublicUser(user) } });
+}));
+
 function userSelect(): string {
   return `SELECT ${userColumns()}
     FROM users u LEFT JOIN departments d ON d.id = u.department_id`;
@@ -162,7 +198,7 @@ function userColumns(): string {
   return `u.id, u.company_id, u.department_id, d.name AS department_name, u.username,
     u.password_hash, u.role, u.status, u.full_name, u.specialty, u.job_title,
     u.job_description, u.avatar_url, u.failed_login_count, u.locked_until,
-    u.last_login_at, u.monitoring_consent_at, u.monitoring_consent_version`;
+    u.last_login_at, u.monitoring_consent_at, u.monitoring_consent_version, u.must_change_password`;
 }
 
 function authFromUser(user: UserRow): AuthContext {
@@ -189,7 +225,8 @@ function publicUser(user: UserRow): Record<string, unknown> {
     avatarUrl: user.avatar_url,
     lastLoginAt: user.last_login_at,
     monitoringConsentAt: user.monitoring_consent_at,
-    monitoringConsentVersion: user.monitoring_consent_version
+    monitoringConsentVersion: user.monitoring_consent_version,
+    mustChangePassword: user.must_change_password
   };
 }
 

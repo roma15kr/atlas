@@ -15,3 +15,8 @@ export function emitToUsers(userIds: Iterable<string>, event: string, payload: u
   if (!io || !rooms.length) return;
   io.to(rooms).emit(event, payload);
 }
+
+/** Closes every open socket of a user, for example when their account is disabled. */
+export function disconnectUser(userId: string): void {
+  io?.in(userRoom(userId)).disconnectSockets(true);
+}

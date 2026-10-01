@@ -17,6 +17,10 @@ export interface User {
   monitoringConsentAt?: string;
   rating: number;
   kpis: Kpi[];
+  /** Present on directory rows; DISABLED people appear only in the directors' and heads' "Отключённые" view. */
+  status?: 'ACTIVE' | 'DISABLED';
+  /** Set after an administrative password reset until the person picks a new password. */
+  mustChangePassword?: boolean;
 }
 
 export interface Kpi {

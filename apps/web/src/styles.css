@@ -1048,3 +1048,14 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
   .tg-chat__back { display: inline-grid; }
   .tg-message { max-width: 92%; }
 }
+
+/* Account administration dialogs */
+.team-profile__head { flex-wrap: wrap; }
+.team-profile__actions { flex-wrap: wrap; justify-content: flex-end; }
+.dialog-note { margin: 0 0 12px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.dialog-list { margin: 0; padding-left: 18px; display: grid; gap: 7px; color: var(--text); font-size: 13px; line-height: 1.45; }
+.password-gate { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; background: var(--bg); }
+.password-gate__card { width: min(440px, 100%); padding: 24px; }
+.password-gate__card h1 { margin: 0 0 6px; font-size: 20px; }
+.password-gate__card > p { margin: 0 0 18px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.password-gate__card footer { margin-top: 16px; display: flex; justify-content: space-between; gap: 8px; }

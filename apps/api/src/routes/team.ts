@@ -10,15 +10,18 @@ import { presenceFor } from "../presence";
 import { recordScope } from "../scope";
 import type { AuthContext, Role } from "../types";
 
+/** The strength rule for every password a person sets or is given. */
+export const passwordSchema = z.string().min(12).max(200)
+  .regex(/[a-z]/, "Password must include a lowercase letter")
+  .regex(/[A-Z]/, "Password must include an uppercase letter")
+  .regex(/[0-9]/, "Password must include a number")
+  .regex(/[^a-zA-Z0-9]/, "Password must include a symbol");
+
 export const teamMemberInputSchema = z.object({
   username: z.string().trim().min(3).max(50)
     .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/, "Use letters, numbers, dots, underscores or hyphens")
     .transform((value) => value.toLowerCase()),
-  password: z.string().min(12).max(200)
-    .regex(/[a-z]/, "Password must include a lowercase letter")
-    .regex(/[A-Z]/, "Password must include an uppercase letter")
-    .regex(/[0-9]/, "Password must include a number")
-    .regex(/[^a-zA-Z0-9]/, "Password must include a symbol"),
+  password: passwordSchema,
   role: z.enum(["DIRECTOR", "MANAGER", "EMPLOYEE"]).default("EMPLOYEE"),
   fullName: z.string().trim().min(2).max(160),
   departmentId: z.string().uuid().nullable().optional(),
@@ -98,6 +101,8 @@ teamRouter.post("/", asyncHandler(async (req, res) => {
 teamRouter.get("/", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
   const scope = recordScope(auth, { company: "u.company_id", department: "u.department_id", owner: "u.id" });
+  // Directors and heads may include disabled people, to re-enable them.
+  const includeDisabled = req.query.status === "all" && auth.role !== "EMPLOYEE";
   const users = await query<{
     id: string; username: string; fullName: string; role: string; departmentId: string | null;
     departmentName: string | null; specialty: string | null; jobTitle: string | null;
@@ -106,7 +111,7 @@ teamRouter.get("/", asyncHandler(async (req, res) => {
     `SELECT u.id, u.username, u.full_name AS "fullName", u.role,
             u.department_id AS "departmentId", d.name AS "departmentName",
             u.specialty, u.job_title AS "jobTitle",
-            u.job_description AS "jobDescription",
+            u.job_description AS "jobDescription", u.status,
             u.monitoring_consent_at AS "monitoringConsentAt",
             u.monitoring_consent_version AS "monitoringConsentVersion",
             COALESCE((
@@ -120,8 +125,8 @@ teamRouter.get("/", asyncHandler(async (req, res) => {
               ) ORDER BY k.due_at NULLS LAST, k.name) FROM kpis k WHERE k.user_id=u.id
             ), '[]'::jsonb) AS kpis
      FROM users u LEFT JOIN departments d ON d.id = u.department_id
-     WHERE ${scope.sql} AND u.status = 'ACTIVE' ORDER BY u.full_name`,
-    scope.values
+     WHERE ${scope.sql} AND (u.status = 'ACTIVE' OR $${scope.values.length + 1}) ORDER BY u.full_name`,
+    [...scope.values, includeDisabled]
   );
   const presence = await presenceFor(users.rows.map((user) => user.id));
   res.json({ data: users.rows.map((user) => ({
@@ -195,10 +200,10 @@ export function assertTeamCreationPolicy(auth: AuthContext, input: TeamMemberInp
   }
 }
 
-async function resolveCreationDepartment(
+export async function resolveCreationDepartment(
   client: PoolClient,
   auth: AuthContext,
-  input: TeamMemberInput
+  input: Pick<TeamMemberInput, "departmentId" | "departmentName">
 ): Promise<{ id: string; name: string } | null> {
   if (auth.role === "MANAGER") {
     const own = await client.query<{ id: string; name: string }>(
@@ -234,6 +239,6 @@ async function resolveCreationDepartment(
   return null;
 }
 
-function isUniqueViolation(error: unknown): boolean {
+export function isUniqueViolation(error: unknown): boolean {
   return Boolean(error && typeof error === "object" && "code" in error && error.code === "23505");
 }

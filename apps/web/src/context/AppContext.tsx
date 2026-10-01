@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { io, type Socket } from 'socket.io-client';
-import { api, ApiError, listAll, listPage, sessionStore } from '../lib/api';
+import { api, ApiError, apiRequest, listAll, listPage, sessionStore } from '../lib/api';
 import {
   demoAchievements,
   demoAlerts,
@@ -37,6 +37,16 @@ export interface CreateTeamMemberInput {
   jobDescription?: string;
 }
 
+export interface MemberUpdate {
+  fullName?: string;
+  jobTitle?: string;
+  specialty?: string;
+  jobDescription?: string;
+  role?: Role;
+  /** An existing department's name or a new one; directors only. */
+  departmentName?: string;
+}
+
 export function constrainTeamMemberInput(actor: User, input: CreateTeamMemberInput): CreateTeamMemberInput {
   if (actor.role === 'EMPLOYEE') throw new Error('Недостаточно прав для добавления сотрудников');
   if (actor.role === 'MANAGER') return { ...input, role: 'EMPLOYEE', departmentName: undefined };
@@ -53,6 +63,8 @@ interface AuthValue {
   mergeCurrentUser: (user: User) => void;
   /** Saves the signed-in user's own name and specialty. */
   updateProfile: (patch: { fullName?: string; specialty?: string }) => Promise<void>;
+  /** Changes the signed-in user's password; other sessions end and this one is renewed. */
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -73,6 +85,8 @@ const normalizeUser = (source: Record<string, unknown>): User => ({
   monitoringConsentAt: (source.monitoringConsentAt ?? source.monitoring_consent_at) as string | undefined,
   rating: Number(source.rating ?? 0),
   kpis: Array.isArray(source.kpis) ? source.kpis as Kpi[] : [],
+  status: source.status === 'DISABLED' ? 'DISABLED' : 'ACTIVE',
+  mustChangePassword: Boolean(source.mustChangePassword),
 });
 
 const normalizeClient = (source: Record<string, unknown>): Client => {
@@ -209,7 +223,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, [session]);
 
-  return <AuthContext.Provider value={{ session, loading, login, logout, hasRole, consent, mergeCurrentUser, updateProfile }}>{children}</AuthContext.Provider>;
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    if (!session) return;
+    if (session.accessToken.startsWith('demo-')) {
+      const next = { ...session, user: { ...session.user, mustChangePassword: false } };
+      sessionStore.set(next);
+      setSession(next);
+      return;
+    }
+    const next = normalizeSession(await apiRequest<unknown>('/auth/password', { method: 'POST', body: { currentPassword, newPassword }, retry: false }));
+    sessionStore.set(next);
+    setSession(next);
+  }, [session]);
+
+  return <AuthContext.Provider value={{ session, loading, login, logout, hasRole, consent, mergeCurrentUser, updateProfile, changePassword }}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => {
@@ -283,6 +310,11 @@ interface WorkspaceValue {
   /** Re-loads all collections in the background. */
   refresh: () => Promise<void>;
   createTeamMember: (input: CreateTeamMemberInput) => Promise<User>;
+  /** Disabled people in scope, for directors and heads. */
+  disabledUsers: User[];
+  updateMember: (id: string, patch: MemberUpdate) => Promise<void>;
+  setMemberActive: (id: string, active: boolean) => Promise<void>;
+  resetMemberPassword: (id: string, password: string) => Promise<void>;
   addClient: (client: Omit<Client, 'id' | 'updatedAt'>) => Promise<Client>;
   updateClient: (id: string, patch: Partial<Client>) => Promise<void>;
   addDeal: (deal: Omit<Deal, 'id'>) => Promise<void>;
@@ -324,18 +356,20 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const lastLoadedAt = useRef(0);
   const sessionUserId = session?.user.id;
   const sessionRole = session?.user.role;
+  // After a reset the API refuses everything but /auth until the password changes.
+  const passwordLocked = Boolean(session?.user.mustChangePassword);
 
   /**
    * Loads every collection the user may see. A quiet load (background refresh) never shows the
    * loading state and keeps what is on screen when requests fail.
    */
   const loadWorkspace = useCallback(async (quiet: boolean) => {
-    if (!sessionUserId || isDemo) return;
+    if (!sessionUserId || isDemo || passwordLocked) return;
     const generation = ++loadGeneration.current;
     if (!quiet) setDataStatus('loading');
     const canReadAudit = sessionRole === 'DIRECTOR' || sessionRole === 'MANAGER';
     const results = await Promise.allSettled([
-      api.list<Record<string, unknown>>('team'), listAll<Record<string, unknown>>('clients'), listAll<Record<string, unknown>>('deals'),
+      api.list<Record<string, unknown>>(canReadAudit ? 'team?status=all' : 'team'), listAll<Record<string, unknown>>('clients'), listAll<Record<string, unknown>>('deals'),
       listAll<Record<string, unknown>>('tasks'), listAll<CompanyDocument>('documents'),
       listAll<Report>('reports'), listAll<Alert>('alerts'), api.list<Funnel>('funnels'),
       api.list<Achievement>('achievements'), canReadAudit ? listPage<AuditEvent>('audit', 100) : Promise.resolve(null),
@@ -363,7 +397,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     if (fulfilled) lastLoadedAt.current = Date.now();
     if (!quiet) setDataStatus(fulfilled ? 'ready' : 'offline');
     else if (fulfilled) setDataStatus('ready');
-  }, [sessionUserId, sessionRole, isDemo, mergeCurrentUser]);
+  }, [sessionUserId, sessionRole, isDemo, passwordLocked, mergeCurrentUser]);
 
   useEffect(() => {
     if (!session || isDemo) return;
@@ -403,7 +437,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }, [sessionUserId, isDemo]);
 
   useEffect(() => {
-    if (!session || isDemo) return;
+    if (!session || isDemo || passwordLocked) return;
     let socket: Socket | null = io({ path: '/socket.io', auth: { token: session.accessToken }, transports: ['websocket', 'polling'] });
     const updatePresence = (payload: { userId: string; online?: boolean; lastSeen?: string; status?: string; lastSeenAt?: string }) => {
       const online = payload.online ?? payload.status === 'ONLINE';
@@ -426,7 +460,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       socket?.disconnect();
       socket = null;
     };
-  }, [session?.accessToken, isDemo]);
+  }, [session?.accessToken, isDemo, passwordLocked]);
 
   const remote = useCallback(async <T,>(action: () => Promise<T>) => {
     if (isDemo) return undefined;
@@ -436,6 +470,33 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       throw error;
     }
   }, [isDemo]);
+
+  const replaceUser = useCallback((raw: Record<string, unknown> | undefined, id: string, local: (user: User) => User) => {
+    setUsers((current) => current.map((user) => {
+      if (user.id !== id) return user;
+      if (!raw) return local(user);
+      const fresh = normalizeUser(raw);
+      return { ...user, ...fresh, online: user.online, lastSeen: user.lastSeen, rating: user.rating, kpis: user.kpis, monitoringConsentAt: user.monitoringConsentAt };
+    }));
+  }, []);
+
+  const updateMember = useCallback(async (id: string, patch: MemberUpdate) => {
+    const raw = await remote(() => api.update<Record<string, unknown>>('team', id, patch));
+    replaceUser(raw, id, (user) => ({
+      ...user, ...Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined)),
+      department: patch.departmentName ?? user.department,
+    }));
+  }, [remote, replaceUser]);
+
+  const setMemberActive = useCallback(async (id: string, active: boolean) => {
+    const raw = await remote(() => api.create<Record<string, unknown>>(`team/${id}/${active ? 'enable' : 'disable'}`, {}));
+    replaceUser(raw, id, (user) => ({ ...user, status: active ? 'ACTIVE' : 'DISABLED', online: active && user.online }));
+  }, [remote, replaceUser]);
+
+  const resetMemberPassword = useCallback(async (id: string, password: string) => {
+    const raw = await remote(() => api.create<Record<string, unknown>>(`team/${id}/reset-password`, { password }));
+    replaceUser(raw, id, (user) => ({ ...user, mustChangePassword: true }));
+  }, [remote, replaceUser]);
 
   const createTeamMember = useCallback(async (input: CreateTeamMemberInput) => {
     if (!session) throw new Error('Сессия завершена');
@@ -675,11 +736,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     setAlerts((current) => current.map((alert) => alert.id === id ? { ...alert, acknowledged: true } : alert));
   }, [remote]);
 
-  const visibleUsers = useMemo(() => {
+  const scopedUsers = useMemo(() => {
     if (!session || session.user.role === 'DIRECTOR') return users;
     if (session.user.role === 'MANAGER') return users.filter((user) => user.department === session.user.department);
     return users.filter((user) => user.id === session.user.id);
   }, [session, users]);
+  const visibleUsers = useMemo(() => scopedUsers.filter((user) => user.status !== 'DISABLED'), [scopedUsers]);
+  const disabledUsers = useMemo(() => session?.user.role === 'EMPLOYEE' ? [] : scopedUsers.filter((user) => user.status === 'DISABLED'), [session, scopedUsers]);
   const scoped = <T extends { ownerId?: string }>(items: T[]) => {
     if (!session || roleRank[session.user.role] >= roleRank.MANAGER) return items;
     return items.filter((item) => item.ownerId === session.user.id);
@@ -726,10 +789,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     users: visibleUsers,
     clients: scopedClients, deals: scopedDeals, funnels: visibleFunnels, taskBoards: visibleBoards, tasks: visibleTasks, documents, reports, alerts: visibleAlerts,
     achievements, audit, dashboardMetrics: metrics, refresh,
-    dataStatus, createTeamMember, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert,
+    dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, resetMemberPassword, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert,
   // scoped is intentionally derived from current session and collections.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, session]);
+  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, resetMemberPassword, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, session]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

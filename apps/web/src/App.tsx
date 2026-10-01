@@ -3,6 +3,7 @@ import { AppShell } from './components/AppShell';
 import { LoadingState } from './components/ui';
 import { useAuth } from './context/AppContext';
 import { ChatProvider } from './context/ChatContext';
+import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { MailProvider } from './context/MailContext';
 import { TelegramProvider } from './context/TelegramContext';
 import { AchievementsPage } from './pages/AchievementsPage';
@@ -32,6 +33,7 @@ function ProtectedLayout() {
   const { session, loading } = useAuth(); const location = useLocation();
   if (loading) return <div className="app-loading"><LoadingState label="Открываем рабочее пространство" /></div>;
   if (!session) return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  if (session.user.mustChangePassword) return <ChangePasswordPage />;
   return <ChatProvider><MailProvider><TelegramProvider><AppShell><Routes><Route path="/" element={<DashboardPage />} /><Route path="/crm" element={<CrmPage />} /><Route path="/crm/:id" element={<ClientPage />} /><Route path="/sales" element={<SalesPage />} /><Route path="/sales/settings" element={<RoleGate roles={['DIRECTOR']}><FunnelSettingsPage /></RoleGate>} /><Route path="/tasks" element={<TasksPage />} /><Route path="/boards" element={<BoardsPage />} /><Route path="/boards/settings" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><BoardSettingsPage /></RoleGate>} /><Route path="/boards/:id/settings" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><BoardSettingsPage /></RoleGate>} /><Route path="/documents" element={<DocumentsPage />} /><Route path="/team" element={<TeamPage />} /><Route path="/reports" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><ReportsPage /></RoleGate>} /><Route path="/achievements" element={<AchievementsPage />} /><Route path="/messages" element={<MessagesPage />} /><Route path="/mail" element={<MailPage />} /><Route path="/mail/settings" element={<MailSettingsPage />} /><Route path="/mail/oauth/:provider" element={<MailOAuthPage />} /><Route path="/telegram" element={<TelegramPage />} /><Route path="/telegram/settings" element={<RoleGate roles={['DIRECTOR']}><TelegramSettingsPage /></RoleGate>} /><Route path="/audit" element={<RoleGate roles={['DIRECTOR']}><AuditPage /></RoleGate>} /><Route path="/profile" element={<ProfilePage />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></AppShell></TelegramProvider></MailProvider></ChatProvider>;
 }
 

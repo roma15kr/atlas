@@ -20,12 +20,16 @@ export function createSocketServer(server: HttpServer): Server {
         ? socket.handshake.auth.token
         : header?.startsWith("Bearer ") ? header.slice(7) : "";
       const auth = verifyAccessToken(token);
-      const current = await query<{ id: string; company_id: string; department_id: string | null; username: string; role: Role }>(
-        "SELECT id, company_id, department_id, username, role FROM users WHERE id=$1 AND company_id=$2 AND status='ACTIVE'",
+      const current = await query<{ id: string; company_id: string; department_id: string | null; username: string; role: Role; must_change_password: boolean }>(
+        "SELECT id, company_id, department_id, username, role, must_change_password FROM users WHERE id=$1 AND company_id=$2 AND status='ACTIVE'",
         [auth.userId, auth.companyId]
       );
       const user = current.rows[0];
       if (!user || user.role === "MANAGER" && !user.department_id) throw new Error("Account unavailable");
+      if (user.must_change_password) {
+        next(new Error("password_change_required"));
+        return;
+      }
       socket.data.auth = {
         userId: user.id, companyId: user.company_id, departmentId: user.department_id,
         username: user.username, role: user.role

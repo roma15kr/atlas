@@ -1,4 +1,5 @@
-import { Check, Save, ShieldCheck } from 'lucide-react';
+import { Check, LockKeyhole, Save, ShieldCheck } from 'lucide-react';
+import { ChangePasswordDialog } from '../components/team/MemberDialogs';
 import { useState, type FormEvent } from 'react';
 import { Avatar, Badge, Button, Field, Meter, PageHeader, SectionHeader, Surface } from '../components/ui';
 import { useAuth, useWorkspace } from '../context/AppContext';
@@ -6,7 +7,7 @@ import { ApiError } from '../lib/api';
 import { formatDate, roleLabel } from '../lib/format';
 
 export function ProfilePage() {
-  const { session, consent, updateProfile } = useAuth();
+  const { session, consent, updateProfile, changePassword } = useAuth();
   const { refresh } = useWorkspace();
   const user = session!.user;
   const [consenting, setConsenting] = useState(false);
@@ -15,6 +16,8 @@ export function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [passwordChanged, setPasswordChanged] = useState(false);
   const dirty = fullName.trim() !== user.fullName || specialty.trim() !== (user.specialty ?? '');
 
   const accept = async () => { setConsenting(true); try { await consent(); } finally { setConsenting(false); } };
@@ -58,7 +61,12 @@ export function ProfilePage() {
           <div className="consent-meta"><ShieldCheck size={18} /><span><strong>Политика 2026-01</strong><small>{user.monitoringConsentAt ? `Согласие дано ${formatDate(user.monitoringConsentAt)}` : 'Ознакомьтесь и подтвердите согласие'}</small></span></div>
           {!user.monitoringConsentAt && <Button icon={Check} disabled={consenting} onClick={() => void accept()}>{consenting ? 'Подтверждаем…' : 'Принять политику'}</Button>}
         </Surface>
+        <Surface>
+          <SectionHeader title="Безопасность" />
+          <div className="security-rows"><div><span className="settings-icon"><LockKeyhole size={17} /></span><span><strong>Пароль</strong><small>{passwordChanged ? 'Пароль изменён, другие сеансы завершены' : 'При смене пароля другие сеансы завершатся'}</small></span><Button variant="secondary" onClick={() => setPasswordOpen(true)}>Изменить пароль</Button></div></div>
+        </Surface>
       </div>
     </div>
+    {passwordOpen && <ChangePasswordDialog change={async (current, next) => { await changePassword(current, next); setPasswordChanged(true); }} onClose={() => setPasswordOpen(false)} />}
   </>;
 }

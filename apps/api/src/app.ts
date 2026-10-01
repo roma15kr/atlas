@@ -30,6 +30,7 @@ import { createInvite, telegramRouter } from "./routes/telegram";
 import { webhookHandler } from "./telegram/runner";
 import { tasksRouter } from "./routes/tasks";
 import { teamRouter } from "./routes/team";
+import { teamAdminRouter } from "./routes/teamAdmin";
 
 export const app = express();
 app.set("trust proxy", config.TRUST_PROXY);
@@ -73,7 +74,7 @@ app.get("/api/v1/health", healthHandler);
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1", authenticate);
 app.use("/api/v1/dashboard", dashboardRouter);
-app.use("/api/v1/team", teamRouter);
+app.use("/api/v1/team", teamRouter, teamAdminRouter);
 app.use("/api/v1", communicationsRouter);
 app.post("/api/v1/clients/:id/telegram-invite", createInvite);
 app.use("/api/v1/telegram", telegramRouter);
