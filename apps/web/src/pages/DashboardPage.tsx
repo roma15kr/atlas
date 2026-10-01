@@ -1,9 +1,9 @@
-import { Activity, ArrowUpRight, Banknote, Bot, CalendarDays, Check, Clock3, FileWarning, Plus, Target, TrendingUp, UserCheck, Users } from 'lucide-react';
+import { Activity, ArrowUpRight, ShieldCheck, Banknote, Bot, CalendarDays, Check, Clock3, FileWarning, Plus, Target, TrendingUp, UserCheck, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TaskDialog } from '../components/TaskDialog';
 import { Avatar, Badge, Button, EmptyState, Meter, PageHeader, SectionHeader, Surface } from '../components/ui';
-import { useAuth, useWorkspace } from '../context/AppContext';
+import { hasMonitoringConsent, useAuth, useWorkspace } from '../context/AppContext';
 import { formatDate, formatMoney, relativeTime } from '../lib/format';
 import { defaultBoard, isAssignedTo, rememberedBoard } from '../lib/boards';
 import type { Alert, TaskBoard, User, WorkTask } from '../types';
@@ -35,6 +35,7 @@ export function DashboardPage() {
 
   return <>
     <PageHeader title={`Добрый день, ${user.fullName.split(' ')[0]}`} description={`${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}`} action={<Button icon={Plus} onClick={() => setTaskOpen(true)}>Новая задача</Button>} />
+    {!hasMonitoringConsent(user) && <Surface className="consent-notice" role="note"><span className="settings-icon"><ShieldCheck size={18} /></span><div><strong>Примите политику мониторинга</strong><p>Atlas учитывает присутствие в отчётах и рекомендациях только после вашего согласия. Содержание переписки не анализируется.</p></div><Button variant="secondary" onClick={() => navigate('/profile')}>Перейти в профиль</Button></Surface>}
     <div className="metric-grid">
       <Metric label={isDirector ? 'Команда в сети' : 'Мой рейтинг'} value={isDirector ? `${online} / ${teamSize}` : `${user.rating}`} note={isDirector ? `${Math.round(online / Math.max(teamSize, 1) * 100)}% команды` : 'из 100 баллов'} icon={isDirector ? Users : Target} tone="teal" />
       <Metric label="Активная воронка" value={formatMoney(pipeline)} note={`${openDeals} сделок`} icon={Banknote} tone="blue" />

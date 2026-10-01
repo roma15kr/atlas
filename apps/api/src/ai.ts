@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { config } from "./config";
 import { query } from "./db";
+import { MONITORING_POLICY_VERSION } from "./presence";
 import { funnelAccessSql } from "./scope";
 import type { AuthContext } from "./types";
 
@@ -11,7 +12,8 @@ interface SystemMetrics {
   kpiProgress: number;
   tasks: { total: number; done: number; overdue: number };
   pipeline: { openDeals: number; openValue: number; weightedValue: number; currency: "UAH" };
-  presence: { activeDays30: number; lastEventAt: string | null };
+  /** Only for people who accepted the monitoring policy; otherwise `{ consent: false }`. */
+  presence: { consent: true; activeDays30: number; lastEventAt: string | null } | { consent: false };
 }
 
 export async function analyzeWork(auth: AuthContext, targetId: string, mode: AiMode): Promise<Record<string, unknown>> {
@@ -34,7 +36,7 @@ export async function analyzeWork(auth: AuthContext, targetId: string, mode: AiM
         model: config.ANTHROPIC_MODEL,
         max_tokens: 550,
         temperature: 0.2,
-        system: "You summarize workplace system metrics. Do not infer protected traits, intent, sabotage, or misconduct. Give concrete operational recommendations. Return JSON only with summary (string) and recommendations (string array).",
+        system: "You summarize workplace system metrics. Do not infer protected traits, intent, sabotage, or misconduct. Give concrete operational recommendations in Russian. If presence.consent is false, do not mention activity or attendance. Return JSON only with summary (string) and recommendations (string array).",
         messages: [{ role: "user", content: JSON.stringify({ mode, viewerRole: auth.role, metrics, baseline: rules }) }]
       })
     }).finally(() => clearTimeout(timeout));
@@ -54,8 +56,9 @@ async function systemMetrics(auth: AuthContext, userId: string): Promise<SystemM
   // Pipeline figures only include funnels the requester may open.
   const dealAccess = funnelAccessSql(auth, "d.funnel_id", 3);
   const [user, kpi, tasks, pipeline, presence] = await Promise.all([
-    query<{ id: string; role: string; jobTitle: string | null }>(
-      `SELECT id, role, job_title AS "jobTitle" FROM users WHERE id = $1 AND company_id = $2`, [userId, companyId]
+    query<{ id: string; role: string; jobTitle: string | null; consent: boolean }>(
+      `SELECT id, role, job_title AS "jobTitle", (monitoring_consent_at IS NOT NULL AND monitoring_consent_version = $3) AS consent
+       FROM users WHERE id = $1 AND company_id = $2`, [userId, companyId, MONITORING_POLICY_VERSION]
     ),
     query<{ progress: number }>(
       `SELECT COALESCE(sum(LEAST(actual / NULLIF(target,0),1.2) * weight) / NULLIF(sum(weight),0),0)::float8 AS progress
@@ -79,30 +82,33 @@ async function systemMetrics(auth: AuthContext, userId: string): Promise<SystemM
               max(occurred_at)::text AS "lastEventAt" FROM presence_events WHERE user_id=$1 AND company_id=$2`, [userId, companyId]
     )
   ]);
+  const target = user.rows[0];
   return {
-    target: user.rows[0] ?? { id: userId, role: "UNKNOWN", jobTitle: null },
+    target: target ? { id: target.id, role: target.role, jobTitle: target.jobTitle } : { id: userId, role: "UNKNOWN", jobTitle: null },
     kpiProgress: kpi.rows[0]?.progress ?? 0,
     tasks: tasks.rows[0] ?? { total: 0, done: 0, overdue: 0 },
     pipeline: { ...(pipeline.rows[0] ?? { openDeals: 0, openValue: 0, weightedValue: 0 }), currency: "UAH" },
-    presence: presence.rows[0] ?? { activeDays30: 0, lastEventAt: null }
+    presence: target?.consent ? { consent: true, ...(presence.rows[0] ?? { activeDays30: 0, lastEventAt: null }) } : { consent: false }
   };
 }
 
 function ruleBased(metrics: SystemMetrics, mode: AiMode): { summary: string; recommendations: string[] } {
   const completion = metrics.tasks.total ? metrics.tasks.done / metrics.tasks.total : 0;
+  const money = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(Math.round(metrics.pipeline.weightedValue));
   const recommendations: string[] = [];
-  if (metrics.tasks.overdue) recommendations.push(`Review ${metrics.tasks.overdue} overdue task${metrics.tasks.overdue === 1 ? "" : "s"} and reset next steps.`);
-  if (metrics.kpiProgress < 0.7) recommendations.push("Prioritize the highest-weight KPI for the remainder of the period.");
-  if (metrics.pipeline.openDeals && metrics.pipeline.weightedValue < metrics.pipeline.openValue * 0.4) recommendations.push("Qualify low-probability deals and document a next action for each.");
-  if (!recommendations.length) recommendations.push("Keep the current cadence and record outcomes as work closes.");
+  if (metrics.tasks.overdue) recommendations.push(`Разберите просроченные задачи (${metrics.tasks.overdue}) и назначьте новые сроки.`);
+  if (metrics.kpiProgress < 0.7) recommendations.push("Сосредоточьтесь на KPI с наибольшим весом до конца периода.");
+  if (metrics.pipeline.openDeals && metrics.pipeline.weightedValue < metrics.pipeline.openValue * 0.4) recommendations.push("Проверьте сделки с низкой вероятностью и запишите следующий шаг по каждой.");
+  if (!recommendations.length) recommendations.push("Сохраняйте текущий темп и фиксируйте результаты по мере закрытия задач.");
+  const activity = metrics.presence.consent ? ` Активных дней за 30 дней: ${metrics.presence.activeDays30}.` : " Присутствие не анализируется: нет согласия на мониторинг.";
 
   if (mode === "FORECAST") {
-    return { summary: `Weighted pipeline forecast is ${Math.round(metrics.pipeline.weightedValue)} UAH across ${metrics.pipeline.openDeals} open deals.`, recommendations };
+    return { summary: `Взвешенный прогноз по воронке — ${money} ₴ по ${metrics.pipeline.openDeals} открытым сделкам.`, recommendations };
   }
   if (mode === "EVALUATION") {
-    return { summary: `KPI progress is ${Math.round(metrics.kpiProgress * 100)}% and task completion is ${Math.round(completion * 100)}%.`, recommendations };
+    return { summary: `Выполнение KPI — ${Math.round(metrics.kpiProgress * 100)}%, задачи выполнены на ${Math.round(completion * 100)}%.${activity}`, recommendations };
   }
-  return { summary: `Current priorities are based on ${metrics.tasks.total} tasks and ${metrics.pipeline.openDeals} open deals.`, recommendations };
+  return { summary: `Приоритеты составлены по ${metrics.tasks.total} задачам и ${metrics.pipeline.openDeals} открытым сделкам.`, recommendations };
 }
 
 function stripCodeFence(value: string): string {

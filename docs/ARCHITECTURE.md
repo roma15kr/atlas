@@ -157,7 +157,21 @@ files, triage, client and deal creation, import) and `POST
 Refresh tokens are rotated and stored as hashes. Access tokens are short-lived.
 Login attempts are rate-limited and repeated failures temporarily lock the
 account. Document objects stay private and are streamed only after an access
-check. Presence expires when heartbeats stop rather than trusting a stale socket.
+check.
+
+Presence tracks connections per user (Redis sorted set `presence:sockets:<id>`,
+or memory without Redis) and an "active" state with a 5-minute expiry. The
+browser reports `presence:heartbeat { active }` every minute, where active means
+keyboard, mouse, scroll or touch input in any Atlas tab (shared through
+`localStorage`) within 5 minutes, and immediately when that flips. A person is
+ONLINE while a connection is open and they are active; closing one of several
+tabs changes nothing. Only real changes are broadcast as `presence:changed` and
+written to `presence_events` (ONLINE, OFFLINE, or TIMEOUT at the last-seen time
+when an expired state is noticed), and history is written only for people who
+accepted the current monitoring policy (`MONITORING_POLICY_VERSION`). Live
+status is shown regardless, since it is not stored. Report attendance and AI
+activity metrics likewise use only consenting people; others are marked
+`consent: false`, and the `INACTIVITY` alert rule skips them.
 
 ## Accounts and KPIs
 

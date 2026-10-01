@@ -1089,3 +1089,7 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
   .report-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .report-runs li { grid-template-columns: 1fr 1fr; }
 }
+.consent-notice { margin-bottom: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; border-color: #f0d9a8; background: #fffaf0; }
+.consent-notice > div { flex: 1; min-width: 0; }
+.consent-notice p { margin: 3px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+@media (max-width: 780px) { .consent-notice { flex-wrap: wrap; } }

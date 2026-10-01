@@ -3,7 +3,7 @@ import { Server } from "socket.io";
 import { verifyAccessToken } from "./auth";
 import { config } from "./config";
 import { query } from "./db";
-import { markOffline, markOnline, presenceFor } from "./presence";
+import { applyActivity, closeSocket, MONITORING_POLICY_VERSION, presenceFor, touchSocket, type PresenceTransition } from "./presence";
 import { userRoom } from "./realtime";
 import type { AuthContext, Role } from "./types";
 
@@ -40,33 +40,40 @@ export function createSocketServer(server: HttpServer): Server {
     }
   });
 
-  io.on("connection", async (socket) => {
+  io.on("connection", (socket) => {
     const auth = socket.data.auth as AuthContext;
-    await socket.join([...presenceSubscriptionRooms(auth), userRoom(auth.userId)]);
-    const online = await markOnline(auth.userId);
-    await query(
-      "INSERT INTO presence_events (company_id, user_id, event, session_id) VALUES ($1,$2,'ONLINE',$3)",
-      [auth.companyId, auth.userId, socket.id]
-    ).catch(() => undefined);
-    io.to(presenceAudienceRooms(auth)).emit("presence:changed", online);
 
-    const userIds = await visibleUserIds(auth);
-    const snapshot = await presenceFor(userIds);
-    socket.emit("presence:snapshot", userIds.map((id) => snapshot[id] ?? { userId: id, status: "OFFLINE", lastSeenAt: null }));
+    // Only real changes of state are broadcast and recorded; extra tabs and heartbeats are silent.
+    const publish = async (transition: PresenceTransition, event: "ONLINE" | "OFFLINE") => {
+      if (!transition.changed) return;
+      if (transition.timedOutAt) await recordPresence(auth, "TIMEOUT", socket.id, transition.timedOutAt);
+      await recordPresence(auth, event, socket.id);
+      io.to(presenceAudienceRooms(auth)).emit("presence:changed", transition.state);
+    };
 
-    socket.on("presence:heartbeat", async (_payload, acknowledge?: (state: unknown) => void) => {
-      const state = await markOnline(auth.userId);
-      io.to(presenceAudienceRooms(auth)).emit("presence:changed", state);
-      acknowledge?.(state);
+    // Handlers are attached at once so nothing sent during setup is lost; they wait for setup to finish.
+    const ready = (async () => {
+      await socket.join([...presenceSubscriptionRooms(auth), userRoom(auth.userId)]);
+      await touchSocket(auth.userId, socket.id);
+      await publish(await applyActivity(auth.userId, true), "ONLINE");
+      const userIds = await visibleUserIds(auth);
+      const snapshot = await presenceFor(userIds);
+      socket.emit("presence:snapshot", userIds.map((id) => snapshot[id] ?? { userId: id, status: "OFFLINE", lastSeenAt: null }));
+    })().catch((error) => console.error("Socket setup failed", error));
+
+    socket.on("presence:heartbeat", async (payload: unknown, acknowledge?: (state: unknown) => void) => {
+      await ready;
+      // Older clients send no flag; they count as active, as before.
+      const active = !(payload && typeof payload === "object" && (payload as { active?: unknown }).active === false);
+      await touchSocket(auth.userId, socket.id);
+      const transition = await applyActivity(auth.userId, active);
+      await publish(transition, active ? "ONLINE" : "OFFLINE");
+      if (typeof acknowledge === "function") acknowledge(transition.state);
     });
 
     socket.on("disconnect", async () => {
-      const offline = await markOffline(auth.userId);
-      await query(
-        "INSERT INTO presence_events (company_id, user_id, event, session_id) VALUES ($1,$2,'OFFLINE',$3)",
-        [auth.companyId, auth.userId, socket.id]
-      ).catch(() => undefined);
-      io.to(presenceAudienceRooms(auth)).emit("presence:changed", offline);
+      await ready;
+      await publish(await closeSocket(auth.userId, socket.id), "OFFLINE");
     });
   });
 
@@ -95,4 +102,14 @@ async function visibleUserIds(auth: AuthContext): Promise<string[]> {
   if (auth.role === "EMPLOYEE") { values.push(auth.userId); clauses.push("id=$2"); }
   const users = await query<{ id: string }>(`SELECT id FROM users WHERE ${clauses.join(" AND ")}`, values);
   return users.rows.map((row) => row.id);
+}
+
+/** Presence history is kept only for people who accepted the current monitoring policy. */
+export async function recordPresence(auth: AuthContext, event: "ONLINE" | "OFFLINE" | "TIMEOUT", sessionId: string, occurredAt?: string): Promise<void> {
+  await query(
+    `INSERT INTO presence_events (company_id, user_id, event, session_id, occurred_at)
+     SELECT $1, $2, $3, $4, COALESCE($5::timestamptz, now())
+     WHERE EXISTS (SELECT 1 FROM users WHERE id = $2 AND monitoring_consent_at IS NOT NULL AND monitoring_consent_version = $6)`,
+    [auth.companyId, auth.userId, event, sessionId, occurredAt ?? null, MONITORING_POLICY_VERSION]
+  ).catch(() => undefined);
 }

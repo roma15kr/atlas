@@ -15,6 +15,7 @@ export interface User {
   online: boolean;
   lastSeen?: string;
   monitoringConsentAt?: string;
+  monitoringConsentVersion?: string;
   rating: number;
   kpis: Kpi[];
   /** Present on directory rows; DISABLED people appear only in the directors' and heads' "Отключённые" view. */

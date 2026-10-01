@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { io, type Socket } from 'socket.io-client';
+import { trackActivity } from '../lib/activity';
 import { api, ApiError, apiRequest, listAll, listPage, sessionStore } from '../lib/api';
 import {
   demoAchievements,
@@ -24,6 +25,12 @@ import type { Achievement, AiAnalysis, AiMode, Alert, AuditEvent, ReportRun, Boa
 const roleRank: Record<Role, number> = { EMPLOYEE: 1, MANAGER: 2, DIRECTOR: 3 };
 export const REFRESH_INTERVAL_MS = 180_000;
 export const STALE_AFTER_MS = 60_000;
+export const HEARTBEAT_MS = 60_000;
+/** Must match the API's MONITORING_POLICY_VERSION. */
+export const MONITORING_POLICY_VERSION = '2026-01';
+
+/** Accepted the current monitoring policy; older versions count as not accepted. Demo users carry no version. */
+export const hasMonitoringConsent = (user: User): boolean => Boolean(user.monitoringConsentAt) && (!user.monitoringConsentVersion || user.monitoringConsentVersion === MONITORING_POLICY_VERSION);
 export const DEMO_MODE = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true';
 
 export interface CreateTeamMemberInput {
@@ -86,6 +93,7 @@ const normalizeUser = (source: Record<string, unknown>): User => ({
   online: Boolean(source.online ?? (source.presence as { status?: string } | undefined)?.status === 'ONLINE'),
   lastSeen: (source.lastSeen ?? source.last_seen ?? (source.presence as { lastSeenAt?: string } | undefined)?.lastSeenAt) as string | undefined,
   monitoringConsentAt: (source.monitoringConsentAt ?? source.monitoring_consent_at) as string | undefined,
+  monitoringConsentVersion: (source.monitoringConsentVersion ?? undefined) as string | undefined,
   rating: Number(source.rating ?? 0),
   kpis: Array.isArray(source.kpis) ? source.kpis as Kpi[] : [],
   status: source.status === 'DISABLED' ? 'DISABLED' : 'ACTIVE',
@@ -201,8 +209,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const consent = useCallback(async () => {
     if (!session) return;
     const date = new Date().toISOString();
-    if (!session.accessToken.startsWith('demo-')) await api.update('team', 'me/consent', { accepted: true, policyVersion: '2026-01' });
-    const next = { ...session, user: { ...session.user, monitoringConsentAt: date } };
+    if (!session.accessToken.startsWith('demo-')) await api.update('team', 'me/consent', { accepted: true, policyVersion: MONITORING_POLICY_VERSION });
+    const next = { ...session, user: { ...session.user, monitoringConsentAt: date, monitoringConsentVersion: MONITORING_POLICY_VERSION } };
     sessionStore.set(next);
     setSession(next);
   }, [session]);
@@ -464,14 +472,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     socket.on('presence:update', updatePresence);
     socket.on('presence:changed', updatePresence);
     socket.on('presence:snapshot', (items: Array<{ userId: string; online?: boolean; lastSeen?: string; status?: string; lastSeenAt?: string }>) => items.forEach(updatePresence));
-    const heartbeat = window.setInterval(() => socket?.emit('presence:heartbeat', { at: Date.now() }), 45000);
-    const active = () => socket?.emit('presence:heartbeat', { at: Date.now() });
-    window.addEventListener('focus', active);
-    document.addEventListener('visibilitychange', active);
+    // Heartbeats say whether the person was active in the last 5 minutes, in any Atlas tab.
+    let reported = true;
+    const tracker = trackActivity(() => { reported = true; socket?.emit('presence:heartbeat', { active: true }); });
+    const beat = () => { reported = tracker.isActive(); socket?.emit('presence:heartbeat', { active: reported }); };
+    const heartbeat = window.setInterval(beat, HEARTBEAT_MS);
+    // Going idle is reported within 15 seconds rather than at the next heartbeat.
+    const idleCheck = window.setInterval(() => { if (reported && !tracker.isActive()) beat(); }, 15_000);
     return () => {
       window.clearInterval(heartbeat);
-      window.removeEventListener('focus', active);
-      document.removeEventListener('visibilitychange', active);
+      window.clearInterval(idleCheck);
+      tracker.stop();
       socket?.disconnect();
       socket = null;
     };

@@ -6,6 +6,7 @@ import { requireAuth, requireRoles } from "../auth";
 import { query } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { pagination } from "../http";
+import { MONITORING_POLICY_VERSION } from "../presence";
 import { funnelAccessSql } from "../scope";
 
 export const reportsRouter = Router();
@@ -130,7 +131,7 @@ export async function reportMetrics(
 ): Promise<Record<string, unknown>> {
   // Deal metrics only count funnels the report creator may open.
   const dealAccess = funnelAccessSql(auth, "d.funnel_id", 6);
-  const [kpi, deals, tasks, attendance] = await Promise.all([
+  const [kpi, deals, tasks, attendance, consent] = await Promise.all([
     query<{ progress: number }>(
       `SELECT COALESCE(sum(LEAST(k.actual / NULLIF(k.target, 0), 1) * k.weight) / NULLIF(sum(k.weight), 0), 0)::float8 AS progress
        FROM kpis k JOIN users ku ON ku.id=k.user_id
@@ -156,13 +157,21 @@ export async function reportMetrics(
          AND t.created_at::date BETWEEN $4::date AND $5::date`,
       [companyId, userId, departmentId, start, end]
     ),
+    // Attendance counts only people who accepted the monitoring policy.
     query<{ activeDays: number; firstSeenAt: string | null; lastSeenAt: string | null }>(
       `SELECT count(DISTINCT occurred_at::date) FILTER (WHERE event='ONLINE')::int AS "activeDays",
               min(occurred_at)::text AS "firstSeenAt", max(occurred_at)::text AS "lastSeenAt"
        FROM presence_events pe JOIN users pu ON pu.id=pe.user_id
        WHERE pe.company_id=$1 AND ($2::uuid IS NULL OR pe.user_id=$2) AND ($3::uuid IS NULL OR pu.department_id=$3)
-         AND occurred_at::date BETWEEN $4::date AND $5::date`,
-      [companyId, userId, departmentId, start, end]
+         AND occurred_at::date BETWEEN $4::date AND $5::date
+         AND pu.monitoring_consent_at IS NOT NULL AND pu.monitoring_consent_version = $6`,
+      [companyId, userId, departmentId, start, end, MONITORING_POLICY_VERSION]
+    ),
+    query<{ teamSize: number; consentingUsers: number }>(
+      `SELECT count(*)::int AS "teamSize",
+              count(*) FILTER (WHERE monitoring_consent_at IS NOT NULL AND monitoring_consent_version = $4)::int AS "consentingUsers"
+       FROM users WHERE company_id=$1 AND status='ACTIVE' AND ($2::uuid IS NULL OR id=$2) AND ($3::uuid IS NULL OR department_id=$3)`,
+      [companyId, userId, departmentId, MONITORING_POLICY_VERSION]
     )
   ]);
   const deal = deals.rows[0] ?? { total: 0, won: 0, value: 0 };
@@ -171,8 +180,18 @@ export async function reportMetrics(
     deals: { ...deal, currency: "UAH" },
     conversion: deal.total ? deal.won / deal.total : 0,
     tasks: tasks.rows[0] ?? { total: 0, done: 0, overdue: 0 },
-    attendance: attendance.rows[0] ?? { activeDays: 0, firstSeenAt: null, lastSeenAt: null }
+    attendance: attendanceResult(userId, attendance.rows[0], consent.rows[0])
   };
+}
+
+function attendanceResult(
+  userId: string | null,
+  counts: { activeDays: number; firstSeenAt: string | null; lastSeenAt: string | null } | undefined,
+  team: { teamSize: number; consentingUsers: number } | undefined
+): Record<string, unknown> {
+  const figures = counts ?? { activeDays: 0, firstSeenAt: null, lastSeenAt: null };
+  if (userId) return team?.consentingUsers ? { consent: true, ...figures } : { consent: false };
+  return { ...figures, consentingUsers: team?.consentingUsers ?? 0, teamSize: team?.teamSize ?? 0 };
 }
 
 function stripTotal(row: Record<string, unknown>): Record<string, unknown> {

@@ -63,3 +63,19 @@ describe('AI analysis', () => {
     expect(await screen.findByRole('button', { name: 'AI-анализ' })).toBeInTheDocument();
   });
 });
+
+describe('monitoring consent notice', () => {
+  it('asks people without consent to review the policy and hides for those who accepted', async () => {
+    const session = demoSessions.employee;
+    localStorage.setItem('atlas.session', JSON.stringify({ ...session, user: { ...session.user, monitoringConsentAt: undefined } }));
+    renderAt('/');
+    const notice = await screen.findByRole('note');
+    expect(within(notice).getByText('Примите политику мониторинга')).toBeInTheDocument();
+    expect(within(notice).getByRole('button', { name: 'Перейти в профиль' })).toBeInTheDocument();
+    cleanup();
+    localStorage.setItem('atlas.session', JSON.stringify(session));
+    renderAt('/');
+    await screen.findByText(/Добрый день/);
+    expect(screen.queryByRole('note')).not.toBeInTheDocument();
+  });
+});
