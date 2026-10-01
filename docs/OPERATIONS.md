@@ -99,12 +99,71 @@ unchanged for a director. Tell employees that boards are shared: they now see
 their colleagues' tasks on their department's boards. To roll back, stop the
 API, restore that dump with the procedure above, and redeploy the previous image.
 
+## Deploying migrations 006 and 007 (team chat, email)
+
+`006_team_chat.sql` is additive: chat tables, an "Общий" channel per company with
+every active user, and triggers that keep it in sync. Nothing to prepare.
+
+`007_email_client.sql` adds the mail tables and **drops the old `messages` table**
+and its enum types. That table never held real external mail (no adapter existed
+and internal sends had no recipient), but check and keep a dump first:
+
+```bash
+docker compose exec postgres psql -U atlas -d atlas -c "SELECT channel, count(*) FROM messages GROUP BY 1"
+docker compose exec backup sh -c 'f="/backups/atlas-pre-007-$(date -u +%Y%m%dT%H%M%SZ).dump"; pg_dump --format=custom --file="$f" && pg_restore --list "$f" >/dev/null && ls -l "$f"'
+```
+
+## Email
+
+Users connect their own mailboxes under Почта → Настройки. Mail is private to its
+owner; only threads linked to a client or deal are readable by others, read-only,
+through that record's "Переписка".
+
+**Required:** `MAIL_ENCRYPTION_KEY`, 32 random bytes in base64
+(`openssl rand -base64 32`). It encrypts mailbox passwords and OAuth refresh
+tokens. Without it, connecting mail is disabled. Store it with the other secrets
+and back it up: if it is lost, stored credentials can't be opened and every user
+must reconnect (no mail is lost). To rotate, set the new key in
+`MAIL_ENCRYPTION_KEY` and the old one in `MAIL_ENCRYPTION_KEY_PREVIOUS`; secrets are
+re-encrypted as they are used, and the previous key can be removed after a few
+days.
+
+Optional settings: `MAIL_SYNC_DAYS` (default 90: how much history is copied),
+`MAIL_POLL_SECONDS` (default 120: inbox polling), `MAIL_ALLOW_PRIVATE_HOSTS`
+(default `false`; set `true` only for a mail server inside your own network).
+Only ports 993/143 (IMAP) and 465/587/25 (SMTP) are accepted.
+
+**Google sign-in (optional).** In Google Cloud Console create an OAuth client of
+type *Web application* with the redirect URI `<PUBLIC_URL>/mail/oauth/google`,
+enable the Gmail API, and set the OAuth consent screen to **Internal** in the
+company's Google Workspace, so the `https://mail.google.com/` scope needs no Google
+review. Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. Personal Gmail users can
+connect through "Другая почта" with an app password instead.
+
+**Microsoft 365 sign-in (optional).** In Entra ID register an application with the
+redirect URI `<PUBLIC_URL>/mail/oauth/microsoft` (platform *Web*), add the delegated
+permissions `IMAP.AccessAsUser.All`, `SMTP.Send`, `offline_access`, `openid`,
+`email` and `profile` (Office 365 Exchange Online), create a client secret, and set
+`MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` and `MICROSOFT_TENANT_ID` (your
+tenant id, or `common`). SMTP sending also needs *Authenticated SMTP* enabled for
+each mailbox (Exchange admin center → mailbox → Email apps); otherwise the
+connection test reports that SMTP sending is disabled.
+
+**Sync.** The API process syncs mailboxes in the background (at most five at a
+time, inbox every `MAIL_POLL_SECONDS`, other folders every 10 minutes), guarded by
+a Postgres advisory lock per mailbox. A mailbox whose login stops working shows
+"Требует внимания" and pauses until its owner reconnects. Attachments are fetched
+from the mail server on first download and cached on the documents volume (or S3),
+so the documents backup covers them. Mail older than the sync window plus seven
+days that isn't linked to a client is pruned daily.
+
 ## Secret rotation
 
 Rotate one dependency at a time and confirm health after each change. Database
 and Redis credentials require coordinated server and API updates. Changing `JWT_SECRET` invalidates access tokens; changing
 `REFRESH_TOKEN_SECRET` invalidates refresh sessions. Schedule both together and
-expect every user to sign in again.
+expect every user to sign in again. Rotate `MAIL_ENCRYPTION_KEY` as described
+under Email.
 
 The Coolify provisioning token is not an Atlas runtime secret. Rotate it after
 provisioning and keep future tokens least-privileged. Never put a token in Git,

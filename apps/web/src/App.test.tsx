@@ -43,14 +43,6 @@ describe('role-aware routing', () => {
     expect(screen.queryByText('Нет согласия на мониторинг')).not.toBeInTheDocument();
   });
 
-  it('scopes demo messages to accessible employee clients', async () => {
-    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.employee));
-    renderAt('/inbox');
-    expect(await screen.findByText('София Тёрнер')).toBeInTheDocument();
-    expect(screen.queryByText('Павел Орлов')).not.toBeInTheDocument();
-    expect(screen.queryByText('Мария Белова')).not.toBeInTheDocument();
-  });
-
   it('shows Ukrainian hryvnia throughout the sales workflow', async () => {
     const user = userEvent.setup();
     localStorage.setItem('atlas.session', JSON.stringify(demoSessions.employee));

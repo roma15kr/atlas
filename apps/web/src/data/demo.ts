@@ -1,4 +1,4 @@
-import type { Achievement, Alert, AuditEvent, BoardUser, ChannelMessage, Client, CompanyDocument, Deal, DealStage, Funnel, Integration, Report, Role, Session, TaskBoard, TaskCategory, TaskStage, User, WorkTask } from '../types';
+import type { Achievement, Alert, AuditEvent, BoardUser, Client, CompanyDocument, Deal, DealStage, Funnel, Report, Role, Session, TaskBoard, TaskCategory, TaskStage, User, WorkTask } from '../types';
 
 const ago = (hours: number) => new Date(Date.now() - hours * 3600000).toISOString();
 const ahead = (days: number) => new Date(Date.now() + days * 86400000).toISOString();
@@ -115,19 +115,7 @@ export const demoAchievements: Achievement[] = [
   { id: 'ach3', code: 'TOP_MONTH', name: 'Лучший результат', description: 'Первое место по взвешенному KPI', points: 250, awardedAt: ago(720) },
 ];
 
-export const demoIntegrations: Integration[] = [
-  { id: 'i1', provider: 'GMAIL', status: 'CONNECTED', displayName: 'employee@atlas-demo.example', lastSyncedAt: ago(.15) },
-  { id: 'i2', provider: 'OUTLOOK', status: 'DISCONNECTED' },
-  { id: 'i3', provider: 'TELEGRAM', status: 'DISCONNECTED' },
-  { id: 'i4', provider: 'WHATSAPP', status: 'NEEDS_ATTENTION', displayName: 'Atlas Support', lastSyncedAt: ago(48) },
-  { id: 'i5', provider: 'VIBER', status: 'DISCONNECTED' },
-];
 
-export const demoMessages: ChannelMessage[] = [
-  { id: 'm1', channel: 'GMAIL', contact: 'София Тёрнер', subject: 'Re: Годовой план', preview: 'Спасибо, получили обновлённое предложение. Вернёмся с комментариями…', receivedAt: ago(.5), unread: true, clientId: 'c1' },
-  { id: 'm2', channel: 'WHATSAPP', contact: 'Павел Орлов', subject: 'Корпоративный контур', preview: 'Коллеги подтвердили бюджет, можно запускать согласование договора.', receivedAt: ago(3), unread: true, clientId: 'c4' },
-  { id: 'm3', channel: 'GMAIL', contact: 'Мария Белова', subject: 'Материалы пилота', preview: 'Пришлите, пожалуйста, требования к настройке рабочих мест.', receivedAt: ago(25), unread: false, clientId: 'c5' },
-];
 
 export const demoAudit: AuditEvent[] = [
   { id: 'au1', actorName: 'Елена Морозова', action: 'CRM_EXPORT', entityType: 'clients', ip: '10.2.4.18', createdAt: ago(1), result: 'SUCCESS' },

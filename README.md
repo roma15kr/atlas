@@ -18,6 +18,10 @@ Production: [atlas.141.94.30.173.sslip.io](https://atlas.141.94.30.173.sslip.io)
 - Live Socket.IO presence with heartbeat expiry and presence history.
 - Team chat: direct messages, group conversations, public and private channels
   with admins, threads, @mentions, unread counts and live delivery.
+- Email client: each user connects Google, Microsoft 365 or any IMAP/SMTP mailbox
+  and reads, searches, sorts, writes, replies and forwards mail in Atlas. Mail stays
+  private until a thread is linked to a client or deal; linked correspondence appears
+  in the client's "Переписка" for everyone who can see the client.
 - Department- and owner-scoped CRM clients, deals, and comments.
 - Multiple sales funnels with director-managed stages (rename, recolor, reorder,
   won/lost outcome, delete with deal relocation) and per-funnel access for chosen
@@ -34,7 +38,7 @@ Production: [atlas.141.94.30.173.sslip.io](https://atlas.141.94.30.173.sslip.io)
 - Director/manager team onboarding with strong initial-password policy and
   department-safe role assignment.
 - Explicit monitoring consent and metadata-only risk signals.
-- Server-side configuration gates for Claude, Gmail, Outlook, Telegram, WhatsApp,
+- Server-side configuration gates for Claude, Google and Microsoft mail sign-in, Telegram, WhatsApp,
   and Viber. No integration is presented as connected without credentials.
 - Daily PostgreSQL dumps, health checks, CI, and a Coolify-oriented runbook.
 

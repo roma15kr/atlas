@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request } from "express";
 import { z } from "zod";
 import { assertOwnerFunnelAccess, canAccessFunnel, manageableUser, type TargetUser } from "../access";
 import { writeAudit } from "../audit";
@@ -7,6 +7,7 @@ import { query } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { asOptionalDate, pagination, updatedFields } from "../http";
 import { funnelAccessSql, recordScope } from "../scope";
+import type { AuthContext } from "../types";
 
 export const dealInputSchema = z.object({
   clientId: z.string().uuid(),
@@ -53,7 +54,13 @@ dealsRouter.get("/", asyncHandler(async (req, res) => {
 
 dealsRouter.post("/", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
-  const input = dealInputSchema.parse(req.body);
+  const id = await createDeal(req, auth, req.body);
+  res.status(201).json({ data: await scopedDeal(auth, id) });
+}));
+
+/** Creates a deal with the same rules as `POST /deals`; also used when creating a deal from mail or Telegram. */
+export async function createDeal(req: Request, auth: AuthContext, raw: unknown): Promise<string> {
+  const input = dealInputSchema.parse(raw);
   await assertFunnelAccessible(auth, input.funnelId);
   const stageId = await resolveStage(auth.companyId, input.funnelId, input.stageId);
   const owner = await manageableUser(auth, input.ownerId);
@@ -68,8 +75,8 @@ dealsRouter.post("/", asyncHandler(async (req, res) => {
   );
   const id = result.rows[0]?.id as string;
   await writeAudit(req, { auth, action: "DEAL_CREATED", entityType: "deal", entityId: id, departmentId: owner.department_id, metadata: { funnelId: input.funnelId } });
-  res.status(201).json({ data: await scopedDeal(auth, id) });
-}));
+  return id;
+}
 
 dealsRouter.get("/:id", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);

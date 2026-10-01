@@ -35,3 +35,13 @@ function normalizeIp(ip: string | null): string | null {
   if (!ip) return null;
   return ip.startsWith("::ffff:") ? ip.slice(7) : ip;
 }
+
+/** Audit for work done in the background (mail sync, bots) on behalf of a user, without a request. */
+export async function writeSystemAudit(input: AuditInput): Promise<void> {
+  await query(
+    `INSERT INTO audit_logs (company_id, department_id, actor_id, action, entity_type, entity_id, metadata)
+     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)`,
+    [input.auth?.companyId ?? null, input.departmentId !== undefined ? input.departmentId : input.auth?.departmentId ?? null,
+      input.auth?.userId ?? null, input.action, input.entityType, input.entityId ?? null, JSON.stringify(input.metadata ?? {})]
+  );
+}

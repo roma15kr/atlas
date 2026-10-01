@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+/** Compose passes unset variables as empty strings; treat those as absent. */
+const optionalKey = z.preprocess(
+  (value) => value === "" ? undefined : value,
+  z.string().refine((value) => Buffer.from(value, "base64").length === 32, "must be 32 bytes, base64-encoded").optional()
+);
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(4000),
@@ -34,7 +40,16 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().default("claude-sonnet-4-20250514"),
   GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
   MICROSOFT_CLIENT_ID: z.string().optional(),
+  MICROSOFT_CLIENT_SECRET: z.string().optional(),
+  MICROSOFT_TENANT_ID: z.preprocess((value) => value === "" ? undefined : value, z.string().regex(/^[A-Za-z0-9.-]+$/).default("common")),
+  MAIL_ENCRYPTION_KEY: optionalKey,
+  MAIL_ENCRYPTION_KEY_PREVIOUS: optionalKey,
+  MAIL_SYNC_DAYS: z.coerce.number().int().min(1).max(365).default(90),
+  MAIL_POLL_SECONDS: z.coerce.number().int().min(30).max(3600).default(120),
+  MAIL_ALLOW_PRIVATE_HOSTS: z.enum(["true", "false"]).default("false"),
+  MAIL_SCHEDULER: z.enum(["on", "off"]).default("on"),
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   WHATSAPP_ACCESS_TOKEN: z.string().optional(),
   VIBER_AUTH_TOKEN: z.string().optional(),

@@ -98,6 +98,39 @@ immediately: `chat:message`, `chat:message-updated`, `chat:mention`,
 `chat:membership`, `chat:conversation-updated` and `chat:read`. Clients re-fetch
 after reconnecting.
 
+Email is private to its owner, whatever their role: every `/api/v1/mail` route
+filters by `mail_accounts.user_id` / `mail_threads.user_id` and returns 404 for
+anyone else, directors included. A thread linked to a client or deal becomes
+readable, never actionable, to whoever can see that record, through `GET
+/clients/:id/communications`, `GET /deals/:id/communications` and `GET
+/communications/mail/:threadId` (Bcc only for the owner). Threads link
+automatically when a correspondent's address matches exactly one client the owner
+can see; several matches become suggestions, and a thread the owner unlinks is
+never relinked. Client and deal creation from mail reuse the `createClient` and
+`createDeal` functions behind `POST /clients` and `POST /deals`. Other channels
+(Telegram) add themselves to the same history through
+`registerCommunicationSource`.
+
+Every provider goes through IMAP and SMTP (`imapflow`, `nodemailer`); Google and
+Microsoft only supply XOAUTH2 access tokens from a stored refresh token. The OAuth
+redirect lands on the web route `/mail/oauth/:provider`, which posts the code and
+a signed, single-use state bound to the user back to the API with the user's own
+access token. Secrets are sealed with AES-256-GCM (`mail/crypto.ts`). User-entered
+hosts are resolved and refused when private, and connections go to the resolved
+address with SNI (`mail/hosts.ts`). HTML is sanitized once on ingest
+(`mail/sanitize.ts`); remote images are deferred to `data-remote-src` and the web
+app renders mail in a sandboxed frame without scripts, with a CSP that blocks
+remote images until the owner allows them. Sync (`mail/sync.ts`) is windowed
+(`MAIL_SYNC_DAYS`), incremental by UID, resets a folder on UIDVALIDITY change,
+mirrors flag changes and server deletions, and threads by provider thread id,
+references, then subject plus a shared correspondent within 30 days. A scheduler
+in the API process (`mail/scheduler.ts`) runs due syncs under per-mailbox advisory
+locks. Sending stores a SENDING copy first, submits over SMTP, appends to Sent for
+plain IMAP servers, and keeps the draft when the send fails; sync later completes
+the local copy instead of duplicating it. Mail audit events (`MAIL_*`) carry ids
+and counts, never subjects, addresses or bodies. Live updates are `mail:changed`
+and `mail:account` on the owner's `user:<id>` socket room.
+
 Refresh tokens are rotated and stored as hashes. Access tokens are short-lived.
 Login attempts are rate-limited and repeated failures temporarily lock the
 account. Document objects stay private and are streamed only after an access
@@ -129,6 +162,11 @@ client -> contacts
 chat_conversations (DM / GROUP / CHANNEL; one public default channel per company)
   -> chat_members (role ADMIN / MEMBER, last_read_at, muted)
   -> chat_messages (thread replies via parent_id) -> chat_mentions (per user, read flag)
+
+users -> mail_accounts (sealed credentials) -> mail_folders
+                        -> mail_threads (owner kept after disconnect; optional client / deal link)
+                           -> mail_messages -> mail_attachments (cached on the document volume)
+                        -> mail_drafts
 
 report_definitions -> report_runs
 audit_events

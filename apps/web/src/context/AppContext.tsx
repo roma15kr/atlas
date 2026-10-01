@@ -8,8 +8,6 @@ import {
   demoClients,
   demoDeals,
   demoDocuments,
-  demoIntegrations,
-  demoMessages,
   demoReports,
   demoFunnels,
   demoTaskBoards,
@@ -21,7 +19,7 @@ import {
   demoBoardUsers,
   fallbackSession,
 } from '../data/demo';
-import type { Achievement, Alert, AuditEvent, BoardUser, ChannelMessage, Client, CompanyDocument, Deal, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Integration, Kpi, Report, Role, Session, TaskAssignee, TaskBoard, TaskCategory, TaskPriority, TaskStage, TaskStageSummary, User, WorkTask } from '../types';
+import type { Achievement, Alert, AuditEvent, BoardUser, Client, CompanyDocument, Deal, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Kpi, Report, Role, Session, TaskAssignee, TaskBoard, TaskCategory, TaskPriority, TaskStage, TaskStageSummary, User, WorkTask } from '../types';
 
 const roleRank: Record<Role, number> = { EMPLOYEE: 1, MANAGER: 2, DIRECTOR: 3 };
 export const DEMO_MODE = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true';
@@ -118,9 +116,6 @@ const normalizeAlert = (source: Record<string, unknown>): Alert => ({
   id: String(source.id), severity: (source.severity as Alert['severity']) ?? 'INFO', category: String(source.category ?? ''), title: String(source.title ?? ''), summary: String(source.summary ?? ''), userName: source.userName as string | undefined, createdAt: String(source.createdAt ?? ''), acknowledged: Boolean(source.acknowledged ?? source.acknowledgedAt),
 });
 
-const normalizeMessage = (source: Record<string, unknown>): ChannelMessage => ({
-  id: String(source.id), channel: (source.channel as ChannelMessage['channel']) ?? 'INTERNAL', contact: String(source.contact ?? (source.direction === 'INBOUND' ? source.sender : source.recipient) ?? ''), subject: String(source.subject ?? 'Без темы'), preview: String(source.preview ?? source.body ?? ''), receivedAt: String(source.receivedAt ?? source.occurredAt ?? ''), unread: Boolean(source.unread ?? source.direction === 'INBOUND'), clientId: source.clientId as string | undefined,
-});
 
 const normalizeAudit = (source: Record<string, unknown>): AuditEvent => ({
   id: String(source.id), actorName: String(source.actorName ?? (source.actor as { fullName?: string } | undefined)?.fullName ?? 'Система'), action: String(source.action ?? ''), entityType: String(source.entityType ?? ''), entityId: source.entityId as string | undefined, ip: String(source.ip ?? ''), createdAt: String(source.createdAt ?? ''), result: (source.result as AuditEvent['result']) ?? (String(source.action).includes('DENIED') ? 'DENIED' : 'SUCCESS'),
@@ -263,8 +258,6 @@ interface WorkspaceValue {
   reports: Report[];
   alerts: Alert[];
   achievements: Achievement[];
-  integrations: Integration[];
-  messages: ChannelMessage[];
   audit: AuditEvent[];
   dataStatus: 'loading' | 'ready' | 'offline';
   createTeamMember: (input: CreateTeamMemberInput) => Promise<User>;
@@ -299,8 +292,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [reports, setReports] = useState<Report[]>(initialDemo ? demoReports : []);
   const [alerts, setAlerts] = useState<Alert[]>(initialDemo ? demoAlerts : []);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const [integrations, setIntegrations] = useState<Integration[]>([]);
-  const [messages, setMessages] = useState<ChannelMessage[]>([]);
   const [audit, setAudit] = useState<AuditEvent[]>([]);
   const [dataStatus, setDataStatus] = useState<'loading' | 'ready' | 'offline'>('ready');
 
@@ -314,7 +305,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       api.list<Record<string, unknown>>('team'), api.list<Record<string, unknown>>('clients'), listAll<Record<string, unknown>>('deals'),
       listAll<Record<string, unknown>>('tasks'), api.list<CompanyDocument>('documents'),
       api.list<Report>('reports'), api.list<Alert>('alerts'), api.list<Funnel>('funnels'),
-      api.list<Achievement>('achievements'), api.list<Integration>('integrations'), api.list<ChannelMessage>('messages'), api.list<AuditEvent>('audit'),
+      api.list<Achievement>('achievements'), api.list<AuditEvent>('audit'),
       api.list<TaskBoard>('task-boards'),
     ]).then((results) => {
       if (!active) return;
@@ -325,8 +316,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         (items) => setTasks(items.map((item) => normalizeTask(item as Record<string, unknown>))),
         (items) => setDocuments(items.map((item) => normalizeDocument(item as Record<string, unknown>))), (items) => setReports(items.map((item) => normalizeReport(item as Record<string, unknown>))),
         (items) => setAlerts(items.map((item) => normalizeAlert(item as Record<string, unknown>))), (items) => setFunnels(items as Funnel[]),
-        (items) => setAchievements(items as Achievement[]), (items) => setIntegrations(items as Integration[]),
-        (items) => setMessages(items.map((item) => normalizeMessage(item as Record<string, unknown>))), (items) => setAudit(items.map((item) => normalizeAudit(item as Record<string, unknown>))),
+        (items) => setAchievements(items as Achievement[]), (items) => setAudit(items.map((item) => normalizeAudit(item as Record<string, unknown>))),
         (items) => setTaskBoards(items as TaskBoard[]),
       ];
       let fulfilled = 0;
@@ -346,10 +336,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     if (isDemo) {
       setUsers(demoUsers); setClients(demoClients); setDeals(demoDeals); setFunnels(demoFunnels); setTasks(demoTasks); setTaskBoards(demoTaskBoards);
       setDocuments(demoDocuments); setReports(demoReports); setAlerts(demoAlerts); setAchievements(demoAchievements);
-      setIntegrations(demoIntegrations); setMessages(demoMessages); setAudit(demoAudit); setDataStatus('ready');
+      setAudit(demoAudit); setDataStatus('ready');
     } else {
       setUsers([]); setClients([]); setDeals([]); setFunnels([]); setTasks([]); setTaskBoards([]); setDocuments([]); setReports([]);
-      setAlerts([]); setAchievements([]); setIntegrations([]); setMessages([]); setAudit([]);
+      setAlerts([]); setAchievements([]); setAudit([]);
     }
   }, [session?.accessToken, isDemo]);
 
@@ -649,22 +639,18 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     return tasks.filter((task) => boards.has(task.boardId)).map((task) => !isDemo || !session ? task
       : { ...task, canDelete: task.createdBy === session.user.id || boards.get(task.boardId)!.canManage });
   }, [tasks, visibleBoards, isDemo, session]);
-  const accessibleClientIds = new Set(scopedClients.map((client) => client.id));
   const visibleAlerts = !session || session.user.role !== 'EMPLOYEE'
     ? alerts
     : alerts.filter((alert) => alert.userName === session.user.fullName);
-  const visibleMessages = !session || session.user.role !== 'EMPLOYEE'
-    ? messages
-    : messages.filter((message) => !message.clientId || accessibleClientIds.has(message.clientId));
 
   const value = useMemo<WorkspaceValue>(() => ({
     users: visibleUsers,
     clients: scopedClients, deals: scopedDeals, funnels: visibleFunnels, taskBoards: visibleBoards, tasks: visibleTasks, documents, reports, alerts: visibleAlerts,
-    achievements, integrations, messages: visibleMessages, audit,
+    achievements, audit,
     dataStatus, createTeamMember, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert,
   // scoped is intentionally derived from current session and collections.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, integrations, messages, audit, dataStatus, createTeamMember, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, session]);
+  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, dataStatus, createTeamMember, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, session]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request } from "express";
 import { stringify } from "csv-stringify/sync";
 import { z } from "zod";
 import { manageableUser } from "../access";
@@ -8,6 +8,7 @@ import { query } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { pagination, updatedFields } from "../http";
 import { recordScope } from "../scope";
+import type { AuthContext } from "../types";
 
 const clientInput = z.object({
   name: z.string().trim().min(1).max(160),
@@ -82,7 +83,14 @@ clientsRouter.get("/", asyncHandler(async (req, res) => {
 
 clientsRouter.post("/", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
-  const input = clientInput.parse(req.body);
+  const id = await createClient(req, auth, req.body);
+  const created = await scopedClient(auth, id);
+  res.status(201).json({ data: created });
+}));
+
+/** Creates a client with the same rules as `POST /clients`; also used when creating a client from mail or Telegram. */
+export async function createClient(req: Request, auth: AuthContext, raw: unknown): Promise<string> {
+  const input = clientInput.parse(raw);
   const owner = await manageableUser(auth, input.ownerId);
   const result = await query(
     `INSERT INTO clients
@@ -95,9 +103,8 @@ clientsRouter.post("/", asyncHandler(async (req, res) => {
   );
   const id = result.rows[0]?.id as string;
   await writeAudit(req, { auth, action: "CLIENT_CREATED", entityType: "client", entityId: id, departmentId: owner.department_id });
-  const created = await scopedClient(auth, id);
-  res.status(201).json({ data: created });
-}));
+  return id;
+}
 
 clientsRouter.get("/:id", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);

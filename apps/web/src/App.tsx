@@ -3,6 +3,7 @@ import { AppShell } from './components/AppShell';
 import { LoadingState } from './components/ui';
 import { useAuth } from './context/AppContext';
 import { ChatProvider } from './context/ChatContext';
+import { MailProvider } from './context/MailContext';
 import { AchievementsPage } from './pages/AchievementsPage';
 import { AuditPage } from './pages/AuditPage';
 import { BoardSettingsPage } from './pages/BoardSettingsPage';
@@ -12,8 +13,10 @@ import { CrmPage } from './pages/CrmPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { FunnelSettingsPage } from './pages/FunnelSettingsPage';
-import { InboxPage } from './pages/InboxPage';
 import { LoginPage } from './pages/LoginPage';
+import { MailOAuthPage } from './pages/MailOAuthPage';
+import { MailPage } from './pages/MailPage';
+import { MailSettingsPage } from './pages/MailSettingsPage';
 import { MessagesPage } from './pages/MessagesPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ReportsPage } from './pages/ReportsPage';
@@ -26,7 +29,7 @@ function ProtectedLayout() {
   const { session, loading } = useAuth(); const location = useLocation();
   if (loading) return <div className="app-loading"><LoadingState label="Открываем рабочее пространство" /></div>;
   if (!session) return <Navigate to="/login" state={{ from: location.pathname }} replace />;
-  return <ChatProvider><AppShell><Routes><Route path="/" element={<DashboardPage />} /><Route path="/crm" element={<CrmPage />} /><Route path="/crm/:id" element={<ClientPage />} /><Route path="/sales" element={<SalesPage />} /><Route path="/sales/settings" element={<RoleGate roles={['DIRECTOR']}><FunnelSettingsPage /></RoleGate>} /><Route path="/tasks" element={<TasksPage />} /><Route path="/boards" element={<BoardsPage />} /><Route path="/boards/settings" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><BoardSettingsPage /></RoleGate>} /><Route path="/boards/:id/settings" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><BoardSettingsPage /></RoleGate>} /><Route path="/documents" element={<DocumentsPage />} /><Route path="/team" element={<TeamPage />} /><Route path="/reports" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><ReportsPage /></RoleGate>} /><Route path="/achievements" element={<AchievementsPage />} /><Route path="/messages" element={<MessagesPage />} /><Route path="/inbox" element={<InboxPage />} /><Route path="/audit" element={<RoleGate roles={['DIRECTOR']}><AuditPage /></RoleGate>} /><Route path="/profile" element={<ProfilePage />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></AppShell></ChatProvider>;
+  return <ChatProvider><MailProvider><AppShell><Routes><Route path="/" element={<DashboardPage />} /><Route path="/crm" element={<CrmPage />} /><Route path="/crm/:id" element={<ClientPage />} /><Route path="/sales" element={<SalesPage />} /><Route path="/sales/settings" element={<RoleGate roles={['DIRECTOR']}><FunnelSettingsPage /></RoleGate>} /><Route path="/tasks" element={<TasksPage />} /><Route path="/boards" element={<BoardsPage />} /><Route path="/boards/settings" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><BoardSettingsPage /></RoleGate>} /><Route path="/boards/:id/settings" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><BoardSettingsPage /></RoleGate>} /><Route path="/documents" element={<DocumentsPage />} /><Route path="/team" element={<TeamPage />} /><Route path="/reports" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><ReportsPage /></RoleGate>} /><Route path="/achievements" element={<AchievementsPage />} /><Route path="/messages" element={<MessagesPage />} /><Route path="/mail" element={<MailPage />} /><Route path="/mail/settings" element={<MailSettingsPage />} /><Route path="/mail/oauth/:provider" element={<MailOAuthPage />} /><Route path="/audit" element={<RoleGate roles={['DIRECTOR']}><AuditPage /></RoleGate>} /><Route path="/profile" element={<ProfilePage />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></AppShell></MailProvider></ChatProvider>;
 }
 
 function RoleGate({ roles, children }: { roles: Role[]; children: React.ReactNode }) {

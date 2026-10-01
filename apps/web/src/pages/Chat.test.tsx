@@ -27,7 +27,7 @@ describe('team chat', () => {
     expect(row(/Елена Морозова/)).toBeInTheDocument();
     expect(within(row(/Продажи/)).getByText('@1')).toBeInTheDocument();
     expect(within(list()).queryByRole('button', { name: /Идеи/ })).not.toBeInTheDocument();
-    expect(screen.getByLabelText(/Непрочитанных: \d+/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Сообщения: непрочитанных \d+/)).toBeInTheDocument();
   });
 
   it('sends a direct message and clears the unread count on open', async () => {

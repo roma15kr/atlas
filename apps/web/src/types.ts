@@ -194,25 +194,6 @@ export interface Achievement {
   awardedAt: string;
 }
 
-export interface Integration {
-  id: string;
-  provider: 'GMAIL' | 'OUTLOOK' | 'TELEGRAM' | 'WHATSAPP' | 'VIBER';
-  status: 'CONNECTED' | 'DISCONNECTED' | 'NEEDS_ATTENTION';
-  displayName?: string;
-  lastSyncedAt?: string;
-}
-
-export interface ChannelMessage {
-  id: string;
-  channel: Integration['provider'] | 'INTERNAL';
-  contact: string;
-  subject: string;
-  preview: string;
-  receivedAt: string;
-  unread: boolean;
-  clientId?: string;
-}
-
 export interface AuditEvent {
   id: string;
   actorName: string;

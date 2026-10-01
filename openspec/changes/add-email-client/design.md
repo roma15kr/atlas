@@ -289,3 +289,14 @@ Outside `/mail`:
 ## Open Questions
 
 - Should the director get an explicit, audited "view mailbox" override for compliance? The current answer is no, the same as chat. It can be added later as a separate audited feature without changing this design.
+
+## Implementation notes
+
+- **OAuth redirect:** it lands on the web route `/mail/oauth/:provider`, not an API callback. The API authenticates with a Bearer token that a browser redirect can't carry, so the page posts `code` and `state` to `POST /api/v1/mail/oauth/:provider/complete` with the user's own token, and the state is bound to that user.
+- **Mail frame sandbox:** the frame uses `sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"`, without `allow-scripts`. Same-origin access is needed only so the page can size the frame to its content. With no script permission and server-side sanitizing, mail code can't run.
+- **Image policy:** a `srcdoc` frame inherits the page's CSP, so nginx's `img-src` now includes `https:`. The frame's own CSP still blocks remote images until the owner chooses "Показать изображения".
+- **Inline images:** inline `cid:` images up to 512 KB are converted to data URIs on ingest, because the sandboxed frame can't send the API token.
+- **Attachments:** they are cached through the existing object storage (volume or S3) rather than raw paths. The cache is used on first download, for outgoing mail, and for linked threads before a mailbox is disconnected.
+- **Shared creation code:** `createClient` and `createDeal` were extracted from the clients and deals routers so mail (and Telegram) apply identical validation, scope checks and audit.
+- **Test harness:** `src/test/mailHarness.ts` runs PGlite with the real migrations, hoodiecrow (in-memory IMAP) and `smtp-server` in-process. `mail/mail.integration.test.ts` covers sync, windowing, flags from other clients, archive, reply threading, Sent de-duplication, SMTP failure and auth-failure pause. `routes/mail.integration.test.ts` covers the API end to end.
+- **Not covered by automated tests:** the scheduler's cross-process lock (PGlite has one session, so it is unit-tested with a mocked lock) and a UIDVALIDITY reset (hoodiecrow can't change it).
