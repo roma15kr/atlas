@@ -26,7 +26,7 @@
 - [x] 3.2 ReportsPage: filter, results dialog with history, pause, resume and delete. Verify with Testing Library.
 - [x] 3.3 Add `AiAnalysisDialog` on TeamPage and ProfilePage. Verify with tests: the mode switch and the result rendering with source badge in demo mode, and an employee sees the action only for themselves.
 - [x] 3.4 Dashboard alerts panel: rule labels and deal links.
-- [ ] 3.5 Take screenshots at desktop and 400px widths, checked against `ui-design-system`.
+- [x] 3.5 Take screenshots at desktop and 400px widths, checked against `ui-design-system`.
 
 ## 4. Verification
 

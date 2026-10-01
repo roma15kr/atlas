@@ -55,3 +55,7 @@ Unchanged. Live presence keeps the role-scoped audience.
 ### Migrations and audit
 - No migration.
 - No new audit events. Consent acceptance and withdrawal are already audited.
+
+## Implementation notes
+
+On the test app over real sockets with a director watching: a second tab and its closing produced no change; an idle heartbeat turned the person offline and activity online again. The 5-minute browser idle detection is covered by fake-timer tests.

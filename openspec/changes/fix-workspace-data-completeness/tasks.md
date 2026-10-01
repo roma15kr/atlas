@@ -15,7 +15,7 @@
 ## 3. Verification
 
 - [x] 3.1 Run `npm run typecheck && npm test && npm run build` and `openspec validate fix-workspace-data-completeness --strict`.
-- [ ] 3.2 On the test app:
+- [x] 3.2 On the test app:
   - the CRM shows more than 25 clients after creating 30 test clients;
   - the dashboard totals match `/dashboard`;
   - a deal created by a colleague appears within 3 minutes without reloading;

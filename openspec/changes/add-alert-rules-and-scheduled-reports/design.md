@@ -89,3 +89,7 @@ Covered in 3 and 5. AI analysis keeps `manageableUser`.
 - **Migration:** `011_alert_rules_reports.sql`.
 - **Audit:** `REPORT_SCHEDULE_PAUSED`, `REPORT_SCHEDULE_RESUMED`, `REPORT_DELETED`, `REPORT_RUN_COMPLETED` (system, with the run id).
 - Alert creation itself is not audited; the alert row is the record.
+
+## Implementation notes
+
+On the test app: a daily report got its first run and a next run at 06:00 Kyiv, was paused and deleted by the head (employees refused); alert history loads; AI analysis renders in Russian with source "Правила" and leaves presence out without consent. Not yet observed live: an alert raised by a scheduler tick (rules are covered by integration tests).

@@ -15,7 +15,7 @@
 ## 3. Verification
 
 - [x] 3.1 Run `npm run typecheck && npm test && npm run build` and `openspec validate harden-session-and-backups --strict`.
-- [ ] 3.2 On the test app:
+- [x] 3.2 On the test app:
   - sign in, reload: still signed in, and `localStorage` holds no token;
   - two tabs stay signed in across a token refresh;
   - with `BACKUP_AGE_RECIPIENT` set, the deploy is healthy and the backup container's healthcheck passes;

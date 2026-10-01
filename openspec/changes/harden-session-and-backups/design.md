@@ -67,3 +67,7 @@ Unchanged.
 ### Risks
 - **Losing the private key makes encrypted backups useless.** The docs require storing it in two places and running a restore drill.
 - **Backup image build.** The backup services now build an image, which needs network access to Alpine's package mirror during the build. Coolify already builds the api and web images, so this adds no new requirement.
+
+## Implementation notes
+
+On the test app in Chromium: localStorage holds only `atlas.signedIn`; a reload and a second tab stay signed in, and the first tab keeps working after the second refreshed. `BACKUP_AGE_RECIPIENT` is set to a test-only key; the deploy is healthy, but the encrypted file header could not be confirmed without shell access to the server (see the verification command in `docs/OPERATIONS.md`).

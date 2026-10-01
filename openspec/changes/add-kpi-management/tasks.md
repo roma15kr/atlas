@@ -17,12 +17,12 @@
 
 - [x] 3.1 Add types, `AppContext` KPI actions and demo implementations.
 - [x] 3.2 Add the TeamPage KPI card actions and dialogs. Verify with Testing Library: a manager adds an automatic KPI without an actual field, and an employee sees no actions.
-- [ ] 3.3 Take screenshots at desktop and 400px widths, checked against `ui-design-system`.
+- [x] 3.3 Take screenshots at desktop and 400px widths, checked against `ui-design-system`.
 
 ## 4. Verification
 
 - [x] 4.1 Run `npm run typecheck && npm test && npm run build` and `openspec validate add-kpi-management --strict`.
-- [ ] 4.2 On the test app:
+- [x] 4.2 On the test app:
   - add a `DEALS_WON_COUNT` KPI for a test employee;
   - move one of their deals to a won stage;
   - after the next tick, the rating is above 0.

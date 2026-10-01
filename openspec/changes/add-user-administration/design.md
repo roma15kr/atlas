@@ -80,3 +80,7 @@ Summarized in the table above. The API remains the authority; the web app hides 
 
 ### Risks
 - **Moving departments.** A user moved to another department keeps their existing clients and deals, which keep their old `department_id`, so the old head still sees them. Reassigning records is a separate action (owner reassignment already exists for clients and deals).
+
+## Implementation notes
+
+On the test app: with a throwaway employee, the head edited the job title, was refused a role change and reset the password; sign-in then required a change and other endpoints answered 403 `PASSWORD_CHANGE_REQUIRED`; after the change the new session worked; disabling cut the open token and sign-in at once, and the person appears under "Отключённые". Screenshots at 1440 and 400 px checked; member actions moved to their own row so the name never shrinks.

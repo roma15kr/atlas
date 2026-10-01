@@ -17,7 +17,7 @@
 ## 3. Verification
 
 - [x] 3.1 Run `npm run typecheck && npm test && npm run build` and `openspec validate fix-presence-and-consent --strict`.
-- [ ] 3.2 On the test app, with two browser contexts for one user and a director watching:
+- [x] 3.2 On the test app, with two browser contexts for one user and a director watching:
   - closing one tab keeps the user online;
   - 5 idle minutes turn them offline;
   - a click turns them online.

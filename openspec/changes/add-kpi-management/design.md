@@ -92,3 +92,7 @@ In the table above.
 ### Migrations and audit
 - **Migration:** `010_kpi_management.sql`.
 - **Audit:** `KPI_CREATED`, `KPI_UPDATED`, `KPI_DELETED`, `KPI_CHANGE_DENIED`, and `ACHIEVEMENT_AWARDED` (system).
+
+## Implementation notes
+
+On the test app: moving the throwaway employee's deal to a won stage stamped `closedAt`; a new `DEALS_WON_COUNT` KPI (target 2) immediately measured 1 and the rating became 50. Screenshots of the KPI card and dialog checked.

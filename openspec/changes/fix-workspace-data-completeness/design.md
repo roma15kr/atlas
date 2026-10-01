@@ -46,3 +46,7 @@ No new data is exposed. `PATCH /team/me` touches only the caller.
 ### Migrations and audit
 - No migration.
 - New audit action: `PROFILE_UPDATED`.
+
+## Implementation notes
+
+On the test app (2026-10-01): signed-in requests carry a 1,500 per-person limit and anonymous ones 300 per IP; 30 extra clients load past the old 25-row cut-off with `meta.total` for paging; `/dashboard` returns the UAH totals the cards show; a profile change saves and is reverted; employees no longer request `/audit`. Background refresh is covered by fake-timer tests rather than a 3-minute wait on the live app.

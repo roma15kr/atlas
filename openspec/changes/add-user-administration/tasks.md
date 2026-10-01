@@ -18,12 +18,12 @@
 - [x] 3.1 Add `AppContext` actions `updateMember`, `setMemberStatus`, `resetMemberPassword` and `changePassword`, with demo implementations.
 - [x] 3.2 Add TeamPage actions and dialogs, plus the "Отключённые" filter. Verify with Testing Library: a manager sees no role field, disable asks for confirmation, and a reset shows the copyable credentials.
 - [x] 3.3 Add the ProfilePage password dialog and the `ChangePasswordPage` gate. Verify with tests: a forced session renders only the change screen, and success returns to the dashboard.
-- [ ] 3.4 Take screenshots at desktop and 400px widths, checked against `ui-design-system`.
+- [x] 3.4 Take screenshots at desktop and 400px widths, checked against `ui-design-system`.
 
 ## 4. Verification
 
 - [x] 4.1 Run `npm run typecheck && npm test && npm run build` and `openspec validate add-user-administration --strict`.
-- [ ] 4.2 On the test app, with a throwaway employee:
+- [x] 4.2 On the test app, with a throwaway employee:
   - edit, reset, then sign in and do the forced change;
   - disable: login is refused and the socket is closed;
   - enable again.
