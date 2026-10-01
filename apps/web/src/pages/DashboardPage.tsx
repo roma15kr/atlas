@@ -12,17 +12,22 @@ const weekday = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeri
 
 export function DashboardPage() {
   const { session } = useAuth();
-  const { users, clients, deals, tasks: allTasks, taskBoards, alerts, acknowledgeAlert } = useWorkspace();
+  const { users, clients, deals, tasks: allTasks, taskBoards, alerts, acknowledgeAlert, dashboardMetrics } = useWorkspace();
   const navigate = useNavigate();
   const [taskOpen, setTaskOpen] = useState(false);
   const user = session!.user;
   const tasks = useMemo(() => dashboardTasks(allTasks, taskBoards, user), [allTasks, taskBoards, user]);
   const isDirector = user.role === 'DIRECTOR';
-  const online = users.filter((member) => member.online).length;
-  const activeDeals = deals.filter((deal) => deal.stage.outcome === 'OPEN');
-  const pipeline = activeDeals.reduce((sum, deal) => sum + deal.value, 0);
-  const completed = tasks.filter((task) => task.stage.category === 'DONE').length;
-  const dueSoon = tasks.filter((task) => task.stage.category !== 'DONE' && task.dueAt && new Date(task.dueAt).getTime() < Date.now() + 3 * 86400000).length;
+  // Totals come from the server so they cover every record in scope, not just what the lists hold.
+  const localOpen = deals.filter((deal) => deal.stage.outcome === 'OPEN');
+  const online = dashboardMetrics?.online ?? users.filter((member) => member.online).length;
+  const teamSize = dashboardMetrics?.teamSize ?? users.length;
+  const pipeline = dashboardMetrics?.pipelineValue ?? localOpen.reduce((sum, deal) => sum + deal.value, 0);
+  const openDeals = dashboardMetrics?.openDeals ?? localOpen.length;
+  const clientCount = dashboardMetrics?.clients ?? clients.length;
+  const completed = dashboardMetrics?.tasks.done ?? tasks.filter((task) => task.stage.category === 'DONE').length;
+  const taskTotal = dashboardMetrics?.tasks.total ?? tasks.length;
+  const overdue = dashboardMetrics?.tasks.overdue ?? tasks.filter((task) => task.stage.category !== 'DONE' && task.dueAt && new Date(task.dueAt).getTime() < Date.now()).length;
   const kpi = user.kpis.length ? Math.round(user.kpis.reduce((sum, item) => sum + Math.min(1, item.actual / item.target) * item.weight, 0) / user.kpis.reduce((sum, item) => sum + item.weight, 0) * 100) : 0;
   const chart = isDirector ? users.map((member) => ({ label: member.fullName.split(' ')[0], value: member.rating })) : user.kpis.map((item) => ({ label: item.name, value: Math.round(Math.min(1, item.actual / item.target) * 100) }));
   const chartAverage = chart.length ? Math.round(chart.reduce((sum, item) => sum + item.value, 0) / chart.length) : 0;
@@ -31,10 +36,10 @@ export function DashboardPage() {
   return <>
     <PageHeader title={`Добрый день, ${user.fullName.split(' ')[0]}`} description={`${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}`} action={<Button icon={Plus} onClick={() => setTaskOpen(true)}>Новая задача</Button>} />
     <div className="metric-grid">
-      <Metric label={isDirector ? 'Команда в сети' : 'Мой рейтинг'} value={isDirector ? `${online} / ${users.length}` : `${user.rating}`} note={isDirector ? `${Math.round(online / Math.max(users.length, 1) * 100)}% команды` : 'из 100 баллов'} icon={isDirector ? Users : Target} tone="teal" />
-      <Metric label="Активная воронка" value={formatMoney(pipeline)} note={`${activeDeals.length} сделок`} icon={Banknote} tone="blue" />
-      <Metric label={isDirector ? 'Клиенты' : 'Мой KPI'} value={isDirector ? String(clients.length) : `${kpi}%`} note="текущий доступ" icon={isDirector ? UserCheck : TrendingUp} tone="amber" />
-      <Metric label="Задачи в срок" value={`${completed} / ${tasks.length}`} note={dueSoon ? `${dueSoon} требуют внимания` : 'просрочек нет'} icon={dueSoon ? FileWarning : Check} tone={dueSoon ? 'red' : 'teal'} />
+      <Metric label={isDirector ? 'Команда в сети' : 'Мой рейтинг'} value={isDirector ? `${online} / ${teamSize}` : `${user.rating}`} note={isDirector ? `${Math.round(online / Math.max(teamSize, 1) * 100)}% команды` : 'из 100 баллов'} icon={isDirector ? Users : Target} tone="teal" />
+      <Metric label="Активная воронка" value={formatMoney(pipeline)} note={`${openDeals} сделок`} icon={Banknote} tone="blue" />
+      <Metric label={isDirector ? 'Клиенты' : 'Мой KPI'} value={isDirector ? String(clientCount) : `${kpi}%`} note="текущий доступ" icon={isDirector ? UserCheck : TrendingUp} tone="amber" />
+      <Metric label="Задачи выполнены" value={`${completed} / ${taskTotal}`} note={overdue ? `${overdue} просрочено` : 'просрочек нет'} icon={overdue ? FileWarning : Check} tone={overdue ? 'red' : 'teal'} />
     </div>
     <div className="dashboard-grid">
       <Surface className="dashboard-chart">

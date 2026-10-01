@@ -104,12 +104,18 @@ export async function listAll<T>(resource: string, params: Record<string, string
   }
 }
 
+/** One page of a paginated resource, newest first. */
+export async function listPage<T>(resource: string, limit: number): Promise<T[]> {
+  return apiRequest<T[]>(`/${resource}?limit=${limit}`);
+}
+
 export const api = {
   login: (username: string, password: string) =>
     apiRequest<Session>('/auth/login', { method: 'POST', body: { username, password }, retry: false }),
   logout: (refreshToken?: string) => apiRequest<void>('/auth/logout', { method: 'POST', body: { refreshToken } }),
   me: () => apiRequest<Session['user']>('/auth/me'),
   list: <T>(resource: string) => apiRequest<T[]>(`/${resource}`),
+  get: <T>(path: string) => apiRequest<T>(path),
   create: <T>(resource: string, body: unknown) => apiRequest<T>(`/${resource}`, { method: 'POST', body }),
   update: <T>(resource: string, id: string, body: unknown) => apiRequest<T>(`/${resource}/${id}`, { method: 'PATCH', body }),
   remove: (resource: string, id: string) => apiRequest<void>(`/${resource}/${id}`, { method: 'DELETE' }),

@@ -7,7 +7,7 @@ import { authenticate } from "./auth";
 import { config } from "./config";
 import { pool } from "./db";
 import { errorHandler, asyncHandler, notFound } from "./errors";
-import { apiLimiter, crmReadLimiter } from "./middleware";
+import { apiLimiter, crmReadLimiter, ipFloodLimiter } from "./middleware";
 import { connectRedis } from "./redis";
 import { objectStorage } from "./storage";
 import { achievementsRouter } from "./routes/achievements";
@@ -35,6 +35,7 @@ export const app = express();
 app.set("trust proxy", config.TRUST_PROXY);
 app.disable("x-powered-by");
 app.use(pinoHttp({
+  enabled: process.env.NODE_ENV !== "test",
   quietReqLogger: true,
   redact: {
     paths: ["req.headers.authorization", "req.headers.cookie", "res.headers.set-cookie"],
@@ -47,7 +48,7 @@ app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 // Telegram calls from a few shared IPs; it is authenticated by its secret token instead of the per-IP limit.
 app.post("/api/telegram/webhook", asyncHandler(webhookHandler));
-app.use(apiLimiter);
+app.use(ipFloodLimiter, apiLimiter);
 
 const healthHandler = asyncHandler(async (_req, res) => {
   const checks: Record<string, string> = {};

@@ -45,4 +45,4 @@ The profile screen SHALL save only through the API and SHALL NOT show controls f
 
 #### Scenario: Saving the profile
 - **WHEN** a user changes their full name and clicks "Сохранить"
-- **THEN** `PATCH /api/v1/team/me` is called, the header shows the new name, and a server error is shown if the save fails
+- **THEN** `PATCH /api/v1/team/me` is called, the sidebar shows the new name, and a server error is shown if the save fails

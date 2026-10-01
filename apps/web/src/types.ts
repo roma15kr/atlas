@@ -210,3 +210,15 @@ export interface Session {
   accessToken: string;
   refreshToken?: string;
 }
+
+/** Scoped totals computed by `GET /api/v1/dashboard`. */
+export interface DashboardMetrics {
+  clients: number;
+  pipelineValue: number;
+  weightedPipeline: number;
+  currency: 'UAH';
+  openDeals: number;
+  tasks: { total: number; overdue: number; done: number };
+  online: number;
+  teamSize: number;
+}

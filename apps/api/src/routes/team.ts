@@ -130,6 +130,26 @@ teamRouter.get("/", asyncHandler(async (req, res) => {
   })) });
 }));
 
+export const profileUpdateSchema = z.object({
+  fullName: z.string().trim().min(2).max(160).optional(),
+  specialty: z.string().trim().max(160).nullable().optional()
+}).strict().refine((value) => Object.keys(value).length > 0, { message: "Nothing to update" });
+
+teamRouter.patch("/me", asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const input = profileUpdateSchema.parse(req.body);
+  const fields = Object.keys(input);
+  const result = await query<{ id: string; fullName: string; specialty: string | null }>(
+    `UPDATE users SET full_name = COALESCE($1, full_name),
+                      specialty = CASE WHEN $2 THEN NULLIF($3, '') ELSE specialty END
+     WHERE id = $4 AND company_id = $5
+     RETURNING id, full_name AS "fullName", specialty`,
+    [input.fullName ?? null, "specialty" in input, input.specialty ?? null, auth.userId, auth.companyId]
+  );
+  await writeAudit(req, { auth, action: "PROFILE_UPDATED", entityType: "user", entityId: auth.userId, metadata: { fields } });
+  res.json({ data: result.rows[0] });
+}));
+
 teamRouter.patch("/me/consent", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
   const input = z.object({

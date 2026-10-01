@@ -28,9 +28,9 @@
 - The KPI card keeps the user's own rating from `/team`.
 
 ### 4. Profile
-- `PATCH /api/v1/team/me` accepts `{ fullName?: string(1..120), specialty?: string(0..120) | null }`. At least one field is required.
+- `PATCH /api/v1/team/me` accepts `{ fullName?: string(2..160), specialty?: string(0..160) | null }`. At least one field is required.
 - The response is the public user. The change is audited as `PROFILE_UPDATED` with `metadata.fields`, never the values.
-- `AuthContext.mergeCurrentUser` updates the session user, so the header avatar and name change at once.
+- `AuthContext.mergeCurrentUser` updates the session user, so the sidebar avatar and name change at once.
 - Access: any authenticated user, for their own row only. Role, department, job title and description stay with management (`add-user-administration`).
 
 ### 5. Rate limits (`middleware.ts`)

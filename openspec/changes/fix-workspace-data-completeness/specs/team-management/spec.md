@@ -3,7 +3,7 @@
 ## ADDED Requirements
 
 ### Requirement: Self-service profile update
-The system SHALL let any authenticated user change their own full name (1-120 characters) and specialty (up to 120 characters, or empty) through `PATCH /api/v1/team/me`. The change SHALL be audited as `PROFILE_UPDATED` with the changed field names only. Role, department, job title and job description SHALL NOT be changeable through this endpoint.
+The system SHALL let any authenticated user change their own full name (2-160 characters) and specialty (up to 160 characters, or empty) through `PATCH /api/v1/team/me`. The change SHALL be audited as `PROFILE_UPDATED` with the changed field names only. Role, department, job title and job description SHALL NOT be changeable through this endpoint.
 
 #### Scenario: Employee renames themselves
 - **WHEN** an EMPLOYEE sends `{ "fullName": "Ирина Коваль" }`

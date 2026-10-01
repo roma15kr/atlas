@@ -1,6 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { io, type Socket } from 'socket.io-client';
-import { api, ApiError, listAll, sessionStore } from '../lib/api';
+import { api, ApiError, listAll, listPage, sessionStore } from '../lib/api';
 import {
   demoAchievements,
   demoAlerts,
@@ -19,9 +19,11 @@ import {
   demoBoardUsers,
   fallbackSession,
 } from '../data/demo';
-import type { Achievement, Alert, AuditEvent, BoardUser, Client, CompanyDocument, Deal, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Kpi, Report, Role, Session, TaskAssignee, TaskBoard, TaskCategory, TaskPriority, TaskStage, TaskStageSummary, User, WorkTask } from '../types';
+import type { Achievement, Alert, AuditEvent, BoardUser, Client, CompanyDocument, DashboardMetrics, Deal, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Kpi, Report, Role, Session, TaskAssignee, TaskBoard, TaskCategory, TaskPriority, TaskStage, TaskStageSummary, User, WorkTask } from '../types';
 
 const roleRank: Record<Role, number> = { EMPLOYEE: 1, MANAGER: 2, DIRECTOR: 3 };
+export const REFRESH_INTERVAL_MS = 180_000;
+export const STALE_AFTER_MS = 60_000;
 export const DEMO_MODE = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true';
 
 export interface CreateTeamMemberInput {
@@ -49,6 +51,8 @@ interface AuthValue {
   hasRole: (...roles: Role[]) => boolean;
   consent: () => Promise<void>;
   mergeCurrentUser: (user: User) => void;
+  /** Saves the signed-in user's own name and specialty. */
+  updateProfile: (patch: { fullName?: string; specialty?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -191,7 +195,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  return <AuthContext.Provider value={{ session, loading, login, logout, hasRole, consent, mergeCurrentUser }}>{children}</AuthContext.Provider>;
+  const updateProfile = useCallback(async (patch: { fullName?: string; specialty?: string }) => {
+    if (!session) return;
+    const saved = session.accessToken.startsWith('demo-') ? null
+      : await api.update<{ fullName: string; specialty: string | null }>('team', 'me', patch);
+    setSession((current) => {
+      if (!current) return current;
+      const fullName = saved?.fullName ?? patch.fullName ?? current.user.fullName;
+      const specialty = saved ? saved.specialty ?? undefined : patch.specialty === undefined ? current.user.specialty : patch.specialty || undefined;
+      const next = { ...current, user: { ...current.user, fullName, specialty } };
+      sessionStore.set(next);
+      return next;
+    });
+  }, [session]);
+
+  return <AuthContext.Provider value={{ session, loading, login, logout, hasRole, consent, mergeCurrentUser, updateProfile }}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => {
@@ -259,7 +277,11 @@ interface WorkspaceValue {
   alerts: Alert[];
   achievements: Achievement[];
   audit: AuditEvent[];
+  /** Server-computed dashboard totals; null until the first load. */
+  dashboardMetrics: DashboardMetrics | null;
   dataStatus: 'loading' | 'ready' | 'offline';
+  /** Re-loads all collections in the background. */
+  refresh: () => Promise<void>;
   createTeamMember: (input: CreateTeamMemberInput) => Promise<User>;
   addClient: (client: Omit<Client, 'id' | 'updatedAt'>) => Promise<Client>;
   updateClient: (id: string, patch: Partial<Client>) => Promise<void>;
@@ -293,43 +315,78 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [alerts, setAlerts] = useState<Alert[]>(initialDemo ? demoAlerts : []);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [audit, setAudit] = useState<AuditEvent[]>([]);
+  const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics | null>(null);
   const [dataStatus, setDataStatus] = useState<'loading' | 'ready' | 'offline'>('ready');
 
   const isDemo = Boolean(session?.accessToken.startsWith('demo-'));
 
+  const loadGeneration = useRef(0);
+  const lastLoadedAt = useRef(0);
+  const sessionUserId = session?.user.id;
+  const sessionRole = session?.user.role;
+
+  /**
+   * Loads every collection the user may see. A quiet load (background refresh) never shows the
+   * loading state and keeps what is on screen when requests fail.
+   */
+  const loadWorkspace = useCallback(async (quiet: boolean) => {
+    if (!sessionUserId || isDemo) return;
+    const generation = ++loadGeneration.current;
+    if (!quiet) setDataStatus('loading');
+    const canReadAudit = sessionRole === 'DIRECTOR' || sessionRole === 'MANAGER';
+    const results = await Promise.allSettled([
+      api.list<Record<string, unknown>>('team'), listAll<Record<string, unknown>>('clients'), listAll<Record<string, unknown>>('deals'),
+      listAll<Record<string, unknown>>('tasks'), listAll<CompanyDocument>('documents'),
+      listAll<Report>('reports'), listAll<Alert>('alerts'), api.list<Funnel>('funnels'),
+      api.list<Achievement>('achievements'), canReadAudit ? listPage<AuditEvent>('audit', 100) : Promise.resolve(null),
+      api.list<TaskBoard>('task-boards'), api.get<{ metrics: DashboardMetrics }>('/dashboard'),
+    ]);
+    if (generation !== loadGeneration.current) return;
+    const setters: Array<(value: unknown) => void> = [
+      (items) => { const normalized = (items as Array<Record<string, unknown>>).map(normalizeUser); setUsers(normalized); const current = normalized.find((user) => user.id === sessionUserId); if (current) mergeCurrentUser(current); },
+      (items) => setClients((items as Array<Record<string, unknown>>).map(normalizeClient)),
+      (items) => setDeals((items as Array<Record<string, unknown>>).map(normalizeDeal)),
+      (items) => setTasks((items as Array<Record<string, unknown>>).map(normalizeTask)),
+      (items) => setDocuments((items as Array<Record<string, unknown>>).map(normalizeDocument)), (items) => setReports((items as Array<Record<string, unknown>>).map(normalizeReport)),
+      (items) => setAlerts((items as Array<Record<string, unknown>>).map(normalizeAlert)), (items) => setFunnels(items as Funnel[]),
+      (items) => setAchievements(items as Achievement[]), (items) => setAudit((items as Array<Record<string, unknown>>).map(normalizeAudit)),
+      (items) => setTaskBoards(items as TaskBoard[]), (value) => setDashboardMetrics((value as { metrics: DashboardMetrics }).metrics),
+    ];
+    let fulfilled = 0;
+    results.forEach((result, index) => {
+      if (result.status !== 'fulfilled' || result.value === null) return;
+      const expectsArray = index < setters.length - 1;
+      if (expectsArray && !Array.isArray(result.value)) return;
+      setters[index](result.value);
+      fulfilled += 1;
+    });
+    if (fulfilled) lastLoadedAt.current = Date.now();
+    if (!quiet) setDataStatus(fulfilled ? 'ready' : 'offline');
+    else if (fulfilled) setDataStatus('ready');
+  }, [sessionUserId, sessionRole, isDemo, mergeCurrentUser]);
+
   useEffect(() => {
     if (!session || isDemo) return;
-    let active = true;
-    setDataStatus('loading');
-    Promise.allSettled([
-      api.list<Record<string, unknown>>('team'), api.list<Record<string, unknown>>('clients'), listAll<Record<string, unknown>>('deals'),
-      listAll<Record<string, unknown>>('tasks'), api.list<CompanyDocument>('documents'),
-      api.list<Report>('reports'), api.list<Alert>('alerts'), api.list<Funnel>('funnels'),
-      api.list<Achievement>('achievements'), api.list<AuditEvent>('audit'),
-      api.list<TaskBoard>('task-boards'),
-    ]).then((results) => {
-      if (!active) return;
-      const setters: Array<(value: unknown[]) => void> = [
-        (items) => { const normalized = items.map((item) => normalizeUser(item as Record<string, unknown>)); setUsers(normalized); const current = normalized.find((user) => user.id === session.user.id); if (current) mergeCurrentUser(current); },
-        (items) => setClients(items.map((item) => normalizeClient(item as Record<string, unknown>))),
-        (items) => setDeals(items.map((item) => normalizeDeal(item as Record<string, unknown>))),
-        (items) => setTasks(items.map((item) => normalizeTask(item as Record<string, unknown>))),
-        (items) => setDocuments(items.map((item) => normalizeDocument(item as Record<string, unknown>))), (items) => setReports(items.map((item) => normalizeReport(item as Record<string, unknown>))),
-        (items) => setAlerts(items.map((item) => normalizeAlert(item as Record<string, unknown>))), (items) => setFunnels(items as Funnel[]),
-        (items) => setAchievements(items as Achievement[]), (items) => setAudit(items.map((item) => normalizeAudit(item as Record<string, unknown>))),
-        (items) => setTaskBoards(items as TaskBoard[]),
-      ];
-      let fulfilled = 0;
-      results.forEach((result, index) => {
-        if (result.status === 'fulfilled' && Array.isArray(result.value)) {
-          setters[index](result.value);
-          fulfilled += 1;
-        }
-      });
-      setDataStatus(fulfilled ? 'ready' : 'offline');
-    });
-    return () => { active = false; };
-  }, [session?.accessToken, session?.user.id, isDemo, mergeCurrentUser]);
+    void loadWorkspace(false);
+    return () => { loadGeneration.current += 1; };
+    // A new access token (refresh) must not reload everything; only a new user or session does.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionUserId, isDemo, loadWorkspace]);
+
+  // Background refresh keeps colleagues' changes visible without signing in again.
+  useEffect(() => {
+    if (!sessionUserId || isDemo) return;
+    const visible = () => document.visibilityState === 'visible';
+    const interval = window.setInterval(() => { if (visible()) void loadWorkspace(true); }, REFRESH_INTERVAL_MS);
+    const onFocus = () => { if (visible() && Date.now() - lastLoadedAt.current > STALE_AFTER_MS) void loadWorkspace(true); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
+  }, [sessionUserId, isDemo, loadWorkspace]);
 
   useEffect(() => {
     if (!session) return;
@@ -339,9 +396,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setAudit(demoAudit); setDataStatus('ready');
     } else {
       setUsers([]); setClients([]); setDeals([]); setFunnels([]); setTasks([]); setTaskBoards([]); setDocuments([]); setReports([]);
-      setAlerts([]); setAchievements([]); setAudit([]);
+      setAlerts([]); setAchievements([]); setAudit([]); setDashboardMetrics(null);
     }
-  }, [session?.accessToken, isDemo]);
+  // Only a different user or session type resets the data; a refreshed access token keeps it.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionUserId, isDemo]);
 
   useEffect(() => {
     if (!session || isDemo) return;
@@ -643,14 +702,34 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     ? alerts
     : alerts.filter((alert) => alert.userName === session.user.fullName);
 
+  // Demo sessions have no server, so the same totals are derived from the scoped demo data.
+  const metrics = useMemo<DashboardMetrics | null>(() => {
+    if (!isDemo) return dashboardMetrics;
+    const open = scopedDeals.filter((deal) => deal.stage.outcome === 'OPEN');
+    const now = Date.now();
+    return {
+      clients: scopedClients.length, currency: 'UAH', openDeals: open.length,
+      pipelineValue: open.reduce((sum, deal) => sum + deal.value, 0),
+      weightedPipeline: open.reduce((sum, deal) => sum + deal.value * deal.probability / 100, 0),
+      tasks: {
+        total: visibleTasks.length,
+        done: visibleTasks.filter((task) => task.stage.category === 'DONE').length,
+        overdue: visibleTasks.filter((task) => task.stage.category !== 'DONE' && task.dueAt && new Date(task.dueAt).getTime() < now).length,
+      },
+      online: visibleUsers.filter((user) => user.online).length, teamSize: visibleUsers.length,
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDemo, dashboardMetrics, clients, deals, visibleTasks, visibleUsers]);
+  const refresh = useCallback(() => loadWorkspace(true), [loadWorkspace]);
+
   const value = useMemo<WorkspaceValue>(() => ({
     users: visibleUsers,
     clients: scopedClients, deals: scopedDeals, funnels: visibleFunnels, taskBoards: visibleBoards, tasks: visibleTasks, documents, reports, alerts: visibleAlerts,
-    achievements, audit,
+    achievements, audit, dashboardMetrics: metrics, refresh,
     dataStatus, createTeamMember, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert,
   // scoped is intentionally derived from current session and collections.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, dataStatus, createTeamMember, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, session]);
+  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, session]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }
