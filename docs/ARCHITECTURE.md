@@ -8,7 +8,7 @@ connections for presence and live chat.
 ## Runtime
 
 - `web`: React + TypeScript workspace UI, compiled to static assets and served by Nginx.
-- `api`: TypeScript HTTP API, background policy checks, and the Socket.IO gateway for presence and chat.
+- `api`: TypeScript HTTP API, the automation scheduler (KPIs, achievements), and the Socket.IO gateway for presence and chat.
 - `postgres`: source of truth for identity, CRM, work, files, reports, and audit history.
 - `redis`: ephemeral presence, session coordination, and rate-limit counters.
 - `documents_data` volume: document file bodies, mounted only into `api`.
@@ -157,6 +157,31 @@ Refresh tokens are rotated and stored as hashes. Access tokens are short-lived.
 Login attempts are rate-limited and repeated failures temporarily lock the
 account. Document objects stay private and are streamed only after an access
 check. Presence expires when heartbeats stop rather than trusting a stale socket.
+
+## Accounts and KPIs
+
+Directors and department heads administer accounts: a director anyone in the
+company, a head only the employees of their own department. Editing role or
+department is director-only and never for oneself, and the last active director
+can't be demoted or disabled. Disabling revokes refresh sessions and closes
+sockets; existing triggers then remove chat memberships and unassign Telegram
+customers. A password reset sets `must_change_password`; until the person
+changes it, `authenticate` answers 403 `PASSWORD_CHANGE_REQUIRED` outside
+`/auth/*` and the socket refuses the connection.
+
+KPIs (`/api/v1/kpis`) follow the same who-manages-whom rule. A KPI is `MANUAL`
+(the head enters the actual value) or automatic: `DEALS_WON_VALUE`,
+`DEALS_WON_COUNT`, `TASKS_DONE`, `TASKS_ON_TIME_RATE`, measured over its period
+from deals (`closed_at`, kept in step with the stage outcome by the
+`deals_close_date` trigger) and tasks (`completed_at`, `due_at`, assignees).
+
+`automation/scheduler.ts` runs every `AUTOMATION_INTERVAL_MS` (10 minutes) in
+one API process at a time (advisory lock `atlas:automation`). Steps run in
+order and are isolated from each other's failures: recompute automatic KPIs
+(current periods and those that ended within 2 days; older ones freeze), then
+award achievements (ON_TIME_10, ZERO_OVERDUE for the previous Kyiv month,
+TOP_MONTH on the 1st), each once per person, audited as `ACHIEVEMENT_AWARDED`
+without an actor and pushed as `achievement:awarded`.
 
 ## Data ownership
 

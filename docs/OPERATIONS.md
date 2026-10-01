@@ -113,6 +113,19 @@ docker compose exec postgres psql -U atlas -d atlas -c "SELECT channel, count(*)
 docker compose exec backup sh -c 'f="/backups/atlas-pre-007-$(date -u +%Y%m%dT%H%M%SZ).dump"; pg_dump --format=custom --file="$f" && pg_restore --list "$f" >/dev/null && ls -l "$f"'
 ```
 
+## Deploying migrations 009 and 010 (accounts, KPIs)
+
+Both are additive. `009_user_administration.sql` adds `users.must_change_password`
+and `password_changed_at`; nobody is forced to change a password by the upgrade.
+`010_kpi_management.sql` adds KPI sources and periods and the
+`deals_close_date` trigger, and backfills `closed_at` of already won or lost
+deals with their last update time (an estimate; reports by close date for past
+months use it).
+
+The automation scheduler starts with the API. `AUTOMATION_INTERVAL_MS`
+(default `600000`) sets how often KPIs are recomputed and achievements awarded;
+`0` turns it off. Only one API instance runs a tick at a time.
+
 ## Email
 
 Users connect their own mailboxes under Почта → Настройки. Mail is private to its

@@ -50,6 +50,7 @@ const envSchema = z.object({
   MAIL_POLL_SECONDS: z.coerce.number().int().min(30).max(3600).default(120),
   MAIL_ALLOW_PRIVATE_HOSTS: z.enum(["true", "false"]).default("false"),
   MAIL_SCHEDULER: z.enum(["on", "off"]).default("on"),
+  AUTOMATION_INTERVAL_MS: z.coerce.number().int().min(0).max(86_400_000).default(600_000),
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   TELEGRAM_WEBHOOK_SECRET: z.preprocess((value) => value === "" ? undefined : value, z.string().regex(/^[A-Za-z0-9_-]{32,256}$/, "32-256 letters, digits, _ or -").optional()),
   TELEGRAM_MODE: z.preprocess((value) => value === "" ? undefined : value, z.enum(["webhook", "polling"]).default("webhook")),

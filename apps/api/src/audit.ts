@@ -45,3 +45,12 @@ export async function writeSystemAudit(input: AuditInput): Promise<void> {
       input.auth?.userId ?? null, input.action, input.entityType, input.entityId ?? null, JSON.stringify(input.metadata ?? {})]
   );
 }
+
+/** Audit for Atlas's own automation (achievements, scheduled reports): no actor, no request. */
+export async function writeAutomationAudit(companyId: string, input: Omit<AuditInput, "auth">): Promise<void> {
+  await query(
+    `INSERT INTO audit_logs (company_id, department_id, actor_id, action, entity_type, entity_id, metadata)
+     VALUES ($1, $2, NULL, $3, $4, $5, $6::jsonb)`,
+    [companyId, input.departmentId ?? null, input.action, input.entityType, input.entityId ?? null, JSON.stringify(input.metadata ?? {})]
+  );
+}

@@ -235,7 +235,8 @@ async function enrichedPublicUser(user: UserRow): Promise<Record<string, unknown
     id: string; name: string; target: number; actual: number; unit: string; weight: number; dueAt: Date | null;
   }>(
     `SELECT id, name, target::float8 AS target, actual::float8 AS actual, unit,
-            weight::float8 AS weight, due_at AS "dueAt"
+            weight::float8 AS weight, due_at AS "dueAt", source,
+            to_char(period_start, 'YYYY-MM-DD') AS "periodStart", to_char(period_end, 'YYYY-MM-DD') AS "periodEnd", computed_at AS "computedAt"
      FROM kpis WHERE user_id = $1 ORDER BY due_at NULLS LAST, name`,
     [user.id]
   );

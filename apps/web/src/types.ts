@@ -23,14 +23,34 @@ export interface User {
   mustChangePassword?: boolean;
 }
 
+export type KpiSource = 'MANUAL' | 'DEALS_WON_VALUE' | 'DEALS_WON_COUNT' | 'TASKS_DONE' | 'TASKS_ON_TIME_RATE';
+
 export interface Kpi {
   id: string;
   name: string;
   target: number;
   actual: number;
   unit: string;
+  /** Share of the rating, 0–1. */
   weight: number;
   dueAt?: string;
+  /** MANUAL KPIs are entered by the manager; the others Atlas measures over the period. */
+  source?: KpiSource;
+  periodStart?: string | null;
+  periodEnd?: string | null;
+  computedAt?: string | null;
+}
+
+export interface KpiInput {
+  name: string;
+  target: number;
+  weight: number;
+  source: KpiSource;
+  unit?: string;
+  actual?: number;
+  dueAt?: string | null;
+  periodStart?: string;
+  periodEnd?: string;
 }
 
 export interface Client {

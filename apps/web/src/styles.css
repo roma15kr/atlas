@@ -1059,3 +1059,6 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 .password-gate__card h1 { margin: 0 0 6px; font-size: 20px; }
 .password-gate__card > p { margin: 0 0 18px; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .password-gate__card footer { margin-top: 16px; display: flex; justify-content: space-between; gap: 8px; }
+.kpi-list article > div > span:first-child { flex: 1; min-width: 0; }
+.kpi-list article > div .row-actions { flex-direction: row; gap: 2px; }
+.kpi-list article strong .badge { margin-left: 6px; vertical-align: 1px; }

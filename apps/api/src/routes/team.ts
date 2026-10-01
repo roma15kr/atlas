@@ -121,7 +121,8 @@ teamRouter.get("/", asyncHandler(async (req, res) => {
             COALESCE((
               SELECT jsonb_agg(jsonb_build_object(
                 'id',k.id,'name',k.name,'target',k.target::float8,'actual',k.actual::float8,
-                'unit',k.unit,'weight',k.weight::float8,'dueAt',k.due_at
+                'unit',k.unit,'weight',k.weight::float8,'dueAt',k.due_at,'source',k.source,
+                'periodStart',to_char(k.period_start,'YYYY-MM-DD'),'periodEnd',to_char(k.period_end,'YYYY-MM-DD'),'computedAt',k.computed_at
               ) ORDER BY k.due_at NULLS LAST, k.name) FROM kpis k WHERE k.user_id=u.id
             ), '[]'::jsonb) AS kpis
      FROM users u LEFT JOIN departments d ON d.id = u.department_id

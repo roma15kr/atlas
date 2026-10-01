@@ -19,7 +19,7 @@ import {
   demoBoardUsers,
   fallbackSession,
 } from '../data/demo';
-import type { Achievement, Alert, AuditEvent, BoardUser, Client, CompanyDocument, DashboardMetrics, Deal, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Kpi, Report, Role, Session, TaskAssignee, TaskBoard, TaskCategory, TaskPriority, TaskStage, TaskStageSummary, User, WorkTask } from '../types';
+import type { Achievement, Alert, AuditEvent, BoardUser, Client, CompanyDocument, DashboardMetrics, Deal, KpiInput, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Kpi, Report, Role, Session, TaskAssignee, TaskBoard, TaskCategory, TaskPriority, TaskStage, TaskStageSummary, User, WorkTask } from '../types';
 
 const roleRank: Record<Role, number> = { EMPLOYEE: 1, MANAGER: 2, DIRECTOR: 3 };
 export const REFRESH_INTERVAL_MS = 180_000;
@@ -46,6 +46,9 @@ export interface MemberUpdate {
   /** An existing department's name or a new one; directors only. */
   departmentName?: string;
 }
+
+export const autoUnit = (source: KpiInput['source']): string =>
+  ({ MANUAL: '', DEALS_WON_VALUE: 'UAH', DEALS_WON_COUNT: 'сделок', TASKS_DONE: 'задач', TASKS_ON_TIME_RATE: '%' })[source];
 
 export function constrainTeamMemberInput(actor: User, input: CreateTeamMemberInput): CreateTeamMemberInput {
   if (actor.role === 'EMPLOYEE') throw new Error('Недостаточно прав для добавления сотрудников');
@@ -315,6 +318,9 @@ interface WorkspaceValue {
   updateMember: (id: string, patch: MemberUpdate) => Promise<void>;
   setMemberActive: (id: string, active: boolean) => Promise<void>;
   resetMemberPassword: (id: string, password: string) => Promise<void>;
+  addKpi: (userId: string, input: KpiInput) => Promise<void>;
+  updateKpi: (userId: string, kpiId: string, input: Partial<KpiInput>) => Promise<void>;
+  deleteKpi: (userId: string, kpiId: string) => Promise<void>;
   addClient: (client: Omit<Client, 'id' | 'updatedAt'>) => Promise<Client>;
   updateClient: (id: string, patch: Partial<Client>) => Promise<void>;
   addDeal: (deal: Omit<Deal, 'id'>) => Promise<void>;
@@ -497,6 +503,42 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const raw = await remote(() => api.create<Record<string, unknown>>(`team/${id}/reset-password`, { password }));
     replaceUser(raw, id, (user) => ({ ...user, mustChangePassword: true }));
   }, [remote, replaceUser]);
+
+  // KPI changes re-load the team so ratings come from the server; demo sessions recompute locally.
+  const changeKpis = useCallback(async (userId: string, action: () => Promise<unknown>, local: (kpis: Kpi[]) => Kpi[]) => {
+    if (isDemo) {
+      setUsers((current) => current.map((user) => {
+        if (user.id !== userId) return user;
+        const kpis = local(user.kpis);
+        const weight = kpis.reduce((sum, kpi) => sum + kpi.weight, 0);
+        const rating = weight ? Math.round(kpis.reduce((sum, kpi) => sum + Math.min(kpi.actual / kpi.target, 1.2) * kpi.weight, 0) / weight * 100) : 0;
+        return { ...user, kpis, rating };
+      }));
+      return;
+    }
+    await remote(action);
+    const team = await api.list<Record<string, unknown>>(session?.user.role === 'EMPLOYEE' ? 'team' : 'team?status=all');
+    const normalized = team.map(normalizeUser);
+    setUsers((current) => current.map((user) => {
+      const fresh = normalized.find((item) => item.id === user.id);
+      return fresh ? { ...user, kpis: fresh.kpis, rating: fresh.rating } : user;
+    }));
+    const me = normalized.find((user) => user.id === session?.user.id);
+    if (me) mergeCurrentUser(me);
+  }, [isDemo, remote, session, mergeCurrentUser]);
+
+  const addKpi = useCallback((userId: string, input: KpiInput) => changeKpis(userId,
+    () => api.create('kpis', { userId, ...input }),
+    (kpis) => [...kpis, { id: crypto.randomUUID(), name: input.name, target: input.target, actual: input.actual ?? 0, unit: input.unit ?? autoUnit(input.source), weight: input.weight, dueAt: input.dueAt ?? undefined, source: input.source, periodStart: input.periodStart, periodEnd: input.periodEnd }],
+  ), [changeKpis]);
+  const updateKpi = useCallback((userId: string, kpiId: string, input: Partial<KpiInput>) => changeKpis(userId,
+    () => api.update('kpis', kpiId, input),
+    (kpis) => kpis.map((kpi) => kpi.id === kpiId ? { ...kpi, ...Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined)), dueAt: input.dueAt === undefined ? kpi.dueAt : input.dueAt ?? undefined } : kpi),
+  ), [changeKpis]);
+  const deleteKpi = useCallback((userId: string, kpiId: string) => changeKpis(userId,
+    () => api.remove('kpis', kpiId),
+    (kpis) => kpis.filter((kpi) => kpi.id !== kpiId),
+  ), [changeKpis]);
 
   const createTeamMember = useCallback(async (input: CreateTeamMemberInput) => {
     if (!session) throw new Error('Сессия завершена');
@@ -789,10 +831,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     users: visibleUsers,
     clients: scopedClients, deals: scopedDeals, funnels: visibleFunnels, taskBoards: visibleBoards, tasks: visibleTasks, documents, reports, alerts: visibleAlerts,
     achievements, audit, dashboardMetrics: metrics, refresh,
-    dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, resetMemberPassword, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert,
+    dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, resetMemberPassword, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert,
   // scoped is intentionally derived from current session and collections.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, resetMemberPassword, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, session]);
+  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, resetMemberPassword, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, session]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

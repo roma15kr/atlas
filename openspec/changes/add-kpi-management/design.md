@@ -40,7 +40,7 @@ Deal backfill:
 - `name`: 1-120 characters.
 - `unit`: 1-20 characters. Automatic sources force it: `UAH`, `сделок`, `задач` or `%`.
 - `target`: greater than 0, at most 1e12.
-- `weight`: 0-100, stored as a fraction (the UI shows %).
+- `weight`: a fraction 0–1 (the UI enters and shows it as %).
 - `dueAt`: optional.
 - `source` and period:
   - an automatic source requires `periodStart` and `periodEnd`, defaulting to the current month in Europe/Kyiv;
@@ -71,7 +71,8 @@ It runs:
 - It is disabled when `AUTOMATION_INTERVAL_MS=0`; tests call `runAutomation()` directly.
 - Each step is isolated with try/catch and logged with pino, so one failing step doesn't stop the others.
 
-### 7. Deal close date (`routes/deals.ts`)
+### 7. Deal close date (trigger `deals_close_date` in migration 010)
+A `BEFORE INSERT OR UPDATE OF stage_id, closed_at` trigger applies the rules below, so every path that moves deals (the deals API, stage deletion with relocation, mail and Telegram deal creation) behaves the same.
 - On create and update, when the resulting stage's outcome is `WON` or `LOST` and `closedAt` isn't given, `closed_at = COALESCE(existing closed_at when the outcome is unchanged, now())`.
 - When the outcome becomes `OPEN`, `closed_at = NULL`.
 - An explicit `closedAt` on a WON or LOST deal is kept.

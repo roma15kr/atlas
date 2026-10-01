@@ -1,23 +1,26 @@
 import {
   BriefcaseBusiness, Check, CheckCircle2, CircleDot, Clock3, Copy, Eye, EyeOff,
-  Gauge, KeyRound, Pencil, Plus, RefreshCw, Search, ShieldCheck, Target, UserCheck, Users, UserX,
+  Gauge, KeyRound, Pencil, Plus, RefreshCw, Search, ShieldCheck, Target, Trash2, UserCheck, Users, UserX,
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Avatar, Badge, Button, Dialog, EmptyState, Field, IconButton, Meter, PageHeader, Segmented, SectionHeader, SelectField, Surface } from '../components/ui';
 import { useAuth, useWorkspace, type CreateTeamMemberInput } from '../context/AppContext';
 import { formatDate, formatKpiValue, relativeTime, roleLabel } from '../lib/format';
-import type { Role, User } from '../types';
+import type { Kpi, Role, User } from '../types';
+import { KpiDialog } from '../components/team/KpiDialog';
 import { EditMemberDialog, generateTemporaryPassword, MemberStatusDialog, ResetPasswordDialog } from '../components/team/MemberDialogs';
 
 export { generateTemporaryPassword };
 
 export function TeamPage() {
   const { session } = useAuth();
-  const { users: activeUsers, disabledUsers, createTeamMember, updateMember, setMemberActive, resetMemberPassword } = useWorkspace();
+  const { users: activeUsers, disabledUsers, createTeamMember, updateMember, setMemberActive, resetMemberPassword, addKpi, updateKpi, deleteKpi } = useWorkspace();
   const [params] = useSearchParams();
   const [scope, setScope] = useState<'all' | 'online' | 'offline' | 'disabled'>('all');
   const [dialog, setDialog] = useState<'edit' | 'reset' | 'status' | null>(null);
+  const [kpiDialog, setKpiDialog] = useState<{ kpi?: Kpi } | null>(null);
+  const [kpiDelete, setKpiDelete] = useState<Kpi | null>(null);
   const users = scope === 'disabled' ? disabledUsers : activeUsers;
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState(params.get('user') ?? users[0]?.id ?? '');
@@ -30,6 +33,8 @@ export function TeamPage() {
   const online = activeUsers.filter((user) => user.online).length;
   const actor = session!.user;
   // Directors administer anyone; heads only the employees of their own department. The API enforces the same.
+  // KPIs: directors for any active person, heads for active employees of their department, never for themselves.
+  const canSetKpis = (member: User) => member.status !== 'DISABLED' && (actor.role === 'DIRECTOR' || actor.role === 'MANAGER' && member.role === 'EMPLOYEE' && member.department === actor.department);
   const canAdminister = (member: User) => actor.role === 'DIRECTOR' || actor.role === 'MANAGER' && member.role === 'EMPLOYEE' && member.department === actor.department;
   const departments = useMemo(() => Array.from(new Set(users.map((user) => user.department).filter((name) => name && name !== 'Без отдела'))).sort((left, right) => left.localeCompare(right, 'ru')), [users]);
 
@@ -42,13 +47,15 @@ export function TeamPage() {
       {selected ? <div className="team-detail">
         <Surface className="team-profile"><div className="team-profile__head"><Avatar name={selected.fullName} online={selected.online} size="lg" /><div><h2>{selected.fullName}</h2><span>{selected.jobTitle}</span><div><Badge tone="info">{roleLabel[selected.role]}</Badge><Badge>{selected.department}</Badge>{selected.status === 'DISABLED' && <Badge tone="danger">Отключён</Badge>}{selected.mustChangePassword && <Badge tone="warning">Ждёт смены пароля</Badge>}</div></div>{canAdminister(selected) && <div className="team-profile__actions"><Button variant="secondary" icon={Pencil} onClick={() => setDialog('edit')}>Изменить</Button>{selected.id !== actor.id && selected.status !== 'DISABLED' && <Button variant="secondary" icon={KeyRound} onClick={() => setDialog('reset')}>Сбросить пароль</Button>}{selected.id !== actor.id && <Button variant={selected.status === 'DISABLED' ? 'secondary' : 'ghost'} icon={selected.status === 'DISABLED' ? UserCheck : UserX} onClick={() => setDialog('status')}>{selected.status === 'DISABLED' ? 'Включить' : 'Отключить'}</Button>}</div>}</div><div className="profile-facts"><div><BriefcaseBusiness size={16} /><span><small>Специализация</small><strong>{selected.specialty ?? 'Не указана'}</strong></span></div><div><Gauge size={16} /><span><small>Рейтинг</small><strong>{selected.rating || '—'} / 100</strong></span></div><div><CircleDot size={16} /><span><small>Присутствие</small><strong>{selected.online ? 'Сейчас в сети' : relativeTime(selected.lastSeen)}</strong></span></div><div><ShieldCheck size={16} /><span><small>Согласие</small><strong>{selected.monitoringConsentAt ? `Получено ${formatDate(selected.monitoringConsentAt)}` : 'Ожидается'}</strong></span></div></div></Surface>
         {selected.jobDescription && <Surface className="job-description"><SectionHeader title="Должностная инструкция" /><p>{selected.jobDescription}</p></Surface>}
-        <Surface className="team-kpi"><SectionHeader title="KPI текущего периода" meta={<Badge tone="info">{selected.kpis.length}</Badge>} />{selected.kpis.length ? <div className="kpi-list">{selected.kpis.map((kpi) => { const progress = Math.round(Math.min(1, kpi.actual / kpi.target) * 100); return <article key={kpi.id}><div><span><strong>{kpi.name}</strong><small>Вес {Math.round(kpi.weight * 100)}% · до {formatDate(kpi.dueAt)}</small></span><b>{progress}%</b></div><Meter value={progress} tone={progress >= 85 ? 'teal' : progress >= 60 ? 'amber' : 'red'} /><footer><span>{formatKpiValue(kpi.actual, kpi.unit)}</span><span>цель {formatKpiValue(kpi.target, kpi.unit)}</span></footer></article>; })}</div> : <EmptyState title="KPI не назначены" description="Показатели сотрудника ещё не настроены" icon={Target} />}</Surface>
+        <Surface className="team-kpi"><SectionHeader title="KPI текущего периода" meta={<Badge tone="info">{selected.kpis.length}</Badge>} action={canSetKpis(selected) ? <Button variant="secondary" icon={Plus} onClick={() => setKpiDialog({})}>Добавить KPI</Button> : undefined} />{selected.kpis.length ? <div className="kpi-list">{selected.kpis.map((kpi) => { const progress = Math.round(Math.min(1, kpi.actual / kpi.target) * 100); const automatic = kpi.source && kpi.source !== 'MANUAL'; return <article key={kpi.id}><div><span><strong>{kpi.name}{automatic && <Badge>Авто</Badge>}</strong><small>Вес {Math.round(kpi.weight * 100)}%{automatic && kpi.periodStart ? ` · ${formatDate(kpi.periodStart)} – ${formatDate(kpi.periodEnd ?? undefined)}` : kpi.dueAt ? ` · до ${formatDate(kpi.dueAt)}` : ''}{automatic && kpi.computedAt ? ` · обновлено ${relativeTime(kpi.computedAt)}` : ''}</small></span><b>{progress}%</b>{canSetKpis(selected) && <span className="row-actions"><IconButton label={`Изменить KPI «${kpi.name}»`} icon={Pencil} onClick={() => setKpiDialog({ kpi })} /><IconButton label={`Удалить KPI «${kpi.name}»`} icon={Trash2} onClick={() => setKpiDelete(kpi)} /></span>}</div><Meter value={progress} tone={progress >= 85 ? 'teal' : progress >= 60 ? 'amber' : 'red'} /><footer><span>{formatKpiValue(kpi.actual, kpi.unit)}</span><span>цель {formatKpiValue(kpi.target, kpi.unit)}</span></footer></article>; })}</div> : <EmptyState title="KPI не назначены" description={canSetKpis(selected) ? 'Добавьте показатели — рейтинг считается по ним' : 'Показатели сотрудника ещё не настроены'} icon={Target} />}</Surface>
         <Surface className="presence-history"><SectionHeader title="Присутствие" /><div className="presence-timeline"><div>{selected.online ? <CheckCircle2 size={15} /> : <Clock3 size={15} />}<span><strong>{selected.online ? 'Сейчас в сети' : 'Последняя активность'}</strong><small>{selected.online ? 'активен в Atlas' : relativeTime(selected.lastSeen)}</small></span></div></div></Surface>
       </div> : <Surface><EmptyState title="Выберите сотрудника" description="Профиль и KPI появятся здесь" icon={Users} /></Surface>}
     </div>
     {selected && dialog === 'edit' && <EditMemberDialog member={selected} actor={actor} departments={departments} save={(patch) => updateMember(selected.id, patch)} onClose={() => setDialog(null)} />}
     {selected && dialog === 'reset' && <ResetPasswordDialog member={selected} reset={(password) => resetMemberPassword(selected.id, password)} onClose={() => setDialog(null)} />}
     {selected && dialog === 'status' && <MemberStatusDialog member={selected} apply={() => setMemberActive(selected.id, selected.status === 'DISABLED')} onClose={() => setDialog(null)} />}
+    {selected && kpiDialog && <KpiDialog kpi={kpiDialog.kpi} save={(input) => kpiDialog.kpi ? updateKpi(selected.id, kpiDialog.kpi.id, input) : addKpi(selected.id, input)} onClose={() => setKpiDialog(null)} />}
+    {selected && kpiDelete && <Dialog open size="sm" title="Удалить KPI?" description={kpiDelete.name} onClose={() => setKpiDelete(null)} footer={<><Button variant="secondary" onClick={() => setKpiDelete(null)}>Отмена</Button><Button variant="danger" icon={Trash2} onClick={() => { void deleteKpi(selected.id, kpiDelete.id).finally(() => setKpiDelete(null)); }}>Удалить</Button></>}><p className="dialog-note">Показатель перестанет учитываться в рейтинге сотрудника.</p></Dialog>}
     {onboardingOpen && <OnboardingDialog actor={session!.user} departments={departments} createMember={createTeamMember} onCreated={(user) => { setSelectedId(user.id); setQuery(''); setScope('all'); }} onClose={() => setOnboardingOpen(false)} />}
   </>;
 }

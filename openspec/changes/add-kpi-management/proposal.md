@@ -44,5 +44,5 @@ Ratings and achievements are the brief's main motivation tools, but the baseline
 - **Database:** migration `010_kpi_management.sql`.
 - **API:**
   - new `routes/kpis.ts` and `automation/` (`scheduler.ts`, `kpis.ts`, `achievements.ts`);
-  - changes to `routes/deals.ts`, `routes/team.ts` (KPI JSON gains `source`, `periodStart` and `periodEnd`), `server.ts` and `config.ts` (`AUTOMATION_INTERVAL_MS`).
+  - a `deals_close_date` trigger in the migration; changes to `routes/team.ts` (KPI JSON gains `source`, `periodStart` and `periodEnd`), `server.ts` and `config.ts` (`AUTOMATION_INTERVAL_MS`).
 - **Web:** `TeamPage` KPI card and dialogs, `types`, `AppContext` and demo data.
