@@ -105,8 +105,8 @@ export const demoAlerts: Alert[] = [
 ];
 
 export const demoReports: Report[] = [
-  { id: 'r1', name: 'Недельный пульс продаж', targetUserId: 'u3', targetUserName: 'Анна Петрова', metrics: ['deals', 'conversion', 'kpi'], periodStart: ago(24 * 7), periodEnd: ago(0), schedule: 'WEEKLY', status: 'READY', createdAt: ago(6) },
-  { id: 'r2', name: 'Результаты отдела за месяц', targetUserId: 'u2', targetUserName: 'Михаил Волков', metrics: ['deals', 'tasks', 'conversion'], periodStart: ago(24 * 30), periodEnd: ago(0), schedule: 'MONTHLY', status: 'PENDING', createdAt: ago(1) },
+  { id: 'r1', name: 'Недельный пульс продаж', targetUserId: 'u3', targetUserName: 'Анна Петрова', metrics: ['deals', 'conversion', 'kpi'], periodStart: ago(24 * 7), periodEnd: ago(0), schedule: 'WEEKLY', status: 'READY', createdAt: ago(6), active: true, nextRunAt: ahead(3), lastRunAt: ago(6), result: { kpiProgress: 0.74, deals: { total: 8, won: 3, value: 485000, currency: 'UAH' }, conversion: 0.375, tasks: { total: 12, done: 9, overdue: 1 }, attendance: { activeDays: 5, consent: true } } },
+  { id: 'r2', name: 'Результаты отдела за месяц', targetUserId: 'u2', targetUserName: 'Михаил Волков', metrics: ['deals', 'tasks', 'conversion'], periodStart: ago(24 * 30), periodEnd: ago(0), schedule: 'MONTHLY', status: 'READY', createdAt: ago(1), active: true, nextRunAt: ahead(200), lastRunAt: ago(1), result: { kpiProgress: 0.71, deals: { total: 21, won: 7, value: 4280000, currency: 'UAH' }, conversion: 0.333, tasks: { total: 40, done: 31, overdue: 3 }, attendance: { activeDays: 19, consentingUsers: 3, teamSize: 4 } } },
 ];
 
 export const demoAchievements: Achievement[] = [

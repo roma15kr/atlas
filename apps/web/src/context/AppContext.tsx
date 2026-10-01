@@ -19,7 +19,7 @@ import {
   demoBoardUsers,
   fallbackSession,
 } from '../data/demo';
-import type { Achievement, Alert, AuditEvent, BoardUser, Client, CompanyDocument, DashboardMetrics, Deal, KpiInput, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Kpi, Report, Role, Session, TaskAssignee, TaskBoard, TaskCategory, TaskPriority, TaskStage, TaskStageSummary, User, WorkTask } from '../types';
+import type { Achievement, AiAnalysis, AiMode, Alert, AuditEvent, ReportRun, BoardUser, Client, CompanyDocument, DashboardMetrics, Deal, KpiInput, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Kpi, Report, Role, Session, TaskAssignee, TaskBoard, TaskCategory, TaskPriority, TaskStage, TaskStageSummary, User, WorkTask } from '../types';
 
 const roleRank: Record<Role, number> = { EMPLOYEE: 1, MANAGER: 2, DIRECTOR: 3 };
 export const REFRESH_INTERVAL_MS = 180_000;
@@ -130,10 +130,14 @@ const normalizeDocument = (source: Record<string, unknown>): CompanyDocument => 
 });
 
 const normalizeReport = (source: Record<string, unknown>): Report => ({
+  result: (source.result ?? undefined) as Report['result'], active: source.active === undefined ? true : Boolean(source.active),
+  nextRunAt: (source.nextRunAt ?? null) as string | null, lastRunAt: (source.lastRunAt ?? null) as string | null,
   id: String(source.id), name: String(source.name ?? ''), targetUserId: source.targetUserId as string | undefined, targetUserName: String(source.targetUserName ?? (source.targetUser as { fullName?: string } | undefined)?.fullName ?? 'Команда'), metrics: (Array.isArray(source.metrics) ? source.metrics : []) as Report['metrics'], periodStart: String(source.periodStart ?? ''), periodEnd: String(source.periodEnd ?? ''), schedule: (source.schedule as Report['schedule']) ?? 'ONCE', status: (source.status as Report['status']) ?? 'PENDING', createdAt: String(source.createdAt ?? ''),
 });
 
 const normalizeAlert = (source: Record<string, unknown>): Alert => ({
+  rule: (source.rule ?? undefined) as string | undefined, dealId: (source.dealId ?? undefined) as string | undefined,
+  clientId: (source.clientId ?? undefined) as string | undefined, resolvedAt: (source.resolvedAt ?? null) as string | null,
   id: String(source.id), severity: (source.severity as Alert['severity']) ?? 'INFO', category: String(source.category ?? ''), title: String(source.title ?? ''), summary: String(source.summary ?? ''), userName: source.userName as string | undefined, createdAt: String(source.createdAt ?? ''), acknowledged: Boolean(source.acknowledged ?? source.acknowledgedAt),
 });
 
@@ -335,6 +339,11 @@ interface WorkspaceValue {
   addDocument: (file: File, folder: string, visibility: CompanyDocument['visibility']) => Promise<void>;
   addReport: (report: Omit<Report, 'id' | 'createdAt' | 'status'>) => Promise<void>;
   acknowledgeAlert: (id: string) => Promise<void>;
+  setReportActive: (id: string, active: boolean) => Promise<void>;
+  deleteReport: (id: string) => Promise<void>;
+  loadReportRuns: (id: string) => Promise<ReportRun[]>;
+  /** AI advice, evaluation or forecast for the caller or someone they manage. */
+  analyze: (targetUserId: string, mode: AiMode) => Promise<AiAnalysis>;
 }
 
 const WorkspaceContext = createContext<WorkspaceValue | null>(null);
@@ -769,9 +778,37 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }, [remote, session]);
 
   const addReport = useCallback(async (input: Omit<Report, 'id' | 'createdAt' | 'status'>) => {
-    const created = await remote(() => api.create<Record<string, unknown>>('reports', input));
+    const created = await remote(() => api.create<Record<string, unknown>>('reports', { ...input, targetUserId: input.targetUserId || undefined, targetUserName: input.targetUserId ? input.targetUserName : 'Team' }));
     setReports((current) => [created ? normalizeReport(created) : { ...input, id: crypto.randomUUID(), status: 'PENDING', createdAt: new Date().toISOString() }, ...current]);
   }, [remote]);
+
+  const setReportActive = useCallback(async (id: string, active: boolean) => {
+    const saved = await remote(() => api.update<{ active: boolean; nextRunAt: string | null }>('reports', id, { active }));
+    setReports((current) => current.map((report) => report.id === id ? { ...report, active, nextRunAt: saved?.nextRunAt ?? report.nextRunAt } : report));
+  }, [remote]);
+
+  const deleteReport = useCallback(async (id: string) => {
+    await remote(() => api.remove('reports', id));
+    setReports((current) => current.filter((report) => report.id !== id));
+  }, [remote]);
+
+  const loadReportRuns = useCallback(async (id: string): Promise<ReportRun[]> => {
+    if (isDemo) {
+      const report = reports.find((item) => item.id === id);
+      return report?.result ? [{ id: `${id}-run`, periodStart: report.periodStart, periodEnd: report.periodEnd, result: report.result, createdAt: report.createdAt }] : [];
+    }
+    return api.list<ReportRun>(`reports/${id}/runs`);
+  }, [isDemo, reports]);
+
+  const analyze = useCallback(async (targetUserId: string, mode: AiMode): Promise<AiAnalysis> => {
+    if (!isDemo) return apiRequest<AiAnalysis>('/ai/analyze', { method: 'POST', body: { targetUserId, mode } });
+    const target = users.find((user) => user.id === targetUserId);
+    const rating = target?.rating ?? 0;
+    const summary = mode === 'FORECAST'
+      ? `Прогноз: при текущем темпе рейтинг ${target?.fullName ?? 'сотрудника'} останется около ${rating} из 100.`
+      : mode === 'EVALUATION' ? `Оценка: рейтинг ${rating} из 100 по взвешенным KPI.` : `Совет: сфокусируйтесь на KPI с наименьшим выполнением.`;
+    return { summary, recommendations: ['Проверьте задачи с ближайшим сроком', 'Обновите следующий шаг по открытым сделкам'], source: 'RULES' };
+  }, [isDemo, users]);
 
   const acknowledgeAlert = useCallback(async (id: string) => {
     await remote(() => api.update<Alert>('alerts', `${id}/acknowledge`, {}));
@@ -831,10 +868,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     users: visibleUsers,
     clients: scopedClients, deals: scopedDeals, funnels: visibleFunnels, taskBoards: visibleBoards, tasks: visibleTasks, documents, reports, alerts: visibleAlerts,
     achievements, audit, dashboardMetrics: metrics, refresh,
-    dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, resetMemberPassword, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert,
+    dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, resetMemberPassword, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze,
   // scoped is intentionally derived from current session and collections.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, resetMemberPassword, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, session]);
+  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, resetMemberPassword, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, session]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

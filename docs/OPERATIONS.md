@@ -113,7 +113,7 @@ docker compose exec postgres psql -U atlas -d atlas -c "SELECT channel, count(*)
 docker compose exec backup sh -c 'f="/backups/atlas-pre-007-$(date -u +%Y%m%dT%H%M%SZ).dump"; pg_dump --format=custom --file="$f" && pg_restore --list "$f" >/dev/null && ls -l "$f"'
 ```
 
-## Deploying migrations 009 and 010 (accounts, KPIs)
+## Deploying migrations 009, 010 and 011 (accounts, KPIs, alerts, reports)
 
 Both are additive. `009_user_administration.sql` adds `users.must_change_password`
 and `password_changed_at`; nobody is forced to change a password by the upgrade.
@@ -122,8 +122,15 @@ and `password_changed_at`; nobody is forced to change a password by the upgrade.
 deals with their last update time (an estimate; reports by close date for past
 months use it).
 
+`011_alert_rules_reports.sql` adds rule columns to `alerts`, schedule columns
+and `report_runs`, copies each existing report result as its first run, and
+sets the next run of recurring reports to the next 06:00 Kyiv. The first
+automation tick after the deploy raises alerts for conditions that already hold,
+so expect a burst of alerts on the dashboard; they resolve themselves as the
+underlying tasks, deals and KPIs are dealt with.
+
 The automation scheduler starts with the API. `AUTOMATION_INTERVAL_MS`
-(default `600000`) sets how often KPIs are recomputed and achievements awarded;
+(default `600000`) sets how often KPIs are recomputed, achievements awarded, alert rules evaluated and due reports run;
 `0` turns it off. Only one API instance runs a tick at a time.
 
 ## Email

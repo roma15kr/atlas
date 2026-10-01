@@ -6,7 +6,7 @@ import { Avatar, Badge, Button, EmptyState, Meter, PageHeader, SectionHeader, Su
 import { useAuth, useWorkspace } from '../context/AppContext';
 import { formatDate, formatMoney, relativeTime } from '../lib/format';
 import { defaultBoard, isAssignedTo, rememberedBoard } from '../lib/boards';
-import type { TaskBoard, User, WorkTask } from '../types';
+import type { Alert, TaskBoard, User, WorkTask } from '../types';
 
 const weekday = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 
@@ -54,7 +54,7 @@ export function DashboardPage() {
       </Surface>
       <Surface className="alerts-panel">
         <SectionHeader title="AI-наблюдения" meta={<Badge tone={openAlerts.some((alert) => alert.severity === 'CRITICAL') ? 'danger' : 'warning'}>{openAlerts.length} новых</Badge>} action={<span className="ai-label"><Bot size={15} /> Системные метрики</span>} />
-        <div className="alert-list">{openAlerts.length ? openAlerts.slice(0, 4).map((alert) => <article className={`alert-row alert-row--${alert.severity.toLowerCase()}`} key={alert.id}><span className="alert-row__icon">{alert.severity === 'CRITICAL' ? <FileWarning size={17} /> : alert.severity === 'WARNING' ? <Clock3 size={17} /> : <Activity size={17} />}</span><div><span><Badge tone={alert.severity === 'CRITICAL' ? 'danger' : alert.severity === 'WARNING' ? 'warning' : 'info'}>{alert.category === 'CONSENT' ? 'Согласие' : alert.category === 'EXPORT' ? 'Доступ' : 'Сроки'}</Badge><time>{relativeTime(alert.createdAt)}</time></span><strong>{alert.title}</strong><p>{alert.summary}</p>{alert.userName && <small>{alert.userName}</small>}</div>{user.role !== 'EMPLOYEE' && <button aria-label="Отметить просмотренным" title="Отметить просмотренным" onClick={() => void acknowledgeAlert(alert.id)}><Check size={16} /></button>}</article>) : <EmptyState title="Всё спокойно" description="Новых системных наблюдений нет" icon={Bot} />}</div>
+        <div className="alert-list">{openAlerts.length ? openAlerts.slice(0, 4).map((alert) => <article className={`alert-row alert-row--${alert.severity.toLowerCase()}`} key={alert.id}><span className="alert-row__icon">{alert.severity === 'CRITICAL' ? <FileWarning size={17} /> : alert.severity === 'WARNING' ? <Clock3 size={17} /> : <Activity size={17} />}</span><div><span><Badge tone={alert.severity === 'CRITICAL' ? 'danger' : alert.severity === 'WARNING' ? 'warning' : 'info'}>{alertLabel(alert)}</Badge><time>{relativeTime(alert.createdAt)}</time></span><strong>{alert.title}</strong><p>{alert.summary}</p>{alert.userName && <small>{alert.userName}</small>}{alert.clientId && <button className="text-button" onClick={() => navigate(`/crm/${alert.clientId}`)}>Открыть клиента <ArrowUpRight size={13} /></button>}</div>{user.role !== 'EMPLOYEE' && <button aria-label="Отметить просмотренным" title="Отметить просмотренным" onClick={() => void acknowledgeAlert(alert.id)}><Check size={16} /></button>}</article>) : <EmptyState title="Всё спокойно" description="Новых системных наблюдений нет" icon={Bot} />}</div>
       </Surface>
       <Surface className="today-panel">
         <SectionHeader title="Сегодня" meta={<CalendarDays size={16} />} action={<button className="text-button" onClick={() => navigate('/tasks')}>Все задачи</button>} />
@@ -63,6 +63,16 @@ export function DashboardPage() {
     </div>
     {taskOpen && taskBoards.length > 0 && <TaskDialog boardId={defaultBoard(taskBoards, user, rememberedBoard(user.id))?.id} onClose={() => setTaskOpen(false)} />}
   </>;
+}
+
+const ruleLabels: Record<string, string> = {
+  TASKS_OVERDUE: 'Задачи', DEAL_CLOSE_OVERDUE: 'Сделка', DEAL_STALLED: 'Сделка', KPI_BEHIND: 'KPI', INACTIVITY: 'Присутствие',
+};
+const categoryLabels: Record<string, string> = { CONSENT: 'Согласие', EXPORT: 'Доступ' };
+
+/** The automatic rule names the alert; older alerts fall back to their category. */
+export function alertLabel(alert: Alert): string {
+  return (alert.rule && ruleLabels[alert.rule]) ?? categoryLabels[alert.category] ?? 'Сроки';
 }
 
 function Metric({ label, value, note, icon: Icon, tone }: { label: string; value: string; note: string; icon: typeof Users; tone: 'teal' | 'blue' | 'amber' | 'red' }) {

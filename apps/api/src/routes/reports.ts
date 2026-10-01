@@ -4,7 +4,7 @@ import { manageableUser } from "../access";
 import { writeAudit } from "../audit";
 import { requireAuth, requireRoles } from "../auth";
 import { query } from "../db";
-import { asyncHandler } from "../errors";
+import { ApiError, asyncHandler } from "../errors";
 import { pagination } from "../http";
 import { funnelAccessSql } from "../scope";
 
@@ -20,7 +20,8 @@ reportsRouter.get("/", asyncHandler(async (req, res) => {
   values.push(page.limit, page.offset);
   const result = await query(
     `SELECT r.id, r.name, r.metrics, r.period_start AS "periodStart", r.period_end AS "periodEnd",
-            r.schedule, r.status, r.result, r.target_user_id AS "targetUserId",
+            r.schedule, r.status, r.result, r.target_user_id AS "targetUserId", r.department_id AS "departmentId",
+            r.active, r.next_run_at AS "nextRunAt", r.last_run_at AS "lastRunAt", r.created_by AS "createdBy",
             COALESCE(u.full_name, 'Team') AS "targetUserName",
             json_build_object('id', u.id, 'fullName', u.full_name) AS "targetUser",
             r.created_at AS "createdAt", count(*) OVER()::int AS "totalCount"
@@ -50,15 +51,59 @@ reportsRouter.post("/", requireRoles("DIRECTOR", "MANAGER"), asyncHandler(async 
   const metrics = await reportMetrics(auth, auth.companyId, target?.id ?? null, target ? null : departmentId, periodStart, periodEnd);
   const result = await query(
     `INSERT INTO reports
-      (company_id, department_id, created_by, target_user_id, name, metrics, period_start, period_end, schedule, status, result)
-     VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,'READY',$10::jsonb)
+      (company_id, department_id, created_by, target_user_id, name, metrics, period_start, period_end, schedule, status, result,
+       last_run_at, next_run_at)
+     VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,'READY',$10::jsonb, now(), report_next_run($9, now()))
      RETURNING id, name, metrics, period_start AS "periodStart", period_end AS "periodEnd", schedule, status, result,
-               created_at AS "createdAt"`,
+               created_at AS "createdAt", active, next_run_at AS "nextRunAt", last_run_at AS "lastRunAt"`,
     [auth.companyId, departmentId, auth.userId, target?.id ?? null, input.name, JSON.stringify(input.metrics),
       periodStart, periodEnd, input.schedule, JSON.stringify(metrics)]
   );
+  await query("INSERT INTO report_runs (report_id, company_id, period_start, period_end, result) VALUES ($1, $2, $3, $4, $5::jsonb)",
+    [result.rows[0]!.id, auth.companyId, periodStart, periodEnd, JSON.stringify(metrics)]);
   await writeAudit(req, { auth, action: "REPORT_CREATED", entityType: "report", entityId: result.rows[0]?.id as string, departmentId, metadata: { metrics: input.metrics } });
   res.status(201).json({ data: { ...result.rows[0], targetUserName: input.targetUserName ?? "Team" } });
+}));
+
+/** A report the caller may list: company for directors, department for heads, themselves as target for employees. */
+async function scopedReport(auth: ReturnType<typeof requireAuth>, id: string): Promise<{ id: string; department_id: string | null; schedule: string }> {
+  const values: unknown[] = [id, auth.companyId];
+  let scope = "";
+  if (auth.role === "MANAGER") { values.push(auth.departmentId); scope = "AND department_id IS NOT DISTINCT FROM $3"; }
+  if (auth.role === "EMPLOYEE") { values.push(auth.userId); scope = "AND target_user_id = $3"; }
+  const result = await query<{ id: string; department_id: string | null; schedule: string }>(
+    `SELECT id, department_id, schedule FROM reports WHERE id = $1 AND company_id = $2 ${scope}`, values);
+  if (!result.rows[0]) throw new ApiError(404, "REPORT_NOT_FOUND", "Report not found");
+  return result.rows[0];
+}
+
+reportsRouter.get("/:id/runs", asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const report = await scopedReport(auth, z.string().uuid().parse(req.params.id));
+  const runs = await query(
+    `SELECT id, to_char(period_start, 'YYYY-MM-DD') AS "periodStart", to_char(period_end, 'YYYY-MM-DD') AS "periodEnd", result, created_at AS "createdAt"
+     FROM report_runs WHERE report_id = $1 ORDER BY created_at DESC LIMIT 100`, [report.id]);
+  res.json({ data: runs.rows });
+}));
+
+reportsRouter.patch("/:id", requireRoles("DIRECTOR", "MANAGER"), asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const report = await scopedReport(auth, z.string().uuid().parse(req.params.id));
+  const { active } = z.object({ active: z.boolean() }).strict().parse(req.body);
+  if (report.schedule === "ONCE") throw new ApiError(400, "REPORT_NOT_SCHEDULED", "Only recurring reports can be paused");
+  const result = await query(
+    `UPDATE reports SET active = $2, next_run_at = CASE WHEN $2 THEN report_next_run(schedule::text, now()) ELSE next_run_at END
+     WHERE id = $1 RETURNING id, active, next_run_at AS "nextRunAt"`, [report.id, active]);
+  await writeAudit(req, { auth, action: active ? "REPORT_SCHEDULE_RESUMED" : "REPORT_SCHEDULE_PAUSED", entityType: "report", entityId: report.id, departmentId: report.department_id, metadata: active ? {} : { reason: "user" } });
+  res.json({ data: result.rows[0] });
+}));
+
+reportsRouter.delete("/:id", requireRoles("DIRECTOR", "MANAGER"), asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const report = await scopedReport(auth, z.string().uuid().parse(req.params.id));
+  await query("DELETE FROM reports WHERE id = $1", [report.id]);
+  await writeAudit(req, { auth, action: "REPORT_DELETED", entityType: "report", entityId: report.id, departmentId: report.department_id });
+  res.status(204).send();
 }));
 
 async function resolveTarget(
@@ -75,7 +120,7 @@ async function resolveTarget(
   return found.rowCount === 1 ? manageableUser(auth, found.rows[0]!.id) : null;
 }
 
-async function reportMetrics(
+export async function reportMetrics(
   auth: ReturnType<typeof requireAuth>,
   companyId: string,
   userId: string | null,

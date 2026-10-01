@@ -1,4 +1,5 @@
-import { Check, LockKeyhole, Save, ShieldCheck } from 'lucide-react';
+import { Check, LockKeyhole, Save, ShieldCheck, Sparkles } from 'lucide-react';
+import { AiAnalysisDialog } from '../components/AiAnalysisDialog';
 import { ChangePasswordDialog } from '../components/team/MemberDialogs';
 import { useState, type FormEvent } from 'react';
 import { Avatar, Badge, Button, Field, Meter, PageHeader, SectionHeader, Surface } from '../components/ui';
@@ -17,6 +18,7 @@ export function ProfilePage() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const [passwordChanged, setPasswordChanged] = useState(false);
   const dirty = fullName.trim() !== user.fullName || specialty.trim() !== (user.specialty ?? '');
 
@@ -62,11 +64,16 @@ export function ProfilePage() {
           {!user.monitoringConsentAt && <Button icon={Check} disabled={consenting} onClick={() => void accept()}>{consenting ? 'Подтверждаем…' : 'Принять политику'}</Button>}
         </Surface>
         <Surface>
+          <SectionHeader title="AI-рекомендации" />
+          <div className="security-rows"><div><span className="settings-icon"><Sparkles size={17} /></span><span><strong>Совет, оценка или прогноз</strong><small>По вашим KPI, задачам и воронке. Переписка не анализируется.</small></span><Button variant="secondary" onClick={() => setAiOpen(true)}>Открыть</Button></div></div>
+        </Surface>
+        <Surface>
           <SectionHeader title="Безопасность" />
           <div className="security-rows"><div><span className="settings-icon"><LockKeyhole size={17} /></span><span><strong>Пароль</strong><small>{passwordChanged ? 'Пароль изменён, другие сеансы завершены' : 'При смене пароля другие сеансы завершатся'}</small></span><Button variant="secondary" onClick={() => setPasswordOpen(true)}>Изменить пароль</Button></div></div>
         </Surface>
       </div>
     </div>
+    {aiOpen && <AiAnalysisDialog targetUserId={user.id} targetName={user.fullName} onClose={() => setAiOpen(false)} />}
     {passwordOpen && <ChangePasswordDialog change={async (current, next) => { await changePassword(current, next); setPasswordChanged(true); }} onClose={() => setPasswordOpen(false)} />}
   </>;
 }

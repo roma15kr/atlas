@@ -194,6 +194,11 @@ export interface Alert {
   userName?: string;
   createdAt: string;
   acknowledged: boolean;
+  /** The automatic rule that raised it, e.g. TASKS_OVERDUE. */
+  rule?: string;
+  dealId?: string;
+  clientId?: string;
+  resolvedAt?: string | null;
 }
 
 export interface Report {
@@ -207,6 +212,37 @@ export interface Report {
   schedule: 'ONCE' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
   status: 'PENDING' | 'READY' | 'FAILED';
   createdAt: string;
+  result?: ReportResult;
+  /** Recurring reports can be paused. */
+  active?: boolean;
+  nextRunAt?: string | null;
+  lastRunAt?: string | null;
+}
+
+export interface ReportResult {
+  kpiProgress: number;
+  deals: { total: number; won: number; value: number; currency: 'UAH' };
+  conversion: number;
+  tasks: { total: number; done: number; overdue: number };
+  attendance: { activeDays?: number; firstSeenAt?: string | null; lastSeenAt?: string | null; consent?: boolean; consentingUsers?: number; teamSize?: number };
+}
+
+export interface ReportRun {
+  id: string;
+  periodStart: string;
+  periodEnd: string;
+  result: ReportResult;
+  createdAt: string;
+}
+
+export type AiMode = 'ADVICE' | 'EVALUATION' | 'FORECAST';
+
+export interface AiAnalysis {
+  summary: string;
+  recommendations: string[];
+  source: 'CLAUDE' | 'RULES';
+  model?: string;
+  fallbackReason?: string;
 }
 
 export interface Achievement {

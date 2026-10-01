@@ -8,7 +8,7 @@ connections for presence and live chat.
 ## Runtime
 
 - `web`: React + TypeScript workspace UI, compiled to static assets and served by Nginx.
-- `api`: TypeScript HTTP API, the automation scheduler (KPIs, achievements), and the Socket.IO gateway for presence and chat.
+- `api`: TypeScript HTTP API, the automation scheduler (KPIs, achievements, alert rules, scheduled reports), and the Socket.IO gateway for presence and chat.
 - `postgres`: source of truth for identity, CRM, work, files, reports, and audit history.
 - `redis`: ephemeral presence, session coordination, and rate-limit counters.
 - `documents_data` volume: document file bodies, mounted only into `api`.
@@ -22,8 +22,9 @@ storage, which the API supports through optional `S3_*` settings.
 
 External integrations are adapter boundaries. An adapter reports `disabled`
 until its server-side credentials are configured; secrets never enter the web
-bundle. The AI boundary combines deterministic risk rules with optional Claude
-summarization and never reads private message content.
+bundle. The AI boundary (`/api/v1/ai/analyze`, shown on the team and profile
+screens) combines deterministic rules with optional Claude summarization and
+never reads private message content.
 
 ## Access model
 
@@ -181,7 +182,24 @@ order and are isolated from each other's failures: recompute automatic KPIs
 (current periods and those that ended within 2 days; older ones freeze), then
 award achievements (ON_TIME_10, ZERO_OVERDUE for the previous Kyiv month,
 TOP_MONTH on the 1st), each once per person, audited as `ACHIEVEMENT_AWARDED`
-without an actor and pushed as `achievement:awarded`.
+without an actor and pushed as `achievement:awarded`; then evaluate alert rules;
+then run due scheduled reports.
+
+Alert rules (`automation/alerts.ts`): `TASKS_OVERDUE` (3+ overdue assigned
+tasks, CRITICAL from 6), `DEAL_CLOSE_OVERDUE`, `DEAL_STALLED` (14 days without
+change), `KPI_BEHIND` (more than 30 points behind the elapsed share of the
+period, from half-way), and `INACTIVITY` (3 working days offline, only for
+people with monitoring consent). Each condition keeps one open alert
+(`dedupe_key`, unique while `resolved_at IS NULL`); the alert is updated while
+the condition holds and resolved when it clears. Acknowledging records review
+only. The feed shows open alerts by default (`state=all` for history), scoped by
+role, and an alert about a deal only to people who can see that deal under deal
+scope and funnel access. Evidence holds counts, ids and dates.
+
+Recurring reports run at 06:00 Kyiv (`report_next_run`) for the previous day,
+Monday–Sunday week or month, with the creator's scope; each run is kept in
+`report_runs`. A creator who is disabled or no longer a director or head pauses
+the schedule (`REPORT_SCHEDULE_PAUSED`, reason `creator_unavailable`).
 
 ## Data ownership
 

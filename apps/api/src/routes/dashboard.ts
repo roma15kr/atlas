@@ -4,6 +4,7 @@ import { query } from "../db";
 import { asyncHandler } from "../errors";
 import { presenceFor } from "../presence";
 import { recordScope } from "../scope";
+import { alertVisibility } from "./alerts";
 import { dealScope } from "./deals";
 
 export const dashboardRouter = Router();
@@ -19,11 +20,7 @@ dashboardRouter.get("/", asyncHandler(async (req, res) => {
       ? { sql: "t.company_id = $1 AND b.department_id = $2", values: [auth.companyId, auth.departmentId] }
       : { sql: "t.company_id = $1 AND EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.user_id = $2)", values: [auth.companyId, auth.userId] };
   const userScope = recordScope(auth, { company: "u.company_id", department: "u.department_id", owner: "u.id" });
-  const alertScope = auth.role === "DIRECTOR"
-    ? { sql: "a.company_id = $1", values: [auth.companyId] }
-    : auth.role === "MANAGER"
-      ? { sql: "a.company_id = $1 AND a.department_id IS NOT DISTINCT FROM $2", values: [auth.companyId, auth.departmentId] }
-      : { sql: "a.company_id = $1 AND a.user_id = $2", values: [auth.companyId, auth.userId] };
+  const alertScope = alertVisibility(auth);
 
   const [clients, pipeline, tasks, alerts, users] = await Promise.all([
     query<{ count: number }>(`SELECT count(*)::int AS count FROM clients c WHERE ${clientScope.sql}`, clientScope.values),
@@ -44,9 +41,9 @@ dashboardRouter.get("/", asyncHandler(async (req, res) => {
       taskScope.values
     ),
     query(
-      `SELECT a.id, a.severity, a.category, a.title, a.summary, a.created_at AS "createdAt",
+      `SELECT a.id, a.severity, a.category, a.rule, a.title, a.summary, a.deal_id AS "dealId", a.created_at AS "createdAt",
               a.acknowledged_at AS "acknowledgedAt"
-       FROM alerts a WHERE ${alertScope.sql} ORDER BY a.created_at DESC LIMIT 5`,
+       FROM alerts a WHERE ${alertScope.sql} AND a.resolved_at IS NULL ORDER BY a.created_at DESC LIMIT 5`,
       alertScope.values
     ),
     query<{ id: string; fullName: string; jobTitle: string | null }>(

@@ -1,14 +1,18 @@
 import { config } from "../config";
 import { pool } from "../db";
 import { awardAchievements } from "./achievements";
+import { evaluateAlerts } from "./alerts";
 import { recomputeKpis } from "./kpis";
+import { runDueReports } from "./reports";
 
 export interface AutomationStep { name: string; run: () => Promise<unknown> }
 
-/** Steps run in order on every tick; later changes register more (alerts, scheduled reports). */
+/** Steps run in order on every tick: KPIs first, so achievements and KPI alerts see fresh values. */
 const steps: AutomationStep[] = [
   { name: "kpis", run: () => recomputeKpis() },
-  { name: "achievements", run: () => awardAchievements() }
+  { name: "achievements", run: () => awardAchievements() },
+  { name: "alerts", run: () => evaluateAlerts() },
+  { name: "reports", run: () => runDueReports() }
 ];
 
 export function registerAutomationStep(step: AutomationStep): void {

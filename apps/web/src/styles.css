@@ -1062,3 +1062,30 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 .kpi-list article > div > span:first-child { flex: 1; min-width: 0; }
 .kpi-list article > div .row-actions { flex-direction: row; gap: 2px; }
 .kpi-list article strong .badge { margin-left: 6px; vertical-align: 1px; }
+
+/* Reports: results and history */
+.report-name--link { padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; text-align: left; }
+.report-name--link:hover strong { color: var(--primary); text-decoration: underline; }
+.report-schedule { display: flex; flex-direction: column; gap: 3px; }
+.report-schedule small { color: var(--muted); font-size: 11px; }
+.report-figures { margin: 14px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.report-figures > div { padding: 12px; border: 1px solid var(--line); border-radius: 8px; display: flex; flex-direction: column; gap: 3px; }
+.report-figures dt { color: var(--muted); font-size: 11px; }
+.report-figures dd { margin: 0; font-size: 18px; font-weight: 600; }
+.report-figures small { color: var(--muted); font-size: 11px; }
+.report-runs { margin: 14px 0 0; padding: 0; list-style: none; }
+.report-runs li { padding: 10px 2px; display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); gap: 10px; align-items: center; border-bottom: 1px solid var(--line); font-size: 12px; }
+.report-runs li:last-child { border-bottom: 0; }
+.report-runs li > span:first-child { display: flex; flex-direction: column; }
+.report-runs small { color: var(--muted); font-size: 11px; }
+.report-next { margin-top: 12px; }
+.ai-result { margin-top: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; }
+.ai-result header { margin-bottom: 8px; display: flex; align-items: center; gap: 8px; color: var(--primary); }
+.ai-result p { margin: 0 0 8px; line-height: 1.55; }
+.ai-result ol { margin: 0; padding-left: 20px; display: grid; gap: 5px; font-size: 13px; line-height: 1.45; }
+.ai-result small { margin-top: 8px; display: block; color: var(--muted); font-size: 11px; }
+.ai-hint { margin-top: 14px; }
+@media (max-width: 780px) {
+  .report-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .report-runs li { grid-template-columns: 1fr 1fr; }
+}
