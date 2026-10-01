@@ -212,3 +212,16 @@ Rejected: copying each message into a client activity table. That duplicates dat
 2. Set `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` and `TELEGRAM_MODE=webhook`. Import the existing id-to-client-to-manager list while the old system still runs, since import needs no webhook.
 3. Press "Проверить подключение" to register the webhook. Confirm with a test message from a staff Telegram account.
 4. **Rollback:** unset the token, or call `deleteWebhook`. Tables stay, and the old system can re-register its webhook.
+
+## Implementation notes
+
+- **Company resolution:** the bot serves the deployment's first company (`botCompanyId`). Atlas deployments are single-company today.
+- **Bot API base URL:** set by `TELEGRAM_API_BASE` (default `https://api.telegram.org`). Tests inject a fake fetch with `setTelegramFetch`.
+- **Webhook route:** registered before the general per-IP rate limiter, because Telegram's traffic comes from a few shared IPs. The secret token authenticates it instead.
+- **Unknown senders:** a `/start` without a valid token is stored as "Клиент начал диалог с ботом", so the queue shows that the customer opened the bot.
+- **Invite visibility:** creating an invite requires seeing the client. Another employee's client therefore returns 404 rather than 403, like other scoped records.
+- **Import previews:** they live in API memory for 30 minutes. With several API instances, the apply request must reach the same one.
+- **Director deletion:** directors can delete a contact with its messages and files (`DELETE /telegram/contacts/:id`), audited as `TELEGRAM_CONTACT_DELETED`. This is the retention mitigation from the risks section.
+- **Verification:**
+  - `routes/telegram.integration.test.ts` (PGlite, real app, fake Bot API) covers the webhook secret, duplicate updates, greet-once, triage limits, the full history including earlier messages with the replying manager, deal history, single-use invites, block and unblock, import preview and apply with every error kind, the unreachable imported contact, photo download and edits, director-only settings with the new greeting and default responsible, and unread counts.
+  - `pages/Telegram.test.tsx` covers the UI.

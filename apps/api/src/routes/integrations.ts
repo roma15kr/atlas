@@ -46,8 +46,14 @@ integrationsRouter.get("/", asyncHandler(async (req, res) => {
     };
   });
   const byProvider = new Map(stored.rows.map((row) => [row.provider, row]));
+  const bot = (await query<{ bot_username: string | null; last_error: string | null; last_update_at: Date | null }>(
+    "SELECT bot_username, last_error, last_update_at FROM telegram_settings WHERE company_id = $1", [auth.companyId])).rows[0];
   const company = Object.entries(companyChannels).map(([provider, configured]) => {
     const row = byProvider.get(provider);
+    if (provider === "TELEGRAM") {
+      const status: Status = !configured() || !bot?.bot_username ? "DISCONNECTED" : bot.last_error ? "NEEDS_ATTENTION" : "CONNECTED";
+      return { id: null, provider, status, displayName: bot?.bot_username ? `@${bot.bot_username}` : null, lastSyncedAt: bot?.last_update_at ?? null, metadata: {}, serverConfigured: configured() };
+    }
     return {
       id: row?.id ?? null, provider, status: configured() ? row?.status ?? "DISCONNECTED" : "DISCONNECTED", displayName: row?.displayName ?? null,
       lastSyncedAt: row?.lastSyncedAt ?? null, metadata: row?.metadata ?? {}, serverConfigured: configured()

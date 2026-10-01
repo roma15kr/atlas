@@ -58,11 +58,13 @@ export function MailProvider({ children }: { children: ReactNode }) {
     return () => { window.removeEventListener('atlas:socket', handle); if (timer) window.clearTimeout(timer); };
   }, [isDemo, refresh, notify]);
 
+  const subscribe = useCallback((listener: (event: { type: 'changed' | 'account'; accountId?: string }) => void) => { listeners.current.add(listener); return () => { listeners.current.delete(listener); }; }, []);
+
   const value = useMemo<MailValue>(() => ({
     backend, accounts, providers, loaded, refresh, notify,
     unread: accounts.reduce((sum, account) => sum + account.unread, 0),
-    subscribe: (listener) => { listeners.current.add(listener); return () => { listeners.current.delete(listener); }; },
-  }), [backend, accounts, providers, loaded, refresh, notify]);
+    subscribe,
+  }), [backend, accounts, providers, loaded, refresh, notify, subscribe]);
   return <MailContext.Provider value={value}>{children}</MailContext.Provider>;
 }
 

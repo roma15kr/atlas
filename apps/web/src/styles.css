@@ -978,3 +978,73 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
   .mail-search { width: 100%; }
   .form-pair { grid-template-columns: 1fr 1fr; }
 }
+
+/* Telegram */
+.tg-search { width: 220px; }
+.tg-layout { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 12px; height: calc(100vh - 196px); min-height: 520px; }
+.tg-list, .tg-chat { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.tg-list__rows { flex: 1; overflow-y: auto; }
+.tg-list__rows > button { width: 100%; min-height: 60px; padding: 9px 12px; display: flex; align-items: flex-start; gap: 9px; border: 0; border-bottom: 1px solid #edf0ef; background: var(--surface); text-align: left; }
+.tg-list__rows > button:hover, .tg-list__rows > button.is-active { background: #f0f6f5; }
+.tg-list__rows > button.is-active { box-shadow: inset 3px 0 var(--primary); }
+.tg-list__rows > button > span:nth-child(2) { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.tg-list__rows strong { overflow: hidden; font-size: 11px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.tg-list__rows .is-unread strong, .tg-list__rows > button.is-unread strong { font-weight: 750; }
+.tg-list__rows small { margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.tg-list__status { margin-top: 4px; }
+.tg-list__meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.tg-list__meta time { color: var(--subtle); font-size: 9px; white-space: nowrap; }
+.tg-chat__header { min-height: 58px; padding: 10px 14px 10px 17px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); }
+.tg-chat__header > div { min-width: 0; flex: 1; }
+.tg-chat__header h2 { overflow: hidden; font-size: 16px; text-overflow: ellipsis; white-space: nowrap; }
+.tg-chat__header span { color: var(--muted); font-size: 11px; }
+.tg-chat__back { display: none; }
+.tg-chat__crm .text-button { font-size: 12px; }
+.tg-chat__messages, .tg-history { flex: 1; min-height: 0; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: var(--surface-soft); }
+.tg-history { max-height: 60vh; margin: -4px; border-radius: 5px; }
+.tg-message { max-width: min(560px, 82%); padding: 8px 11px; display: flex; flex-direction: column; gap: 4px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); }
+.tg-message--in { align-self: flex-start; }
+.tg-message--out { align-self: flex-end; border-color: #cfe3df; background: var(--primary-soft); }
+.tg-message--failed { border-color: #e5c7c7; background: var(--red-soft); }
+.tg-message p { font-size: 13px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.tg-message__author { color: var(--primary-dark); font-size: 10px; font-weight: 700; }
+.tg-message__summary { color: var(--muted); font-size: 11px; font-style: italic; }
+.tg-message__file { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11px; }
+.tg-message__file > span { min-width: 0; flex: 1; overflow: hidden; color: var(--text); text-overflow: ellipsis; white-space: nowrap; }
+.tg-message__file .icon-button { width: 28px; height: 28px; }
+.tg-message footer { display: flex; align-items: center; gap: 8px; color: var(--subtle); font-size: 9px; }
+.tg-message footer .text-button { margin-left: auto; padding: 0; font-size: 10px; }
+.tg-message__error { color: var(--red); font-weight: 650; }
+.tg-chat__notice { margin: 0; border-radius: 0; border-width: 1px 0 0; }
+.tg-composer { border-top: 1px solid var(--line); }
+.tg-composer .chat-composer { border-top: 0; }
+.tg-composer__context { padding: 8px 13px 0; display: flex; flex-wrap: wrap; gap: 6px; background: var(--surface-soft); }
+.tg-composer__context > span { max-width: 100%; padding: 2px 2px 2px 8px; display: inline-flex; align-items: center; gap: 4px; border-radius: 4px; background: var(--primary-soft); color: var(--primary-dark); font-size: 11px; }
+.tg-composer__context .icon-button { width: 24px; height: 24px; }
+.tg-settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.tg-settings__card { padding: 17px; }
+.tg-settings__card .section-header { margin-bottom: 12px; }
+.tg-settings__text { white-space: normal !important; }
+.import-preview { display: flex; flex-direction: column; gap: 8px; }
+.import-preview__summary { display: flex; flex-wrap: wrap; gap: 6px; }
+.table-scroll { max-height: 300px; overflow: auto; border: 1px solid var(--line); border-radius: 5px; }
+.table-scroll .data-table { min-width: 640px; }
+.table-scroll .data-table td { height: 38px; padding: 6px 10px; }
+.table-scroll .data-table th { height: 32px; padding: 6px 10px; }
+.data-table tr.is-error td { background: #fdf6f6; }
+.import-error { color: var(--red); font-weight: 650; }
+.file-input { display: flex; align-items: center; gap: 8px; }
+.file-input input { min-height: 0; padding: 6px; }
+.invite-link { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.invite-link small { grid-column: 1 / -1; color: var(--muted); font-size: 11px; }
+@media (max-width: 1000px) { .tg-settings { grid-template-columns: 1fr; } }
+@media (max-width: 780px) {
+  .tg-search { width: 100%; }
+  .tg-layout, .tg-layout--open { height: auto; min-height: 0; grid-template-columns: 1fr; }
+  .tg-list { max-height: 70vh; }
+  .tg-layout--open .tg-list { display: none; }
+  .tg-layout:not(.tg-layout--open) .tg-chat { display: none; }
+  .tg-chat { height: 78vh; }
+  .tg-chat__back { display: inline-grid; }
+  .tg-message { max-width: 92%; }
+}

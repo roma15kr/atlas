@@ -104,3 +104,16 @@ export function chatAccessSql(auth: AuthContext, conversationColumn: string, sta
     values: [auth.companyId, auth.userId]
   };
 }
+
+/**
+ * Telegram contacts follow record scope through their responsible user: directors see the company,
+ * heads their department plus unassigned contacts (the triage queue), employees only their own.
+ */
+export function telegramAccessSql(auth: AuthContext, contactAlias: string, startIndex = 1): ScopeSql {
+  const company = `${contactAlias}.company_id = $${startIndex}`;
+  if (auth.role === "DIRECTOR") return { sql: company, values: [auth.companyId] };
+  if (auth.role === "MANAGER") {
+    return { sql: `${company} AND (${contactAlias}.responsible_id IS NULL OR ${contactAlias}.department_id = $${startIndex + 1})`, values: [auth.companyId, auth.departmentId] };
+  }
+  return { sql: `${company} AND ${contactAlias}.responsible_id = $${startIndex + 1}`, values: [auth.companyId, auth.userId] };
+}

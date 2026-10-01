@@ -1,13 +1,14 @@
 import {
   BarChart3, Bell, BookOpenCheck, BriefcaseBusiness, ChevronLeft, ChevronRight,
   ClipboardList, FileText, Mail, Gauge, SquareKanban, LayoutDashboard, LogOut, Menu, MessageSquare,
-  PanelLeftClose, Search, Settings, ShieldCheck, Trophy, Users, X,
+  PanelLeftClose, Search, Send, Settings, ShieldCheck, Trophy, Users, X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, useWorkspace } from '../context/AppContext';
 import { useChat } from '../context/ChatContext';
 import { useMail } from '../context/MailContext';
+import { useTelegram } from '../context/TelegramContext';
 import { relativeTime, roleLabel } from '../lib/format';
 import type { Role } from '../types';
 import { Avatar, Badge, IconButton } from './ui';
@@ -30,6 +31,7 @@ const nav: Array<{ title?: string; items: NavItem[] }> = [
   { title: 'СВЯЗЬ И КОНТРОЛЬ', items: [
     { label: 'Сообщения', to: '/messages', icon: MessageSquare },
     { label: 'Почта', to: '/mail', icon: Mail },
+    { label: 'Telegram', to: '/telegram', icon: Send },
     { label: 'Аудит', to: '/audit', icon: ShieldCheck, roles: ['DIRECTOR'] },
     { label: 'Профиль', to: '/profile', icon: Settings },
   ] },
@@ -38,7 +40,7 @@ const nav: Array<{ title?: string; items: NavItem[] }> = [
 const routeNames: Record<string, string> = {
   '/': 'Дашборд', '/crm': 'CRM', '/sales': 'Воронка продаж', '/sales/settings': 'Настройка воронок', '/tasks': 'Мои задачи', '/boards': 'Доски задач', '/boards/settings': 'Настройка досок',
   '/documents': 'Документы', '/team': 'Команда', '/reports': 'Отчёты',
-  '/achievements': 'Достижения', '/messages': 'Сообщения', '/mail': 'Почта', '/mail/settings': 'Настройки почты', '/audit': 'Журнал аудита', '/profile': 'Профиль',
+  '/achievements': 'Достижения', '/messages': 'Сообщения', '/mail': 'Почта', '/mail/settings': 'Настройки почты', '/telegram': 'Telegram', '/telegram/settings': 'Настройки Telegram', '/audit': 'Журнал аудита', '/profile': 'Профиль',
 };
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -46,7 +48,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { alerts, dataStatus } = useWorkspace();
   const { totals } = useChat();
   const { unread: mailUnread } = useMail();
-  const badges: Record<string, number> = { '/messages': totals.badge, '/mail': mailUnread };
+  const { unread: telegramUnread } = useTelegram();
+  const badges: Record<string, number> = { '/messages': totals.badge, '/mail': mailUnread, '/telegram': telegramUnread };
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('atlas.sidebar.collapsed') === 'true');
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();

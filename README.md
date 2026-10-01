@@ -22,6 +22,10 @@ Production: [atlas.141.94.30.173.sslip.io](https://atlas.141.94.30.173.sslip.io)
   and reads, searches, sorts, writes, replies and forwards mail in Atlas. Mail stays
   private until a thread is linked to a client or deal; linked correspondence appears
   in the client's "Переписка" for everyone who can see the client.
+- Telegram inbox: customers' chats with the company bot arrive in Atlas, routed to
+  the responsible manager (import of existing Telegram ids, personal invite links,
+  triage of unknown senders); replies go out through the bot, and every message is
+  recorded in the client's CRM history.
 - Department- and owner-scoped CRM clients, deals, and comments.
 - Multiple sales funnels with director-managed stages (rename, recolor, reorder,
   won/lost outcome, delete with deal relocation) and per-funnel access for chosen

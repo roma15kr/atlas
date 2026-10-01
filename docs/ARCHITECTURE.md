@@ -131,6 +131,28 @@ the local copy instead of duplicating it. Mail audit events (`MAIL_*`) carry ids
 and counts, never subjects, addresses or bodies. Live updates are `mail:changed`
 and `mail:account` on the owner's `user:<id>` socket room.
 
+Telegram customer chats go through one company bot. The public webhook
+`POST /api/telegram/webhook` (outside `/api/v1`, before the per-IP limiter) checks
+the secret token in constant time, stores the update in `telegram_updates` (unique
+`update_id`, so duplicates are ignored), answers 200 and processes it right after;
+a sweeper retries failures. Polling mode feeds the same handler. Each private chat
+is a `telegram_contacts` row with an optional client, a responsible user and a
+department copied from that user by trigger. Access follows record scope through
+the responsible user (`telegramAccessSql`): directors see the company, heads their
+department plus unassigned contacts, employees their own. Binding happens through
+CSV import (preview, then apply), single-use invite links (`/start <token>`; only a
+SHA-256 hash is stored; the creator becomes responsible when they may handle the
+client, otherwise the client's owner) or triage by heads and directors. Customer
+messages, including those sent before the link, are read from the conversation by
+its current client, so the client's "Переписка" always shows the full history and
+relinking moves it; deal links are a separate table. Replies go out through the bot
+with the sending user recorded; a 403 "blocked" marks the contact BLOCKED, and a
+"chat not found" on an imported contact is reported as unreachable. Endpoints:
+`/api/v1/telegram` (status, settings, webhook check, contacts, messages, read,
+files, triage, client and deal creation, import) and `POST
+/api/v1/clients/:id/telegram-invite`. Events: `telegram:message`,
+`telegram:contact` and `telegram:read` to the contact's audience.
+
 Refresh tokens are rotated and stored as hashes. Access tokens are short-lived.
 Login attempts are rate-limited and repeated failures temporarily lock the
 account. Document objects stay private and are streamed only after an access
@@ -167,6 +189,11 @@ users -> mail_accounts (sealed credentials) -> mail_folders
                         -> mail_threads (owner kept after disconnect; optional client / deal link)
                            -> mail_messages -> mail_attachments (cached on the document volume)
                         -> mail_drafts
+
+telegram_settings (per company: bot, texts, default responsible)
+telegram_contacts (client, responsible -> department) -> telegram_messages (files on the document volume)
+                  -> telegram_reads, telegram_deal_links
+telegram_invites (hashed single-use tokens), telegram_updates (dedupe and retry)
 
 report_definitions -> report_runs
 audit_events

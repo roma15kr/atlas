@@ -157,13 +157,52 @@ from the mail server on first download and cached on the documents volume (or S3
 so the documents backup covers them. Mail older than the sync window plus seven
 days that isn't linked to a client is pruned daily.
 
+## Telegram
+
+Customers write to the company bot; Atlas stores every private chat as a contact,
+routes it to a responsible user, and keeps the whole conversation with the CRM
+client. Migration `008_telegram_inbox.sql` is additive.
+
+**Settings.** `TELEGRAM_BOT_TOKEN` from @BotFather. In the default
+`TELEGRAM_MODE=webhook`, also set `TELEGRAM_WEBHOOK_SECRET` (32+ letters, digits,
+`_` or `-`; `openssl rand -hex 32`) and an HTTPS `PUBLIC_URL`; the API registers
+`<PUBLIC_URL>/api/telegram/webhook` at startup and refuses requests without the
+secret header. `TELEGRAM_MODE=polling` is for servers without HTTPS (local
+development): one API instance long-polls under an advisory lock. Without a token,
+the Telegram screens show the bot as not configured. The bot serves the first
+company in the database.
+
+**Switching an existing bot to Atlas.** Telegram delivers a bot's updates to one
+receiver only, so connecting Atlas cuts off any system that handles the bot today.
+Telegram keeps undelivered updates for 24 hours, so a short gap loses nothing.
+1. Export the customers from the old system: their Telegram user ids *for this
+   bot*, and each one's client and responsible manager. Ids collected by another
+   bot can't be messaged.
+2. Import them under Telegram → Импорт контактов (CSV with `telegram_id` and
+   optionally `client_id`, `client_email` or `client_phone`, `responsible`
+   (username) and `name`; comma or semicolon). Check the preview; only valid rows
+   are applied. Imported contacts show "Не подтверждён" until they write again.
+3. In a quiet hour, set the token (and secret) in the deployment and restart, or
+   press "Проверить подключение" in Telegram settings. Send a test message from a
+   staff Telegram account and check it appears in "Неразобранные".
+4. To roll back, unset the token (or call `deleteWebhook`) and let the old system
+   register its webhook again. Atlas keeps its data.
+
+**Routing and privacy.** The responsible user, heads of that user's department and
+directors read and answer a conversation; unassigned ones are visible to directors
+and all heads. Disabling a user returns their contacts to "Неразобранные".
+Incoming files up to Telegram's 20 MB bot limit are stored on the documents volume.
+A director can delete a contact with all its messages and files (for a data
+deletion request) from its conversation.
+
 ## Secret rotation
 
 Rotate one dependency at a time and confirm health after each change. Database
 and Redis credentials require coordinated server and API updates. Changing `JWT_SECRET` invalidates access tokens; changing
 `REFRESH_TOKEN_SECRET` invalidates refresh sessions. Schedule both together and
 expect every user to sign in again. Rotate `MAIL_ENCRYPTION_KEY` as described
-under Email.
+under Email. To rotate the Telegram bot token, revoke it in @BotFather, set the new
+token and restart; the webhook is registered again at startup.
 
 The Coolify provisioning token is not an Atlas runtime secret. Rotate it after
 provisioning and keep future tokens least-privileged. Never put a token in Git,

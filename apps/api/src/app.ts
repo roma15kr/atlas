@@ -26,6 +26,8 @@ import { integrationsRouter } from "./routes/integrations";
 import { mailRouter } from "./routes/mail";
 import { reportsRouter } from "./routes/reports";
 import { taskBoardsRouter } from "./routes/taskBoards";
+import { createInvite, telegramRouter } from "./routes/telegram";
+import { webhookHandler } from "./telegram/runner";
 import { tasksRouter } from "./routes/tasks";
 import { teamRouter } from "./routes/team";
 
@@ -43,6 +45,8 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: "same-site" } }));
 app.use(cors({ origin: config.corsOrigins, credentials: true }));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+// Telegram calls from a few shared IPs; it is authenticated by its secret token instead of the per-IP limit.
+app.post("/api/telegram/webhook", asyncHandler(webhookHandler));
 app.use(apiLimiter);
 
 const healthHandler = asyncHandler(async (_req, res) => {
@@ -70,6 +74,8 @@ app.use("/api/v1", authenticate);
 app.use("/api/v1/dashboard", dashboardRouter);
 app.use("/api/v1/team", teamRouter);
 app.use("/api/v1", communicationsRouter);
+app.post("/api/v1/clients/:id/telegram-invite", createInvite);
+app.use("/api/v1/telegram", telegramRouter);
 app.use("/api/v1/clients", crmReadLimiter, clientsRouter);
 app.use("/api/v1/funnels", funnelsRouter);
 app.use("/api/v1/deals", dealsRouter);

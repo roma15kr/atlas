@@ -25,3 +25,16 @@ describe("mail configuration", () => {
     await expect(load({ MAIL_ENCRYPTION_KEY: "too-short" })).rejects.toThrow(/MAIL_ENCRYPTION_KEY|32 bytes/);
   });
 });
+
+describe("telegram configuration", () => {
+  it("requires a webhook secret of at least 32 characters when a token is set", async () => {
+    await expect(load({ TELEGRAM_BOT_TOKEN: "123:abc", TELEGRAM_MODE: "webhook", TELEGRAM_WEBHOOK_SECRET: "" })).rejects.toThrow(/TELEGRAM_WEBHOOK_SECRET/);
+    await expect(load({ TELEGRAM_BOT_TOKEN: "123:abc", TELEGRAM_WEBHOOK_SECRET: "short" })).rejects.toThrow(/TELEGRAM_WEBHOOK_SECRET|32/);
+    const config = await load({ TELEGRAM_BOT_TOKEN: "123:abc", TELEGRAM_WEBHOOK_SECRET: "a".repeat(32) });
+    expect(config.TELEGRAM_MODE).toBe("webhook");
+  });
+  it("needs no secret in polling mode or without a token", async () => {
+    expect((await load({ TELEGRAM_BOT_TOKEN: "123:abc", TELEGRAM_MODE: "polling", TELEGRAM_WEBHOOK_SECRET: "" })).TELEGRAM_MODE).toBe("polling");
+    expect((await load({ TELEGRAM_BOT_TOKEN: "", TELEGRAM_WEBHOOK_SECRET: "" })).TELEGRAM_WEBHOOK_SECRET).toBeUndefined();
+  });
+});

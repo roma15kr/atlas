@@ -113,10 +113,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     return () => { window.removeEventListener('atlas:socket', handle); if (refreshTimer.current) window.clearTimeout(refreshTimer.current); };
   }, [isDemo, refresh, emit, user.id]);
 
+  const subscribe = useCallback((listener: (event: ChatEvent) => void) => { listeners.current.add(listener); return () => { listeners.current.delete(listener); }; }, []);
+
   const value = useMemo<ChatValue>(() => ({
     backend, people, conversations, mentions, loaded, refresh, totals: chatTotals(conversations, mentions),
     setActive: (id) => { activeRef.current = id; },
-    subscribe: (listener) => { listeners.current.add(listener); return () => { listeners.current.delete(listener); }; },
+    subscribe,
     notify: emit,
   }), [backend, people, conversations, mentions, loaded, refresh, emit]);
 

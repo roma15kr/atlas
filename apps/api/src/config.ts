@@ -51,6 +51,9 @@ const envSchema = z.object({
   MAIL_ALLOW_PRIVATE_HOSTS: z.enum(["true", "false"]).default("false"),
   MAIL_SCHEDULER: z.enum(["on", "off"]).default("on"),
   TELEGRAM_BOT_TOKEN: z.string().optional(),
+  TELEGRAM_WEBHOOK_SECRET: z.preprocess((value) => value === "" ? undefined : value, z.string().regex(/^[A-Za-z0-9_-]{32,256}$/, "32-256 letters, digits, _ or -").optional()),
+  TELEGRAM_MODE: z.preprocess((value) => value === "" ? undefined : value, z.enum(["webhook", "polling"]).default("webhook")),
+  TELEGRAM_API_BASE: z.preprocess((value) => value === "" ? undefined : value, z.string().url().default("https://api.telegram.org")),
   WHATSAPP_ACCESS_TOKEN: z.string().optional(),
   VIBER_AUTH_TOKEN: z.string().optional(),
   MAX_UPLOAD_MB: z.coerce.number().int().min(1).max(100).default(20),
@@ -82,6 +85,10 @@ if (parsed.data.NODE_ENV === "production" && !parsed.data.REDIS_URL && !parsed.d
 if (parsed.data.NODE_ENV === "production" &&
     (parsed.data.COOKIE_SECURE !== "true" || new URL(parsed.data.PUBLIC_URL).protocol !== "https:")) {
   throw new Error("Production requires an HTTPS PUBLIC_URL and COOKIE_SECURE=true");
+}
+
+if (parsed.data.TELEGRAM_BOT_TOKEN && parsed.data.TELEGRAM_MODE === "webhook" && !parsed.data.TELEGRAM_WEBHOOK_SECRET) {
+  throw new Error("TELEGRAM_WEBHOOK_SECRET (at least 32 characters) is required for the Telegram webhook");
 }
 
 export const config = {

@@ -7,6 +7,7 @@ import { runMigrations } from "./migrations";
 import { connectRedis, redis } from "./redis";
 import { startMailScheduler, stopMailScheduler } from "./mail/scheduler";
 import { setRealtimeServer } from "./realtime";
+import { startTelegram, stopTelegram } from "./telegram/runner";
 import { createSocketServer } from "./socket";
 
 async function main(): Promise<void> {
@@ -20,10 +21,12 @@ async function main(): Promise<void> {
     console.log(`Atlas API listening on ${config.PORT}`);
   });
   startMailScheduler();
+  void startTelegram();
 
   const shutdown = async (signal: string): Promise<void> => {
     console.log(`Received ${signal}; shutting down`);
     stopMailScheduler();
+    stopTelegram();
     io.close();
     await new Promise<void>((resolve) => server.close(() => resolve()));
     if (redis.isOpen) await redis.quit();
