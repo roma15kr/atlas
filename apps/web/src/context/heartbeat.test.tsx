@@ -1,5 +1,6 @@
 import { act, cleanup, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { sessionStore } from '../lib/api';
 import { AuthProvider, WorkspaceProvider } from './AppContext';
 
 const emit = vi.fn();
@@ -11,7 +12,7 @@ const heartbeats = () => emit.mock.calls.filter(([event]) => event === 'presence
 beforeEach(() => {
   emit.mockClear();
   vi.useFakeTimers({ shouldAdvanceTime: true });
-  localStorage.setItem('atlas.session', JSON.stringify({ accessToken: 'real-token', user }));
+  sessionStore.set({ accessToken: 'real-token', user } as never);
   vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ data: [], meta: { total: 0 } }), { headers: { 'Content-Type': 'application/json' } })));
 });
 afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); vi.useRealTimers(); });

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { trackActivity } from '../lib/activity';
-import { api, ApiError, apiRequest, listAll, listPage, sessionStore } from '../lib/api';
+import { api, ApiError, apiRequest, listAll, listPage, renewAccessToken, restoreSession, sessionStore } from '../lib/api';
 import {
   demoAchievements,
   demoAlerts,
@@ -166,7 +166,22 @@ const normalizeSession = (source: unknown): Session => {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(() => sessionStore.get());
-  const [loading, setLoading] = useState(false);
+  // A reload keeps no token in storage; the session comes back through the refresh cookie.
+  const [loading, setLoading] = useState(() => sessionStore.canRestore());
+
+  useEffect(() => {
+    if (!sessionStore.canRestore()) return;
+    let active = true;
+    restoreSession().then((payload) => {
+      if (!active) return;
+      if (payload?.user) {
+        const next = normalizeSession(payload);
+        sessionStore.set(next);
+        setSession(next);
+      }
+    }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const unauthorized = () => setSession(null);
@@ -461,7 +476,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!session || isDemo || passwordLocked) return;
-    let socket: Socket | null = io({ path: '/socket.io', auth: { token: session.accessToken }, transports: ['websocket', 'polling'] });
+    // The token is read at every (re)connect, so a refreshed token doesn't need a new socket.
+    let socket: Socket | null = io({ path: '/socket.io', auth: (callback) => callback({ token: sessionStore.get()?.accessToken }), transports: ['websocket', 'polling'] });
+    let renewed = false;
+    socket.on('connect_error', (error: Error) => {
+      if (error.message !== 'unauthorized' || renewed) return;
+      renewed = true;
+      void renewAccessToken().then((token) => { if (token) socket?.connect(); });
+    });
+    socket.on('connect', () => { renewed = false; });
     const updatePresence = (payload: { userId: string; online?: boolean; lastSeen?: string; status?: string; lastSeenAt?: string }) => {
       const online = payload.online ?? payload.status === 'ONLINE';
       setUsers((current) => current.map((user) => user.id === payload.userId ? { ...user, online, lastSeen: payload.lastSeen ?? payload.lastSeenAt } : user));
@@ -486,7 +509,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       socket?.disconnect();
       socket = null;
     };
-  }, [session?.accessToken, isDemo, passwordLocked]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionUserId, isDemo, passwordLocked]);
 
   const remote = useCallback(async <T,>(action: () => Promise<T>) => {
     if (isDemo) return undefined;

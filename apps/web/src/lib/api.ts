@@ -7,51 +7,110 @@ export class ApiError extends Error {
   }
 }
 
-const TOKEN_KEY = 'atlas.session';
 const API_BASE = '/api/v1';
+/** Legacy key that held the whole session, access token included; removed on first load. */
+const LEGACY_KEY = 'atlas.session';
+/** "This browser has a signed-in session": try restoring it through the refresh cookie on load. */
+const HINT_KEY = 'atlas.signedIn';
+/** Demo sessions carry no secret, so they are kept whole. */
+const DEMO_KEY = 'atlas.demoSession';
 let refreshPromise: Promise<string | null> | null = null;
+let current: Session | null = null;
 
+const storage = {
+  get(key: string): string | null { try { return localStorage.getItem(key); } catch { return null; } },
+  set(key: string, value: string | null) { try { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); } catch { /* storage may be blocked */ } },
+};
+const isDemo = (session: Session | null) => Boolean(session?.accessToken.startsWith('demo-'));
+
+/** Moves a session saved by older versions: demo sessions are kept, real ones become a restore hint. */
+function migrateLegacy(): boolean {
+  const raw = storage.get(LEGACY_KEY);
+  if (raw === null) return false;
+  storage.set(LEGACY_KEY, null);
+  current = null;
+  try {
+    const legacy = JSON.parse(raw) as Session;
+    if (isDemo(legacy)) storage.set(DEMO_KEY, JSON.stringify(legacy));
+    else if (legacy?.accessToken) storage.set(HINT_KEY, '1');
+  } catch { /* unreadable: nothing to keep */ }
+  return true;
+}
+
+/**
+ * The access token and user live only in memory, so a script injected into the page can't read
+ * them from storage. A reload restores the session through the httpOnly refresh cookie.
+ */
 export const sessionStore = {
   get(): Session | null {
-    try {
-      const raw = localStorage.getItem(TOKEN_KEY);
-      return raw ? (JSON.parse(raw) as Session) : null;
-    } catch {
-      return null;
-    }
+    migrateLegacy();
+    if (current) return current;
+    const demo = storage.get(DEMO_KEY);
+    if (!demo) return null;
+    try { current = JSON.parse(demo) as Session; } catch { storage.set(DEMO_KEY, null); }
+    return current;
   },
   set(session: Session | null) {
-    if (session) localStorage.setItem(TOKEN_KEY, JSON.stringify(session));
-    else localStorage.removeItem(TOKEN_KEY);
+    current = session;
+    storage.set(LEGACY_KEY, null);
+    storage.set(DEMO_KEY, session && isDemo(session) ? JSON.stringify(session) : null);
+    storage.set(HINT_KEY, session && !isDemo(session) ? '1' : null);
+  },
+  /** True when a real session may be restorable from the refresh cookie. */
+  canRestore(): boolean {
+    migrateLegacy();
+    return !current && storage.get(HINT_KEY) === '1';
   },
 };
+
+type RefreshPayload = { accessToken: string; user?: Record<string, unknown> };
+
+/** Calls /auth/refresh; serialized across tabs so a rotated cookie is never presented twice. */
+async function refreshCall(): Promise<RefreshPayload | null> {
+  const run = async () => {
+    const response = await fetch(`${API_BASE}/auth/refresh`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' } });
+    if (!response.ok) return null;
+    const raw = (await response.json()) as { data?: RefreshPayload } & Partial<RefreshPayload>;
+    const payload = (raw.data ?? raw) as RefreshPayload;
+    return payload.accessToken ? payload : null;
+  };
+  const locks = typeof navigator !== 'undefined' ? (navigator as Navigator & { locks?: { request: <T>(name: string, callback: () => Promise<T>) => Promise<T> } }).locks : undefined;
+  if (locks?.request) return locks.request('atlas-refresh', run);
+  // Without Web Locks, a short random delay makes two tabs refreshing at once unlikely to collide.
+  await new Promise((resolve) => setTimeout(resolve, Math.random() * 300));
+  return run();
+}
 
 const refreshAccessToken = async (): Promise<string | null> => {
   if (refreshPromise) return refreshPromise;
   refreshPromise = (async () => {
-    const current = sessionStore.get();
-    if (!current) return null;
-    const response = await fetch(`${API_BASE}/auth/refresh`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: current.refreshToken ? JSON.stringify({ refreshToken: current.refreshToken }) : undefined,
-    });
-    if (!response.ok) {
+    const session = sessionStore.get();
+    if (!session || isDemo(session)) return null;
+    const payload = await refreshCall();
+    if (!payload) {
       sessionStore.set(null);
       window.dispatchEvent(new Event('atlas:unauthorized'));
       return null;
     }
-    const raw = (await response.json()) as { data?: Partial<Session> & { accessToken: string } } & Partial<Session> & { accessToken?: string };
-    const payload = (raw.data ?? raw) as Partial<Session> & { accessToken: string };
-    const next = { ...current, ...payload } as Session;
-    sessionStore.set(next);
-    return next.accessToken;
+    // Keep the normalized user the app already holds; only the token changes.
+    sessionStore.set({ ...session, accessToken: payload.accessToken });
+    return payload.accessToken;
   })().finally(() => {
     refreshPromise = null;
   });
   return refreshPromise;
 };
+
+/** Restores a session after a reload from the refresh cookie; returns the raw API user to normalize. */
+export async function restoreSession(): Promise<RefreshPayload | null> {
+  if (!sessionStore.canRestore()) return null;
+  const payload = await refreshCall().catch(() => null);
+  if (!payload) storage.set(HINT_KEY, null);
+  return payload;
+}
+
+/** Exposed for the socket: refresh the token after the server refused it. */
+export const renewAccessToken = refreshAccessToken;
 
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;

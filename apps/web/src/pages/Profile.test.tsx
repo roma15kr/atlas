@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../App';
+import { sessionStore } from '../lib/api';
 import { AuthProvider, WorkspaceProvider } from '../context/AppContext';
 
 vi.mock('socket.io-client', () => ({ io: () => ({ onAny: vi.fn(), on: vi.fn(), emit: vi.fn(), disconnect: vi.fn() }) }));
@@ -13,7 +14,7 @@ const patches: unknown[] = [];
 beforeEach(() => {
   patches.length = 0;
   user = { ...user, fullName: 'Анна Соколова' };
-  localStorage.setItem('atlas.session', JSON.stringify({ accessToken: 'real-token', user }));
+  sessionStore.set({ accessToken: 'real-token', user } as never);
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });

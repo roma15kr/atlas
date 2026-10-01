@@ -47,6 +47,7 @@
 - **`document-backup.sh`:**
   - Same loop as today. The target is `<key>.age` when encrypting, and it is skipped if either `<key>` or `<key>.age` exists.
   - Existing plain copies are not re-encrypted automatically. The docs give a one-time command.
+- **Testability.** `BACKUP_DIR`, `DOCUMENTS_DIR`, `WORK_DIR` and `BACKUP_ONCE=1` override the paths and run one iteration; production uses the defaults.
 - **Recipient check.** Both scripts validate the recipient with `age -r "$R" -o /dev/null </dev/null`. On failure they exit, so the container restarts and its healthcheck fails visibly.
 - **On-demand dumps.** The pre-migration dump commands in the docs keep working, because `pg_dump` stays in the image.
 - **Compose:** `backup` and `document-backup` use `build: { context: ., dockerfile: infra/backup.Dockerfile }`, with entrypoints `backup.sh` and `document-backup.sh`. Healthchecks are unchanged.

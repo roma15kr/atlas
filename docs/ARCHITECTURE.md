@@ -12,8 +12,8 @@ connections for presence and live chat.
 - `postgres`: source of truth for identity, CRM, work, files, reports, and audit history.
 - `redis`: ephemeral presence, session coordination, and rate-limit counters.
 - `documents_data` volume: document file bodies, mounted only into `api`.
-- `backup`: verified daily PostgreSQL dumps with 14-day retention.
-- `document-backup`: daily copy of new document files into a separate backup volume.
+- `backup`: verified daily PostgreSQL dumps with 14-day retention, encrypted to an age public key when `BACKUP_AGE_RECIPIENT` is set.
+- `document-backup`: daily copy of new document files into a separate backup volume, encrypted the same way.
 
 Document files are immutable: every upload and every new version gets its own
 random storage key, so backups only copy files they have not seen. The volume
@@ -154,7 +154,10 @@ files, triage, client and deal creation, import) and `POST
 /api/v1/clients/:id/telegram-invite`. Events: `telegram:message`,
 `telegram:contact` and `telegram:read` to the contact's audience.
 
-Refresh tokens are rotated and stored as hashes. Access tokens are short-lived.
+Refresh tokens are rotated and stored as hashes. Access tokens are short-lived
+and kept only in the web app's memory: a reload restores the session through
+the httpOnly refresh cookie, and refreshes are serialized across tabs with the
+Web Locks API so rotation never looks like token reuse.
 Login attempts are rate-limited and repeated failures temporarily lock the
 account. Document objects stay private and are streamed only after an access
 check.

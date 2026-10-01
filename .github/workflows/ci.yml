@@ -37,4 +37,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker compose config --quiet
-      - run: docker compose build api web
+      - run: docker compose build api web backup document-backup
+      - name: Backup encryption round trip
+        run: sudo apt-get update && sudo apt-get install -y age && AGE_BIN_DIR=/usr/bin sh infra/test/backup-roundtrip.sh

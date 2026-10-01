@@ -1,5 +1,6 @@
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { sessionStore } from '../lib/api';
 import { AuthProvider, REFRESH_INTERVAL_MS, useWorkspace, WorkspaceProvider } from './AppContext';
 
 vi.mock('socket.io-client', () => ({ io: () => ({ onAny: vi.fn(), on: vi.fn(), emit: vi.fn(), disconnect: vi.fn() }) }));
@@ -36,7 +37,7 @@ const renderWorkspace = () => render(<AuthProvider><WorkspaceProvider><Probe /><
 
 beforeEach(() => {
   requests = []; failing = false; clientTotal = 230; session = { accessToken: 'real-token', user: employee };
-  localStorage.setItem('atlas.session', JSON.stringify(session));
+  sessionStore.set(session as never);
   Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
@@ -64,7 +65,7 @@ describe('workspace loading', () => {
 
   it('loads one audit page for a director', async () => {
     session = { accessToken: 'real-token', user: director };
-    localStorage.setItem('atlas.session', JSON.stringify(session));
+    sessionStore.set(session as never);
     renderWorkspace();
     await waitFor(() => expect(requests.some((url) => url === '/api/v1/audit?limit=100')).toBe(true));
   });

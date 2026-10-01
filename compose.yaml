@@ -103,7 +103,9 @@ services:
       retries: 10
 
   backup:
-    image: postgres:16-alpine
+    build:
+      context: .
+      dockerfile: infra/backup.Dockerfile
     restart: unless-stopped
     depends_on:
       postgres:
@@ -114,24 +116,10 @@ services:
       PGUSER: ${POSTGRES_USER:-atlas}
       PGPASSWORD: ${POSTGRES_PASSWORD}
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}
     volumes:
       - postgres_backups:/backups
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        set -eu
-        while true; do
-          timestamp="$$(date -u +%Y%m%dT%H%M%SZ)"
-          partial="/backups/.atlas-$${timestamp}.partial"
-          destination="/backups/atlas-$${timestamp}.dump"
-          pg_dump --format=custom --file="$${partial}"
-          pg_restore --list "$${partial}" >/dev/null
-          mv "$${partial}" "$${destination}"
-          date -u +%s > /backups/last-success
-          find /backups -type f -name 'atlas-*.dump' -mtime "+$${BACKUP_RETENTION_DAYS:-14}" -delete
-          sleep 86400
-        done
+    entrypoint: ["/usr/local/bin/backup.sh"]
     healthcheck:
       test: ["CMD-SHELL", "test -f /backups/last-success && test $$(($$(date +%s) - $$(cat /backups/last-success))) -lt 90000"]
       interval: 30m
@@ -140,34 +128,19 @@ services:
       start_period: 2m
 
   document-backup:
-    image: postgres:16-alpine
+    build:
+      context: .
+      dockerfile: infra/backup.Dockerfile
     restart: unless-stopped
     depends_on:
       api:
         condition: service_healthy
+    environment:
+      BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}
     volumes:
       - documents_data:/data/documents:ro
       - object_backups:/backups
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        set -eu
-        mkdir -p /backups/current
-        while true; do
-          cd /data/documents
-          # Document files are immutable, so copying only missing keys is a complete incremental backup.
-          find . -type f | while IFS= read -r file; do
-            target="/backups/current/$${file#./}"
-            if [ ! -e "$$target" ]; then
-              mkdir -p "$$(dirname "$$target")"
-              cp -p "$$file" "$$target.partial"
-              mv "$$target.partial" "$$target"
-            fi
-          done
-          date -u +%s > /backups/last-success
-          sleep 86400
-        done
+    entrypoint: ["/usr/local/bin/document-backup.sh"]
     healthcheck:
       test: ["CMD-SHELL", "test -f /backups/last-success && test $$(($$(date +%s) - $$(cat /backups/last-success))) -lt 90000"]
       interval: 30m

@@ -28,9 +28,10 @@ keeping each file's storage key as its path. Files are never modified after
 upload, so this copy is complete. Both containers write `last-success` markers
 used by their health checks.
 
-Replicate `postgres_backups` and `object_backups` to encrypted storage on a
-different host. On restore, stop API writes, restore the selected dump into a
-fresh PostgreSQL database with `pg_restore --clean --if-exists`, copy the
+Replicate `postgres_backups` and `object_backups` to a different host; with
+`BACKUP_AGE_RECIPIENT` set (below) their contents are already encrypted. On
+restore, stop API writes, restore the selected dump into a fresh PostgreSQL
+database with `pg_restore --clean --if-exists`, copy the
 document files back, then start the API and run the smoke test:
 
 ```bash
@@ -43,6 +44,47 @@ docker compose start api
 ```
 
 Test this procedure quarterly with a disposable environment.
+
+### Encrypted backups
+
+Set `BACKUP_AGE_RECIPIENT` to an [age](https://age-encryption.org) public key to
+encrypt every new dump (`atlas-<time>.dump.age`) and every newly copied document
+(`<key>.age`). The dump is verified with `pg_restore --list` in the container's
+temporary storage first, and no plaintext reaches the backup volume. Only the
+public key is on the server.
+
+1. On a trusted computer, not the server: `age-keygen -o atlas-backup.key`. It
+   prints the public key (`age1…`). Store `atlas-backup.key` in the password
+   manager and in a second offline place; without it the backups cannot be
+   restored.
+2. Set `BACKUP_AGE_RECIPIENT` to the public key in the deployment variables and
+   redeploy. An invalid key stops both backup workers and their health checks fail.
+3. Verify after the next run (the first one runs at container start):
+
+   ```bash
+   docker compose exec backup sh -c 'cat /backups/last-mode; head -c 21 "$(ls -t /backups/*.age | head -1)"; echo'
+   ```
+
+   It prints `encrypted` and `age-encryption.org/v1`.
+
+To restore, copy the file to the trusted computer and decrypt it first, then
+follow the procedure above:
+
+```bash
+age -d -i atlas-backup.key atlas-20261001T000000Z.dump.age > atlas.dump
+age -d -i atlas-backup.key <key>.age > <key>      # each document file
+```
+
+Document copies made before encryption was turned on stay as plain files (each
+key is backed up once). To encrypt them too, run once:
+
+```bash
+docker compose exec document-backup sh -c 'cd /backups/current && find . -type f ! -name "*.age" | while read -r f; do age -r "$BACKUP_AGE_RECIPIENT" -o "$f.age" "$f" && rm "$f"; done'
+```
+
+Without the variable, backups are written unencrypted as before and the
+workers log a warning every night. `infra/test/backup-roundtrip.sh` checks the
+scripts end to end with the real `age` binary (run in CI).
 
 If `/health` reports `storage: error` after a deploy, the document volume is not
 writable by the API user. Fix ownership with the last `docker run ... chown`
