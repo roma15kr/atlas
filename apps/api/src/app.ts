@@ -15,6 +15,7 @@ import { aiRouter } from "./routes/ai";
 import { alertsRouter } from "./routes/alerts";
 import { auditRouter } from "./routes/audit";
 import { authRouter } from "./routes/auth";
+import { chatRouter } from "./routes/chat";
 import { clientsRouter } from "./routes/clients";
 import { dashboardRouter } from "./routes/dashboard";
 import { dealsRouter } from "./routes/deals";
@@ -78,6 +79,7 @@ app.use("/api/v1/achievements", achievementsRouter);
 app.use("/api/v1/alerts", alertsRouter);
 app.use("/api/v1/integrations", integrationsRouter);
 app.use("/api/v1/messages", messagesRouter);
+app.use("/api/v1/chat", chatRouter);
 app.use("/api/v1/audit", auditRouter);
 app.use("/api/v1/ai", aiRouter);
 

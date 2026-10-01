@@ -47,22 +47,9 @@ messagesRouter.post("/", asyncHandler(async (req, res) => {
     body: z.string().trim().min(1).max(50_000),
     clientId: z.string().uuid().nullable().optional()
   }).parse(req.body);
-  if (input.channel !== "INTERNAL") {
-    await writeAudit(req, { auth, action: "MESSAGE_SEND_DENIED", entityType: "message", metadata: { channel: input.channel, reason: "adapter_not_implemented" } });
-    throw new ApiError(501, "CHANNEL_ADAPTER_UNAVAILABLE", "This external channel is not enabled for sending yet");
-  }
-  if (input.clientId) await assertClientVisible(auth, input.clientId);
-  const result = await query(
-    `INSERT INTO messages
-      (company_id,department_id,user_id,client_id,channel,direction,delivery_status,sender,recipient,subject,body)
-     VALUES ($1,$2,$3,$4,'INTERNAL','OUTBOUND','SENT',$5,$6,$7,$8)
-     RETURNING id, channel, direction, delivery_status AS "deliveryStatus", sender, recipient, subject, body,
-               client_id AS "clientId", occurred_at AS "occurredAt"`,
-    [auth.companyId, auth.departmentId, auth.userId, input.clientId ?? null, auth.username,
-      input.recipient, input.subject ?? null, input.body]
-  );
-  await writeAudit(req, { auth, action: "MESSAGE_SENT", entityType: "message", entityId: result.rows[0]?.id as string, metadata: { channel: input.channel } });
-  res.status(201).json({ data: result.rows[0] });
+  // Internal messages moved to team chat (/api/v1/chat); external adapters are not implemented yet.
+  await writeAudit(req, { auth, action: "MESSAGE_SEND_DENIED", entityType: "message", metadata: { channel: input.channel, reason: input.channel === "INTERNAL" ? "use_team_chat" : "adapter_not_implemented" } });
+  throw new ApiError(501, "CHANNEL_ADAPTER_UNAVAILABLE", input.channel === "INTERNAL" ? "Internal messages are sent through team chat" : "This external channel is not enabled for sending yet");
 }));
 
 messagesRouter.patch("/:id/client", asyncHandler(async (req, res) => {

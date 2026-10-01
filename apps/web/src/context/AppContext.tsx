@@ -360,6 +360,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       const online = payload.online ?? payload.status === 'ONLINE';
       setUsers((current) => current.map((user) => user.id === payload.userId ? { ...user, online, lastSeen: payload.lastSeen ?? payload.lastSeenAt } : user));
     };
+    // Other providers (chat, mail) listen to the one authenticated socket through window events.
+    socket.onAny((event: string, payload: unknown) => window.dispatchEvent(new CustomEvent('atlas:socket', { detail: { event, payload } })));
+    socket.on('connect', () => window.dispatchEvent(new CustomEvent('atlas:socket', { detail: { event: 'connect', payload: null } })));
     socket.on('presence:update', updatePresence);
     socket.on('presence:changed', updatePresence);
     socket.on('presence:snapshot', (items: Array<{ userId: string; online?: boolean; lastSeen?: string; status?: string; lastSeenAt?: string }>) => items.forEach(updatePresence));

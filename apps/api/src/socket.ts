@@ -4,6 +4,7 @@ import { verifyAccessToken } from "./auth";
 import { config } from "./config";
 import { query } from "./db";
 import { markOffline, markOnline, presenceFor } from "./presence";
+import { userRoom } from "./realtime";
 import type { AuthContext, Role } from "./types";
 
 export function createSocketServer(server: HttpServer): Server {
@@ -37,7 +38,7 @@ export function createSocketServer(server: HttpServer): Server {
 
   io.on("connection", async (socket) => {
     const auth = socket.data.auth as AuthContext;
-    await socket.join(presenceSubscriptionRooms(auth));
+    await socket.join([...presenceSubscriptionRooms(auth), userRoom(auth.userId)]);
     const online = await markOnline(auth.userId);
     await query(
       "INSERT INTO presence_events (company_id, user_id, event, session_id) VALUES ($1,$2,'ONLINE',$3)",

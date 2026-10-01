@@ -5,6 +5,7 @@ import { config } from "./config";
 import { pool } from "./db";
 import { runMigrations } from "./migrations";
 import { connectRedis, redis } from "./redis";
+import { setRealtimeServer } from "./realtime";
 import { createSocketServer } from "./socket";
 
 async function main(): Promise<void> {
@@ -13,6 +14,7 @@ async function main(): Promise<void> {
   await connectRedis();
   const server = createServer(app);
   const io = createSocketServer(server);
+  setRealtimeServer(io);
   server.listen(config.PORT, "0.0.0.0", () => {
     console.log(`Atlas API listening on ${config.PORT}`);
   });

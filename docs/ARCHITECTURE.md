@@ -3,12 +3,12 @@
 Atlas is a Docker-first modular monolith sized for a 20-person company and a
 straightforward path to 100+ users. The browser talks to one origin. Nginx serves
 the React application, proxies REST traffic to the API, and upgrades Socket.IO
-connections for presence.
+connections for presence and live chat.
 
 ## Runtime
 
 - `web`: React + TypeScript workspace UI, compiled to static assets and served by Nginx.
-- `api`: TypeScript HTTP API, background policy checks, and Socket.IO presence gateway.
+- `api`: TypeScript HTTP API, background policy checks, and the Socket.IO gateway for presence and chat.
 - `postgres`: source of truth for identity, CRM, work, files, reports, and audit history.
 - `redis`: ephemeral presence, session coordination, and rate-limit counters.
 - `documents_data` volume: document file bodies, mounted only into `api`.
@@ -65,6 +65,39 @@ can open the board), `GET /:id/candidates` (managers only), and stage `POST
 and `assigneeIds`, and filters by `boardId`, `stageId`, `category`, `priority`,
 `dealId` and `assignee=me|<id>`.
 
+Team chat is company-wide communication and deliberately does not follow the
+record scope. A conversation is a direct message (exactly one per pair of users),
+a group (3-20 participants, no admins), or a channel. Membership decides who reads
+a conversation; public channels are also readable by everyone in the company, who
+must join before posting (`chatAccessSql` in `scope.ts`, `chatPermissions` in
+`access.ts`). Directors and managers create channels; a channel's admins, and
+directors, manage its settings, members, admins and archive state. **Directors
+can manage a private channel but cannot read it, and cannot read DMs or groups
+they are not in**: private conversations stay private, and any future compliance
+access should be an explicit, audited export. Unknown and unreadable
+conversations both return 404. Every company has a public "Общий" channel;
+database triggers add every new or reactivated user to it (directors as admins)
+and remove a deactivated user from groups and channels, while their DMs stay
+readable but closed to new messages. Channel configuration, membership and
+moderator deletions are audited (`CHAT_*`), never message text; ordinary messages
+are not audited.
+
+Chat endpoints (`/api/v1/chat`): `GET /people`, `GET /conversations` (mine, with
+unread, mention and last-message data), `GET /unread`, `GET /conversations/:id`,
+`POST /direct`, `POST /groups`, `PATCH /groups/:id`, `GET|POST /channels`, `PATCH
+/channels/:id`, `POST /channels/:id/archive|unarchive`, `POST
+/conversations/:id/join`, `GET|POST /conversations/:id/members`, `PATCH|DELETE
+/conversations/:id/members/:userId`, `PATCH /conversations/:id/mute`, `POST
+/conversations/:id/read`, `GET|POST /conversations/:id/messages` (cursor
+`before=<messageId>`, 60 posts per minute), `GET /messages/:id/replies`, `PATCH|DELETE
+/messages/:id`, and `GET /mentions`. Unread counts are computed from each member's
+`last_read_at`; mentions have their own read flag so a public-channel non-member
+can be notified too. Realtime events go to per-user Socket.IO rooms (`user:<id>`)
+resolved from membership at send time, so a removed member stops receiving events
+immediately: `chat:message`, `chat:message-updated`, `chat:mention`,
+`chat:membership`, `chat:conversation-updated` and `chat:read`. Clients re-fetch
+after reconnecting.
+
 Refresh tokens are rotated and stored as hashes. Access tokens are short-lived.
 Login attempts are rate-limited and repeated failures temporarily lock the
 account. Document objects stay private and are streamed only after an access
@@ -92,6 +125,10 @@ client -> contacts
        -> comments
        -> deals -> funnel + stage (database-enforced: the stage belongs to the funnel)
        -> documents -> document_versions -> files on the document volume
+
+chat_conversations (DM / GROUP / CHANNEL; one public default channel per company)
+  -> chat_members (role ADMIN / MEMBER, last_read_at, muted)
+  -> chat_messages (thread replies via parent_id) -> chat_mentions (per user, read flag)
 
 report_definitions -> report_runs
 audit_events

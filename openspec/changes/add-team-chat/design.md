@@ -165,3 +165,17 @@ Rate limit: 60 posts per minute per user, using the existing limiter pattern.
 1. Migration `006_team_chat.sql` creates the tables, indexes, triggers and "Общий" channels, and backfills members. It is additive and doesn't touch `messages`.
 2. Deploy the API and web together. The old `POST /messages` INTERNAL path is removed in the same release, and the web app is its only client.
 3. **Rollback:** redeploy the previous image. The new tables are unused by old code. Leave them, or drop them with a follow-up migration if the feature is abandoned; never edit `006`.
+
+## Implementation notes
+
+- **Socket rooms:** sockets join a generic `user:<id>` room (not `chat:user:<id>`) so mail and Telegram can reuse it. `realtime.ts` exposes `emitToUsers`.
+- **One socket per tab:** the web app keeps a single authenticated socket in `AppContext`. Other providers receive its events through a window `atlas:socket` event, because a second socket would break presence (one disconnect marks the user offline).
+- **Mention read state:** mentions carry their own `read_at` rather than relying on `last_read_at`. That lets a public-channel non-member be notified and clear the mention by opening the channel.
+- **API additions:**
+  - `GET /conversations/:id` returns a public channel preview for non-members.
+  - Posting to a public channel without joining returns 409 `CHAT_JOIN_REQUIRED`; private channels stay 404.
+  - Unarchive is `POST /channels/:id/unarchive`, audited as `CHAT_CHANNEL_UNARCHIVED`.
+- **Default-channel trigger:** it also re-adds reactivated users and keeps directors as admins when roles change.
+- **Verification:**
+  - Local scenario suite (`e2e-chat.mjs`, 46 checks, real Postgres via PGlite, live Socket.IO client): one DM per pair; director 404 on DMs, groups and private channels; employee channel-create denial; duplicate names; public read and join; live delivery; mention counts including a public non-member; threads and invalid parents; edit and moderation (audited without text); public-to-private access loss; director manage-without-read; last-admin guard; removal cutting off events; archive read-only; default channel protections; group limits; old INTERNAL send returning 501. All passed.
+  - A deactivated colleague's DM returns 409 while its history stays readable.

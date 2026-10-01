@@ -58,3 +58,54 @@ export async function assertAssigneesBoardAccess(boardId: string, userIds: strin
     throw new ApiError(403, "ASSIGNEE_BOARD_ACCESS_REQUIRED", "Every assignee must be able to open the board");
   }
 }
+
+export type ChatKind = "DM" | "GROUP" | "CHANNEL";
+
+export interface ChatConversationRow {
+  id: string;
+  company_id: string;
+  kind: ChatKind;
+  name: string | null;
+  description: string | null;
+  visibility: "PUBLIC" | "PRIVATE" | null;
+  is_default: boolean;
+  archived_at: Date | null;
+  my_role: "ADMIN" | "MEMBER" | null;
+}
+
+export interface ChatPermissions {
+  /** Listed and inspectable: readable, or any channel for a director who manages it. */
+  canSee: boolean;
+  canRead: boolean;
+  isMember: boolean;
+  canManage: boolean;
+}
+
+/**
+ * Chat access: members read their conversations, everyone reads public channels, and channel
+ * admins and directors manage channels. Directors can manage a private channel without reading it.
+ */
+export function chatPermissions(auth: AuthContext, row: ChatConversationRow): ChatPermissions {
+  const sameCompany = row.company_id === auth.companyId;
+  const isMember = sameCompany && row.my_role !== null;
+  const isChannel = row.kind === "CHANNEL";
+  const canRead = isMember || (sameCompany && isChannel && row.visibility === "PUBLIC");
+  const canManage = sameCompany && isChannel && (row.my_role === "ADMIN" || auth.role === "DIRECTOR");
+  return { canSee: canRead || canManage, canRead, isMember, canManage };
+}
+
+/** Loads a conversation with the caller's membership; unknown and invisible ones are 404. */
+export async function loadConversation(auth: AuthContext, id: string, need: "see" | "read" = "read"): Promise<ChatConversationRow & ChatPermissions> {
+  const result = await query<ChatConversationRow>(
+    `SELECT c.id, c.company_id, c.kind, c.name, c.description, c.visibility, c.is_default, c.archived_at, m.role AS my_role
+     FROM chat_conversations c LEFT JOIN chat_members m ON m.conversation_id = c.id AND m.user_id = $2
+     WHERE c.id = $1 AND c.company_id = $3`,
+    [id, auth.userId, auth.companyId]
+  );
+  const row = result.rows[0];
+  const permissions = row ? chatPermissions(auth, row) : null;
+  if (!row || !permissions || !(need === "see" ? permissions.canSee : permissions.canRead)) {
+    throw new ApiError(404, "CONVERSATION_NOT_FOUND", "Conversation not found");
+  }
+  return { ...row, ...permissions };
+}

@@ -89,3 +89,18 @@ export function canManageUser(auth: AuthContext, target: { id: string; company_i
   if (auth.role === "MANAGER") return target.department_id === auth.departmentId;
   return target.id === auth.userId;
 }
+
+/**
+ * Restricts a chat conversation id column to conversations the user may read: those they belong
+ * to, plus public channels of their company. Roles don't widen this; directors don't read DMs,
+ * groups or private channels they aren't in.
+ */
+export function chatAccessSql(auth: AuthContext, conversationColumn: string, startIndex = 1): ScopeSql {
+  return {
+    sql: `${conversationColumn} IN (SELECT ac.id FROM chat_conversations ac WHERE ac.company_id = $${startIndex} AND (
+      (ac.kind = 'CHANNEL' AND ac.visibility = 'PUBLIC') OR EXISTS (
+        SELECT 1 FROM chat_members am WHERE am.conversation_id = ac.id AND am.user_id = $${startIndex + 1}
+      )))`,
+    values: [auth.companyId, auth.userId]
+  };
+}

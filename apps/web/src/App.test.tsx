@@ -45,7 +45,7 @@ describe('role-aware routing', () => {
 
   it('scopes demo messages to accessible employee clients', async () => {
     localStorage.setItem('atlas.session', JSON.stringify(demoSessions.employee));
-    renderAt('/messages');
+    renderAt('/inbox');
     expect(await screen.findByText('София Тёрнер')).toBeInTheDocument();
     expect(screen.queryByText('Павел Орлов')).not.toBeInTheDocument();
     expect(screen.queryByText('Мария Белова')).not.toBeInTheDocument();

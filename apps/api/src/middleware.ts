@@ -35,3 +35,12 @@ export function requireJson(req: Request, _res: Response, next: NextFunction): v
   }
   next();
 }
+
+export const chatPostLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 60,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  keyGenerator: (req) => req.auth?.userId ?? req.ip ?? "unknown",
+  message: { error: { code: "CHAT_RATE_LIMITED", message: "Too many messages, slow down" } }
+});

@@ -1,11 +1,12 @@
 import {
   BarChart3, Bell, BookOpenCheck, BriefcaseBusiness, ChevronLeft, ChevronRight,
-  ClipboardList, FileText, Gauge, SquareKanban, LayoutDashboard, LogOut, Menu, MessageSquare,
+  ClipboardList, FileText, Inbox, Gauge, SquareKanban, LayoutDashboard, LogOut, Menu, MessageSquare,
   PanelLeftClose, Search, Settings, ShieldCheck, Trophy, Users, X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, useWorkspace } from '../context/AppContext';
+import { useChat } from '../context/ChatContext';
 import { relativeTime, roleLabel } from '../lib/format';
 import type { Role } from '../types';
 import { Avatar, Badge, IconButton } from './ui';
@@ -27,6 +28,7 @@ const nav: Array<{ title?: string; items: NavItem[] }> = [
   ] },
   { title: 'СВЯЗЬ И КОНТРОЛЬ', items: [
     { label: 'Сообщения', to: '/messages', icon: MessageSquare },
+    { label: 'Входящие', to: '/inbox', icon: Inbox },
     { label: 'Аудит', to: '/audit', icon: ShieldCheck, roles: ['DIRECTOR'] },
     { label: 'Профиль', to: '/profile', icon: Settings },
   ] },
@@ -35,12 +37,13 @@ const nav: Array<{ title?: string; items: NavItem[] }> = [
 const routeNames: Record<string, string> = {
   '/': 'Дашборд', '/crm': 'CRM', '/sales': 'Воронка продаж', '/sales/settings': 'Настройка воронок', '/tasks': 'Мои задачи', '/boards': 'Доски задач', '/boards/settings': 'Настройка досок',
   '/documents': 'Документы', '/team': 'Команда', '/reports': 'Отчёты',
-  '/achievements': 'Достижения', '/messages': 'Сообщения', '/audit': 'Журнал аудита', '/profile': 'Профиль',
+  '/achievements': 'Достижения', '/messages': 'Сообщения', '/inbox': 'Входящие', '/audit': 'Журнал аудита', '/profile': 'Профиль',
 };
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { session, logout } = useAuth();
   const { alerts, dataStatus } = useWorkspace();
+  const { totals } = useChat();
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('atlas.sidebar.collapsed') === 'true');
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
@@ -57,7 +60,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <aside className={`sidebar ${mobileOpen ? 'sidebar--open' : ''}`}>
       <div className="sidebar__brand"><span className="brand-mark">A</span><strong>ATLAS</strong><IconButton label="Закрыть меню" icon={X} className="sidebar__mobile-close" onClick={() => setMobileOpen(false)} /></div>
       <nav className="sidebar__nav" aria-label="Основная навигация">
-        {nav.map((group, index) => <div className="nav-group" key={group.title ?? index}>{group.title && <span className="nav-group__title">{group.title}</span>}{group.items.filter((item) => !item.roles || item.roles.includes(user.role)).map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`} title={collapsed ? item.label : undefined}><item.icon size={18} aria-hidden="true" /><span>{item.label}</span>{item.to === '/messages' && <i className="nav-count">2</i>}</NavLink>)}</div>)}
+        {nav.map((group, index) => <div className="nav-group" key={group.title ?? index}>{group.title && <span className="nav-group__title">{group.title}</span>}{group.items.filter((item) => !item.roles || item.roles.includes(user.role)).map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`} title={collapsed ? item.label : undefined}><item.icon size={18} aria-hidden="true" /><span>{item.label}</span>{item.to === '/messages' && totals.badge > 0 && <i className="nav-count" aria-label={`Непрочитанных: ${totals.badge}`}>{totals.badge > 99 ? '99+' : totals.badge}</i>}</NavLink>)}</div>)}
       </nav>
       <button className="sidebar__collapse" type="button" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? 'Развернуть меню' : 'Свернуть меню'}><PanelLeftClose size={17} /><span>Свернуть меню</span>{collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}</button>
       <div className="sidebar__user"><Avatar name={user.fullName} online size="sm" /><div><strong>{user.fullName}</strong><span>{roleLabel[user.role]}</span></div><IconButton label="Выйти" icon={LogOut} onClick={() => void logout()} /></div>
