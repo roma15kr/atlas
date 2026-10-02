@@ -1115,3 +1115,13 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 .profile-facts a { color: var(--primary); text-decoration: none; }
 .profile-facts a:hover { text-decoration: underline; }
 .profile-facts--contacts { margin-top: 12px; padding-top: 12px; }
+
+/* Job description */
+.job-description p { white-space: pre-line; }
+.job-description p.job-description__empty { color: var(--muted); }
+.job-description-form { display: grid; gap: 12px; justify-items: start; }
+.job-description-form .field { width: 100%; }
+.job-description-form textarea { min-height: 300px; resize: vertical; line-height: 1.5; }
+.profile-job-description dd { white-space: pre-line; max-height: 240px; overflow: auto; }
+.profile-job-description .muted { color: var(--muted); font-weight: 400; }
+.team-list__rows button > span:nth-child(2) .badge { margin-top: 4px; align-self: flex-start; }

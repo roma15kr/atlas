@@ -162,3 +162,26 @@ describe("password reset and change", () => {
     expect((await as(boss).post(`/team/${boss.id}/reset-password`, { password: TEMPORARY })).body.error.code).toBe("CANNOT_RESET_SELF");
   });
 });
+
+describe("job description", () => {
+  it("lets a head store a long description for their employee and audits only the field name", async () => {
+    const text = `Обязанности:\n${"- вести клиентов\n".repeat(1250)}`.slice(0, 20_000);
+    const response = await as(head).patch(`/team/${anna.id}`, { jobDescription: text });
+    expect(response.status).toBe(200);
+    expect(response.body.data.jobDescription).toBe(text.trim());
+    const event = (await audits("TEAM_MEMBER_UPDATED")).at(-1);
+    expect(event?.metadata).toEqual({ fields: ["jobDescription"] });
+    expect(JSON.stringify(event)).not.toContain("вести клиентов");
+  });
+
+  it("refuses more than 20,000 characters and clears with an empty string", async () => {
+    expect((await as(head).patch(`/team/${anna.id}`, { jobDescription: "x".repeat(20_001) })).status).toBe(400);
+    const cleared = await as(head).patch(`/team/${anna.id}`, { jobDescription: "" });
+    expect(cleared.body.data.jobDescription).toBeNull();
+  });
+
+  it("lets a director set their own description, but not an employee", async () => {
+    expect((await as(boss).patch(`/team/${boss.id}`, { jobDescription: "Руководит компанией" })).body.data.jobDescription).toBe("Руководит компанией");
+    expect((await as(anna).patch(`/team/${anna.id}`, { jobDescription: "Сама себе" })).status).toBe(403);
+  });
+});

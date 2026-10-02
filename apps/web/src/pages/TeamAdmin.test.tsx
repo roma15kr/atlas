@@ -112,3 +112,57 @@ describe('member details', () => {
     expect(screen.queryByRole('button', { name: 'Удалить фото' })).not.toBeInTheDocument();
   });
 });
+
+describe('job description', () => {
+  it('lets a head fill in a missing description from the template', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.manager));
+    renderAt('/team?user=u3');
+    const heading = await screen.findByRole('heading', { name: 'Анна Петрова' });
+    const card = heading.closest('.team-detail') as HTMLElement;
+    expect(within(card).getByText(/Не заполнена/)).toBeInTheDocument();
+    expect(within(screen.getByRole('button', { name: /Анна Петрова/ })).getByText('Нет инструкции')).toBeInTheDocument();
+    await user.click(within(card).getByRole('button', { name: 'Заполнить' }));
+    const dialog = screen.getByRole('dialog', { name: 'Должностная инструкция' });
+    expect(within(dialog).getByText(/Используется AI-аналитикой/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Вставить шаблон' }));
+    const text = within(dialog).getByLabelText(/Текст инструкции/) as HTMLTextAreaElement;
+    expect(text.value).toContain('Обязанности:');
+    await user.type(text, 'вести ключевых клиентов');
+    await user.click(within(dialog).getByRole('button', { name: 'Сохранить' }));
+    expect(await within(card).findByText(/вести ключевых клиентов/)).toBeInTheDocument();
+    expect(within(screen.getByRole('button', { name: /Анна Петрова/ })).queryByText('Нет инструкции')).not.toBeInTheDocument();
+    expect(within(card).getByRole('button', { name: 'Изменить инструкцию' })).toBeInTheDocument();
+  });
+
+  it('clears a description when saved empty', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.manager));
+    renderAt('/team?user=u4');
+    const card = (await screen.findByRole('heading', { name: 'Алексей Ким' })).closest('.team-detail') as HTMLElement;
+    expect(within(card).getByText(/Развивает партнёрский канал/)).toBeInTheDocument();
+    await user.click(within(card).getByRole('button', { name: 'Изменить инструкцию' }));
+    await user.clear(within(screen.getByRole('dialog')).getByLabelText(/Текст инструкции/));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Сохранить' }));
+    expect(await within(card).findByText(/Не заполнена/)).toBeInTheDocument();
+  });
+
+  it('shows an employee their description read-only, and a note when it is missing', async () => {
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.alex));
+    renderAt('/team');
+    const card = (await screen.findByRole('heading', { name: 'Алексей Ким' })).closest('.team-detail') as HTMLElement;
+    expect(within(card.querySelector('.job-description') as HTMLElement).queryByRole('button')).not.toBeInTheDocument();
+    cleanup();
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.employee));
+    renderAt('/profile');
+    expect(await screen.findByText('Не заполнена — заполняет руководитель')).toBeInTheDocument();
+  });
+
+  it('no longer offers the field in the general edit dialog', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.manager));
+    renderAt('/team?user=u4');
+    await user.click(await screen.findByRole('button', { name: 'Изменить' }));
+    expect(within(screen.getByRole('dialog')).queryByLabelText(/Должностная инструкция/)).not.toBeInTheDocument();
+  });
+});

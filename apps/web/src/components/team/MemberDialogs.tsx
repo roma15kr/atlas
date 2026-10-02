@@ -59,7 +59,7 @@ export function EditMemberDialog({ member, actor, departments, save, onClose }: 
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const text = (name: string) => String(form.get(name) ?? '').trim();
-    const patch: MemberUpdate = { fullName: text('fullName'), jobTitle: text('jobTitle'), specialty: text('specialty'), jobDescription: text('jobDescription') };
+    const patch: MemberUpdate = { fullName: text('fullName'), jobTitle: text('jobTitle'), specialty: text('specialty') };
     if (canPlace) {
       if (role !== member.role) patch.role = role;
       const department = text('departmentName');
@@ -78,7 +78,6 @@ export function EditMemberDialog({ member, actor, departments, save, onClose }: 
       {canPlace && <SelectField label="Роль" aria-label="Роль" value={role} onChange={(event) => setRole(event.target.value as Role)}>{(['EMPLOYEE', 'MANAGER', 'DIRECTOR'] as Role[]).map((value) => <option key={value} value={value}>{roleLabel[value]}</option>)}</SelectField>}
       {canPlace && <Field label={role === 'DIRECTOR' ? 'Отдел (необязательно)' : 'Отдел'} hint="Выберите из списка или введите новый"><input name="departmentName" list="member-departments" defaultValue={member.department === 'Без отдела' ? '' : member.department} required={role !== 'DIRECTOR'} maxLength={120} /><datalist id="member-departments">{departments.map((name) => <option key={name} value={name} />)}</datalist></Field>}
       <Field label="Специализация"><input name="specialty" defaultValue={member.specialty ?? ''} maxLength={160} /></Field>
-      <Field label="Должностная инструкция" className="field--wide"><textarea name="jobDescription" rows={3} defaultValue={member.jobDescription ?? ''} maxLength={20000} /></Field>
       {error && <div className="form-error field--wide" role="alert">{error}</div>}
     </form>
   </Dialog>;
