@@ -6,7 +6,7 @@ export type ChatVisibility = 'PUBLIC' | 'PRIVATE';
 export type ChatRole = 'ADMIN' | 'MEMBER';
 
 export interface ChatPerson { id: string; fullName: string; username: string; jobTitle?: string | null; departmentName?: string | null }
-export interface ChatAuthor { id: string; fullName: string; username: string; active: boolean }
+export interface ChatAuthor { id: string; fullName: string; username: string; active: boolean; avatarUrl?: string | null }
 export interface ChatMessage {
   id: string;
   conversationId: string;

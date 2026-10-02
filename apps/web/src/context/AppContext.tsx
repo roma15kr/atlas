@@ -20,7 +20,7 @@ import {
   demoBoardUsers,
   fallbackSession,
 } from '../data/demo';
-import type { Achievement, AiAnalysis, AiMode, Alert, AuditEvent, ReportRun, BoardUser, Client, CompanyDocument, DashboardMetrics, Deal, KpiInput, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Kpi, Report, Role, Session, TaskAssignee, TaskBoard, TaskCategory, TaskPriority, TaskStage, TaskStageSummary, User, WorkTask } from '../types';
+import type { Achievement, AiAnalysis, AiMode, Alert, AuditEvent, ReportRun, BoardUser, Client, CompanyDocument, DashboardMetrics, Deal, KpiInput, ProfileInput, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Kpi, Report, Role, Session, TaskAssignee, TaskBoard, TaskCategory, TaskPriority, TaskStage, TaskStageSummary, User, WorkTask } from '../types';
 
 const roleRank: Record<Role, number> = { EMPLOYEE: 1, MANAGER: 2, DIRECTOR: 3 };
 export const REFRESH_INTERVAL_MS = 180_000;
@@ -72,12 +72,23 @@ interface AuthValue {
   consent: () => Promise<void>;
   mergeCurrentUser: (user: User) => void;
   /** Saves the signed-in user's own name and specialty. */
-  updateProfile: (patch: { fullName?: string; specialty?: string }) => Promise<void>;
+  updateProfile: (patch: ProfileInput) => Promise<void>;
+  /** Uploads an already prepared (cropped, re-encoded) photo and shows it at once. */
+  uploadAvatar: (photo: Blob) => Promise<void>;
+  removeAvatar: () => Promise<void>;
   /** Changes the signed-in user's password; other sessions end and this one is renewed. */
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
+
+/** The fields a person edits about themselves. */
+const personalFields = (user: User): Partial<User> => ({
+  fullName: user.fullName, specialty: user.specialty, avatarUrl: user.avatarUrl, birthDate: user.birthDate, birthday: user.birthday,
+  showBirthday: user.showBirthday, phone: user.phone, contactEmail: user.contactEmail, city: user.city, about: user.about,
+});
+
+const optionalText = (value: unknown): string | undefined => typeof value === 'string' && value ? value : undefined;
 
 const normalizeUser = (source: Record<string, unknown>): User => ({
   id: String(source.id ?? ''),
@@ -89,7 +100,7 @@ const normalizeUser = (source: Record<string, unknown>): User => ({
   jobTitle: String(source.jobTitle ?? source.job_title ?? ''),
   jobDescription: (source.jobDescription ?? source.job_description) as string | undefined,
   specialty: source.specialty ? String(source.specialty) : undefined,
-  avatarUrl: (source.avatarUrl ?? source.avatar_url) as string | undefined,
+  avatarUrl: optionalText(source.avatarUrl ?? source.avatar_url),
   online: Boolean(source.online ?? (source.presence as { status?: string } | undefined)?.status === 'ONLINE'),
   lastSeen: (source.lastSeen ?? source.last_seen ?? (source.presence as { lastSeenAt?: string } | undefined)?.lastSeenAt) as string | undefined,
   monitoringConsentAt: (source.monitoringConsentAt ?? source.monitoring_consent_at) as string | undefined,
@@ -98,6 +109,13 @@ const normalizeUser = (source: Record<string, unknown>): User => ({
   kpis: Array.isArray(source.kpis) ? source.kpis as Kpi[] : [],
   status: source.status === 'DISABLED' ? 'DISABLED' : 'ACTIVE',
   mustChangePassword: Boolean(source.mustChangePassword),
+  birthDate: optionalText(source.birthDate),
+  birthday: optionalText(source.birthday),
+  showBirthday: typeof source.showBirthday === 'boolean' ? source.showBirthday : undefined,
+  phone: optionalText(source.phone),
+  contactEmail: optionalText(source.contactEmail),
+  city: optionalText(source.city),
+  about: optionalText(source.about),
 });
 
 const normalizeClient = (source: Record<string, unknown>): Client => {
@@ -239,19 +257,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const updateProfile = useCallback(async (patch: { fullName?: string; specialty?: string }) => {
-    if (!session) return;
-    const saved = session.accessToken.startsWith('demo-') ? null
-      : await api.update<{ fullName: string; specialty: string | null }>('team', 'me', patch);
+  /** Applies saved profile fields to the session user, so the sidebar and profile update without a reload. */
+  const applyToSessionUser = useCallback((changes: Partial<User>) => {
     setSession((current) => {
       if (!current) return current;
-      const fullName = saved?.fullName ?? patch.fullName ?? current.user.fullName;
-      const specialty = saved ? saved.specialty ?? undefined : patch.specialty === undefined ? current.user.specialty : patch.specialty || undefined;
-      const next = { ...current, user: { ...current.user, fullName, specialty } };
+      const next = { ...current, user: { ...current.user, ...changes } };
       sessionStore.set(next);
       return next;
     });
-  }, [session]);
+  }, []);
+
+  const updateProfile = useCallback(async (patch: ProfileInput) => {
+    if (!session) return;
+    if (session.accessToken.startsWith('demo-')) {
+      const changes: Partial<User> = {};
+      for (const [key, value] of Object.entries(patch)) (changes as Record<string, unknown>)[key] = value === '' ? undefined : value;
+      if (patch.birthDate !== undefined) changes.birthday = patch.birthDate ? patch.birthDate.slice(5) : undefined;
+      applyToSessionUser(changes);
+      return;
+    }
+    const saved = normalizeUser({ ...session.user, ...await api.update<Record<string, unknown>>('team', 'me', patch) });
+    applyToSessionUser({ fullName: saved.fullName, specialty: saved.specialty, birthDate: saved.birthDate, birthday: saved.birthday, showBirthday: saved.showBirthday, phone: saved.phone, contactEmail: saved.contactEmail, city: saved.city, about: saved.about });
+  }, [session, applyToSessionUser]);
+
+  const uploadAvatar = useCallback(async (photo: Blob) => {
+    if (!session) return;
+    if (session.accessToken.startsWith('demo-')) { applyToSessionUser({ avatarUrl: URL.createObjectURL(photo) }); return; }
+    const form = new FormData();
+    form.append('file', photo, 'avatar.jpg');
+    const saved = await apiRequest<{ avatarUrl: string }>('/team/me/avatar', { method: 'POST', body: form });
+    applyToSessionUser({ avatarUrl: saved.avatarUrl });
+  }, [session, applyToSessionUser]);
+
+  const removeAvatar = useCallback(async () => {
+    if (!session) return;
+    if (!session.accessToken.startsWith('demo-')) await apiRequest('/team/me/avatar', { method: 'DELETE' });
+    applyToSessionUser({ avatarUrl: undefined });
+  }, [session, applyToSessionUser]);
 
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
     if (!session) return;
@@ -266,7 +308,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(next);
   }, [session]);
 
-  return <AuthContext.Provider value={{ session, loading, login, logout, hasRole, consent, mergeCurrentUser, updateProfile, changePassword }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ session, loading, login, logout, hasRole, consent, mergeCurrentUser, updateProfile, uploadAvatar, removeAvatar, changePassword }}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => {
@@ -343,6 +385,8 @@ interface WorkspaceValue {
   /** Disabled people in scope, for directors and heads. */
   disabledUsers: User[];
   updateMember: (id: string, patch: MemberUpdate) => Promise<void>;
+  /** Removes a member's photo; directors for anyone, heads for their employees. */
+  removeMemberAvatar: (id: string) => Promise<void>;
   setMemberActive: (id: string, active: boolean) => Promise<void>;
   resetMemberPassword: (id: string, password: string) => Promise<void>;
   addKpi: (userId: string, input: KpiInput) => Promise<void>;
@@ -526,7 +570,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       if (user.id !== id) return user;
       if (!raw) return local(user);
       const fresh = normalizeUser(raw);
-      return { ...user, ...fresh, online: user.online, lastSeen: user.lastSeen, rating: user.rating, kpis: user.kpis, monitoringConsentAt: user.monitoringConsentAt };
+      // Administrative responses carry no personal details; keep the ones already loaded.
+      return { ...user, ...fresh, ...personalFields(user), fullName: fresh.fullName, specialty: fresh.specialty, online: user.online, lastSeen: user.lastSeen, rating: user.rating, kpis: user.kpis, monitoringConsentAt: user.monitoringConsentAt };
     }));
   }, []);
 
@@ -542,6 +587,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const raw = await remote(() => api.create<Record<string, unknown>>(`team/${id}/${active ? 'enable' : 'disable'}`, {}));
     replaceUser(raw, id, (user) => ({ ...user, status: active ? 'ACTIVE' : 'DISABLED', online: active && user.online }));
   }, [remote, replaceUser]);
+
+  const removeMemberAvatar = useCallback(async (id: string) => {
+    await remote(() => apiRequest(`/team/${id}/avatar`, { method: 'DELETE' }));
+    setUsers((current) => current.map((user) => user.id === id ? { ...user, avatarUrl: undefined } : user));
+  }, [remote]);
 
   const resetMemberPassword = useCallback(async (id: string, password: string) => {
     const raw = await remote(() => api.create<Record<string, unknown>>(`team/${id}/reset-password`, { password }));
@@ -851,9 +901,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }, [remote]);
 
   const scopedUsers = useMemo(() => {
-    if (!session || session.user.role === 'DIRECTOR') return users;
-    if (session.user.role === 'MANAGER') return users.filter((user) => user.department === session.user.department);
-    return users.filter((user) => user.id === session.user.id);
+    if (!session) return users;
+    const scope = session.user.role === 'DIRECTOR' ? users
+      : session.user.role === 'MANAGER' ? users.filter((user) => user.department === session.user.department)
+        : users.filter((user) => user.id === session.user.id);
+    // The person's own profile edits show in the directory at once, before the next reload.
+    return scope.map((user) => user.id === session.user.id ? { ...user, ...personalFields(session.user) } : user);
   }, [session, users]);
   const visibleUsers = useMemo(() => scopedUsers.filter((user) => user.status !== 'DISABLED'), [scopedUsers]);
   const disabledUsers = useMemo(() => session?.user.role === 'EMPLOYEE' ? [] : scopedUsers.filter((user) => user.status === 'DISABLED'), [session, scopedUsers]);
@@ -903,10 +956,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     users: visibleUsers,
     clients: scopedClients, deals: scopedDeals, funnels: visibleFunnels, taskBoards: visibleBoards, tasks: visibleTasks, documents, reports, alerts: visibleAlerts,
     achievements, audit, dashboardMetrics: metrics, refresh,
-    dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, resetMemberPassword, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze,
+    dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze,
   // scoped is intentionally derived from current session and collections.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, resetMemberPassword, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, session]);
+  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, session]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

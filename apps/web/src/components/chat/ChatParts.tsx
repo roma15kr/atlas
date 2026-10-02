@@ -33,7 +33,7 @@ export function MessageItem({ message, people, me, canModerate, onReply, onEdit,
   const own = message.author.id === me.id;
   const deleted = Boolean(message.deletedAt);
   return <article className={`chat-message ${message.mentionedUserIds.includes(me.id) ? 'chat-message--mentioned' : ''}`} aria-label={`Сообщение ${message.author.fullName}`}>
-    <Avatar name={message.author.fullName} size="sm" />
+    <Avatar name={message.author.fullName} src={message.author.avatarUrl ?? undefined} size="sm" />
     <div className="chat-message__main">
       <header><strong>{message.author.fullName}{!message.author.active && <small> · деактивирован</small>}</strong><time dateTime={message.createdAt} title={formatDateTime(message.createdAt)}>{time(message.createdAt)}</time>{message.editedAt && !deleted && <small>изменено</small>}</header>
       <p className={deleted ? 'chat-message__deleted' : ''}>{deleted ? 'Сообщение удалено' : <MessageText body={message.body ?? ''} people={people} myUsername={me.username} />}</p>

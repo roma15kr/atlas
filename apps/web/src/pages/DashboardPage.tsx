@@ -51,7 +51,7 @@ export function DashboardPage() {
       </Surface>
       <Surface className="presence-panel">
         <SectionHeader title="Кто в сети" meta={<Badge tone="success">{online} онлайн</Badge>} action={<button className="text-button" onClick={() => navigate('/team')}>Вся команда</button>} />
-        <div className="presence-list">{users.slice(0, 6).map((member) => <button key={member.id} className="person-row" onClick={() => navigate(`/team?user=${member.id}`)}><Avatar name={member.fullName} online={member.online} /><span><strong>{member.fullName}</strong><small>{member.jobTitle}</small></span><time>{member.online ? 'Сейчас' : relativeTime(member.lastSeen)}</time></button>)}</div>
+        <div className="presence-list">{users.slice(0, 6).map((member) => <button key={member.id} className="person-row" onClick={() => navigate(`/team?user=${member.id}`)}><Avatar name={member.fullName} src={member.avatarUrl} online={member.online} /><span><strong>{member.fullName}</strong><small>{member.jobTitle}</small></span><time>{member.online ? 'Сейчас' : relativeTime(member.lastSeen)}</time></button>)}</div>
       </Surface>
       <Surface className="alerts-panel">
         <SectionHeader title="AI-наблюдения" meta={<Badge tone={openAlerts.some((alert) => alert.severity === 'CRITICAL') ? 'danger' : 'warning'}>{openAlerts.length} новых</Badge>} action={<span className="ai-label"><Bot size={15} /> Системные метрики</span>} />

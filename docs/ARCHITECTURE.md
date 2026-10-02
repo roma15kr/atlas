@@ -187,6 +187,19 @@ customers. A password reset sets `must_change_password`; until the person
 changes it, `authenticate` answers 403 `PASSWORD_CHANGE_REQUIRED` outside
 `/auth/*` and the socket refuses the connection.
 
+Everyone edits their own personal details through `PATCH /api/v1/team/me`:
+name, specialty, date of birth, phone, contact email, city, "about" and
+whether colleagues see their birthday. The full birth date is returned only to
+the person; colleagues get `birthday` (`MM-DD`) while it is shown. Profile
+photos (`POST`/`DELETE /team/me/avatar`) are JPEG, PNG or WebP up to 2 MB,
+recognized by magic bytes and stored next to documents. The browser
+re-encodes them to a 512×512 JPEG first, which drops camera metadata.
+`GET /api/v1/avatars/:id` serves them without a token, because `<img>` can't
+send one; it sits outside the per-IP API limit and is cached as immutable. The
+id is random and changes with every upload, so a replaced photo stops
+resolving. Directors, and heads for their own employees, can remove a member's
+photo (`DELETE /team/:id/avatar`).
+
 KPIs (`/api/v1/kpis`) follow the same who-manages-whom rule. A KPI is `MANUAL`
 (the head enters the actual value) or automatic: `DEALS_WON_VALUE`,
 `DEALS_WON_COUNT`, `TASKS_DONE`, `TASKS_ON_TIME_RATE`, measured over its period

@@ -33,6 +33,10 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     return;
   }
   if (error instanceof MulterError) {
+    if (error.code === "LIMIT_FILE_SIZE") {
+      res.status(413).json({ error: { code: "FILE_TOO_LARGE", message: "The file is too large" } });
+      return;
+    }
     res.status(400).json({ error: { code: "UPLOAD_ERROR", message: error.message } });
     return;
   }

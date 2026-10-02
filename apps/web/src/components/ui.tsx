@@ -1,5 +1,5 @@
 import { AlertCircle, ChevronDown, Inbox, LoaderCircle, X, type LucideIcon } from 'lucide-react';
-import { useEffect, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react';
+import { useEffect, useState, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react';
 import { initials } from '../lib/format';
 
 export function Button({ variant = 'primary', icon: Icon, children, className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; icon?: LucideIcon }) {
@@ -14,8 +14,10 @@ export function Badge({ tone = 'neutral', children }: { tone?: 'neutral' | 'succ
   return <span className={`badge badge--${tone}`}>{children}</span>;
 }
 
-export function Avatar({ name, online, size = 'md' }: { name: string; online?: boolean; size?: 'sm' | 'md' | 'lg' }) {
-  return <span className={`avatar avatar--${size}`} aria-label={name}><span>{initials(name)}</span>{online !== undefined && <i className={online ? 'presence presence--online' : 'presence presence--offline'} aria-label={online ? 'В сети' : 'Не в сети'} />}</span>;
+export function Avatar({ name, online, size = 'md', src }: { name: string; online?: boolean; size?: 'sm' | 'md' | 'lg' | 'xl'; src?: string }) {
+  const [failed, setFailed] = useState<string | null>(null);
+  const photo = src && failed !== src ? src : undefined;
+  return <span className={`avatar avatar--${size}${photo ? ' avatar--photo' : ''}`} aria-label={name}>{photo ? <img src={photo} alt="" loading="lazy" decoding="async" onError={() => setFailed(photo)} /> : <span>{initials(name)}</span>}{online !== undefined && <i className={online ? 'presence presence--online' : 'presence presence--offline'} aria-label={online ? 'В сети' : 'Не в сети'} />}</span>;
 }
 
 export function PageHeader({ title, description, action, children }: { title: string; description?: string; action?: ReactNode; children?: ReactNode }) {
@@ -54,8 +56,8 @@ export function SelectField({ label, children, ...props }: React.SelectHTMLAttri
   return <label className="field"><span>{label}</span><span className="select-wrap"><select {...props}>{children}</select><ChevronDown size={15} /></span></label>;
 }
 
-export function Field({ label, hint, children, className = '' }: { label: string; hint?: string; children: ReactNode; className?: string }) {
-  return <label className={`field ${className}`}><span>{label}</span>{children}{hint && <small>{hint}</small>}</label>;
+export function Field({ label, hint, error, children, className = '' }: { label: string; hint?: string; error?: string; children: ReactNode; className?: string }) {
+  return <label className={`field ${error ? 'field--invalid' : ''} ${className}`}><span>{label}</span>{children}{error ? <small className="field__error" role="alert">{error}</small> : hint && <small>{hint}</small>}</label>;
 }
 
 export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: Array<{ value: T; label: string }>; onChange: (value: T) => void; label: string }) {

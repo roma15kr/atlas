@@ -14,6 +14,7 @@ import { achievementsRouter } from "./routes/achievements";
 import { aiRouter } from "./routes/ai";
 import { alertsRouter } from "./routes/alerts";
 import { auditRouter } from "./routes/audit";
+import { avatarsRouter } from "./routes/avatars";
 import { authRouter } from "./routes/auth";
 import { chatRouter } from "./routes/chat";
 import { clientsRouter } from "./routes/clients";
@@ -50,6 +51,8 @@ app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 // Telegram calls from a few shared IPs; it is authenticated by its secret token instead of the per-IP limit.
 app.post("/api/telegram/webhook", asyncHandler(webhookHandler));
+// Photos are loaded by <img> without a token, many per page from one office IP: only the flood limit applies.
+app.use("/api/v1/avatars", ipFloodLimiter, avatarsRouter);
 app.use(ipFloodLimiter, apiLimiter);
 
 const healthHandler = asyncHandler(async (_req, res) => {

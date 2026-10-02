@@ -1095,3 +1095,23 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 @media (max-width: 780px) { .consent-notice { flex-wrap: wrap; } }
 /* Member actions get their own row under the name, so the name never shrinks. */
 .team-profile__head > .team-profile__actions { flex: 1 1 100%; margin: 4px 0 0; justify-content: flex-start; }
+
+/* Profile photos and personal details */
+.avatar--xl { width: 84px; height: 84px; font-size: 24px; }
+.avatar--photo { overflow: visible; background: var(--line); }
+.avatar img { width: 100%; height: 100%; display: block; border-radius: 50%; object-fit: cover; }
+.field--invalid input, .field--invalid textarea { border-color: var(--red); }
+.field .field__error, .field__error { color: var(--red); font-size: 11px; font-weight: 500; }
+.profile-photo { margin-top: 14px; display: grid; gap: 7px; }
+.profile-photo__actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.profile-photo > small { color: var(--muted); font-size: 11px; line-height: 1.4; }
+.profile-identity dd small { color: var(--muted); font-weight: 400; }
+.check-field { display: flex; align-items: flex-start; gap: 9px; cursor: pointer; }
+.check-field input { margin: 2px 0 0; width: 16px; height: 16px; accent-color: var(--primary); }
+.check-field span { display: flex; flex-direction: column; gap: 2px; }
+.check-field strong { font-size: 12px; font-weight: 600; }
+.check-field small { color: var(--muted); font-size: 11px; }
+.member-about { margin: 14px 0 0; color: var(--text); font-size: 12px; line-height: 1.5; white-space: pre-line; }
+.profile-facts a { color: var(--primary); text-decoration: none; }
+.profile-facts a:hover { text-decoration: underline; }
+.profile-facts--contacts { margin-top: 12px; padding-top: 12px; }

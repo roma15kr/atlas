@@ -7,7 +7,7 @@ import { Avatar, Badge } from './ui';
 export function AvatarStack({ people, max = 3 }: { people: TaskAssignee[]; max?: number }) {
   const shown = people.slice(0, max);
   const names = people.map((person) => person.fullName).join(', ');
-  return <span className="avatar-stack" title={names} aria-label={`Исполнители: ${names}`}>{shown.map((person) => <Avatar key={person.id} name={person.fullName} size="sm" />)}{people.length > max && <i>+{people.length - max}</i>}</span>;
+  return <span className="avatar-stack" title={names} aria-label={`Исполнители: ${names}`}>{shown.map((person) => <Avatar key={person.id} name={person.fullName} src={person.avatarUrl} size="sm" />)}{people.length > max && <i>+{people.length - max}</i>}</span>;
 }
 
 /** A task card for both kanbans; the select is the keyboard alternative to dragging. */

@@ -8,6 +8,7 @@ import { query, transaction } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { disconnectUser } from "../realtime";
 import type { AuthContext, Role } from "../types";
+import { replaceAvatar } from "./avatars";
 import { passwordSchema, resolveCreationDepartment } from "./team";
 
 /** Editing, disabling and password resets of team members by directors and department heads. */
@@ -179,3 +180,14 @@ async function memberSummary(id: string): Promise<Record<string, unknown>> {
   );
   return result.rows[0]!;
 }
+
+/** Removes a member's photo; the same scope as editing them. */
+teamAdminRouter.delete("/:id/avatar", asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const target = await loadTarget(req, auth, "edit");
+  const result = await replaceAvatar({ id: target.id, companyId: target.company_id }, null);
+  if (result.replaced) {
+    await writeAudit(req, { auth, action: "TEAM_MEMBER_PHOTO_REMOVED", entityType: "user", entityId: target.id, departmentId: target.department_id });
+  }
+  res.json({ data: { avatarUrl: null } });
+}));

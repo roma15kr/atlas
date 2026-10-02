@@ -116,7 +116,7 @@ export function BoardSettingsPage() {
           <SectionHeader title="Участники" meta={people ? <Badge tone="info">{peopleCount}</Badge> : undefined} action={<Button variant="secondary" icon={Users} onClick={() => setDialog({ kind: 'members' })}>Изменить участников</Button>} />
           <p className="funnel-card__hint">{board.departmentId ? `Сотрудники отдела «${board.departmentName}» видят доску автоматически. ` : 'Доску руководства видят только директора и добавленные участники. '}Директора видят все доски.</p>
           {!people ? <p className="funnel-card__hint">Загружаем участников…</p> : <ul className="stage-rows member-rows">{people.filter((person) => person.role !== 'DIRECTOR').map((person) => <li key={person.id}>
-            <Avatar name={person.fullName} size="sm" />
+            <Avatar name={person.fullName} src={person.avatarUrl} size="sm" />
             <span className="stage-rows__name"><strong>{person.fullName}</strong><small>{[person.departmentName ?? 'Без отдела', person.jobTitle].filter(Boolean).join(' · ')}</small></span>
             {person.isMember ? <Badge tone="info">Участник</Badge> : <Badge>Отдел</Badge>}
           </li>)}{!peopleCount && <li><span className="stage-rows__name"><small>Пока никого — добавьте участников</small></span></li>}</ul>}

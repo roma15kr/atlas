@@ -8,6 +8,7 @@ import { query, transaction } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { presenceFor } from "../presence";
 import { recordScope } from "../scope";
+import { avatarUpload, replaceAvatar } from "./avatars";
 import type { AuthContext, Role } from "../types";
 
 /** The strength rule for every password a person sets or is given. */
@@ -112,6 +113,7 @@ teamRouter.get("/", asyncHandler(async (req, res) => {
             u.department_id AS "departmentId", d.name AS "departmentName",
             u.specialty, u.job_title AS "jobTitle",
             u.job_description AS "jobDescription", u.status,
+            ${profileFieldsSql("u", `$${scope.values.length + 2}`)},
             u.monitoring_consent_at AS "monitoringConsentAt",
             u.monitoring_consent_version AS "monitoringConsentVersion",
             COALESCE((
@@ -127,33 +129,105 @@ teamRouter.get("/", asyncHandler(async (req, res) => {
             ), '[]'::jsonb) AS kpis
      FROM users u LEFT JOIN departments d ON d.id = u.department_id
      WHERE ${scope.sql} AND (u.status = 'ACTIVE' OR $${scope.values.length + 1}) ORDER BY u.full_name`,
-    [...scope.values, includeDisabled]
+    [...scope.values, includeDisabled, auth.userId]
   );
   const presence = await presenceFor(users.rows.map((user) => user.id));
   res.json({ data: users.rows.map((user) => ({
-    ...user,
+    ...withoutHiddenProfile(user),
     presence: presence[user.id] ?? { userId: user.id, status: "OFFLINE", lastSeenAt: null }
   })) });
 }));
 
+const MIN_AGE_YEARS = 14;
+
+/** Today's date as YYYY-MM-DD; the profile rules compare calendar dates, not instants. */
+const isoToday = () => new Date().toISOString().slice(0, 10);
+
+const birthDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+  .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)) && new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) === value, "Not a calendar date")
+  .refine((value) => value >= "1900-01-01", "Too early")
+  .refine((value) => value <= isoToday(), "In the future")
+  .refine((value) => {
+    const today = isoToday();
+    return value <= `${Number(today.slice(0, 4)) - MIN_AGE_YEARS}${today.slice(4)}`;
+  }, `Must be at least ${MIN_AGE_YEARS} years old`);
+
+/** An empty string clears an optional text field. */
+const clearable = <T extends z.ZodTypeAny>(schema: T) => z.union([z.literal("").transform(() => null), z.null(), schema]);
+
 export const profileUpdateSchema = z.object({
   fullName: z.string().trim().min(2).max(160).optional(),
-  specialty: z.string().trim().max(160).nullable().optional()
+  specialty: z.string().trim().max(160).nullable().optional(),
+  birthDate: clearable(birthDateSchema).optional(),
+  phone: clearable(z.string().trim().max(40).regex(/^[+\d\s()-]+$/, "Digits, spaces, +, ( ) and - only")
+    .refine((value) => value.replace(/\D/g, "").length >= 5, "At least 5 digits")).optional(),
+  contactEmail: clearable(z.string().trim().max(254).email()).optional(),
+  city: clearable(z.string().trim().max(120)).optional(),
+  about: clearable(z.string().trim().max(500)).optional(),
+  showBirthday: z.boolean().optional()
 }).strict().refine((value) => Object.keys(value).length > 0, { message: "Nothing to update" });
+
+const profileColumns: Record<string, string> = {
+  fullName: "full_name", specialty: "specialty", birthDate: "birth_date", phone: "phone",
+  contactEmail: "contact_email", city: "city", about: "about", showBirthday: "show_birthday"
+};
+
+/**
+ * The personal profile fields of `alias`, as seen by the user whose id is the SQL parameter `viewer`:
+ * the full birth date and the visibility setting only for themselves, the day and month for colleagues
+ * only while the birthday is shown.
+ */
+export const profileFieldsSql = (alias: string, viewer: string) => `
+  ${alias}.avatar_url AS "avatarUrl", ${alias}.phone, ${alias}.contact_email AS "contactEmail", ${alias}.city, ${alias}.about,
+  CASE WHEN ${alias}.id = ${viewer} OR ${alias}.show_birthday THEN to_char(${alias}.birth_date, 'MM-DD') END AS birthday,
+  CASE WHEN ${alias}.id = ${viewer} THEN to_char(${alias}.birth_date, 'YYYY-MM-DD') END AS "birthDate",
+  CASE WHEN ${alias}.id = ${viewer} THEN ${alias}.show_birthday END AS "showBirthday"`;
+
+/** Drops the self-only fields that are null, so colleagues' rows don't carry `birthDate: null`. */
+export function withoutHiddenProfile<T extends Record<string, unknown>>(row: T): T {
+  const copy: Record<string, unknown> = { ...row };
+  for (const key of ["birthDate", "showBirthday", "birthday"]) if (copy[key] === null) delete copy[key];
+  return copy as T;
+}
+
+async function ownProfile(auth: AuthContext): Promise<Record<string, unknown>> {
+  const result = await query<Record<string, unknown>>(
+    `SELECT u.id, u.full_name AS "fullName", u.specialty, ${profileFieldsSql("u", "$1")}
+     FROM users u WHERE u.id = $1 AND u.company_id = $2`,
+    [auth.userId, auth.companyId]
+  );
+  if (!result.rows[0]) throw new ApiError(404, "USER_NOT_FOUND", "User not found");
+  return withoutHiddenProfile(result.rows[0]);
+}
 
 teamRouter.patch("/me", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
-  const input = profileUpdateSchema.parse(req.body);
+  const input = profileUpdateSchema.parse(req.body) as Record<string, unknown>;
   const fields = Object.keys(input);
-  const result = await query<{ id: string; fullName: string; specialty: string | null }>(
-    `UPDATE users SET full_name = COALESCE($1, full_name),
-                      specialty = CASE WHEN $2 THEN NULLIF($3, '') ELSE specialty END
-     WHERE id = $4 AND company_id = $5
-     RETURNING id, full_name AS "fullName", specialty`,
-    [input.fullName ?? null, "specialty" in input, input.specialty ?? null, auth.userId, auth.companyId]
-  );
+  const values: unknown[] = [auth.userId, auth.companyId];
+  const sets = fields.map((field) => {
+    const value = input[field];
+    values.push(field === "specialty" && value === "" ? null : value ?? null);
+    return `${profileColumns[field]} = $${values.length}`;
+  });
+  await query(`UPDATE users SET ${sets.join(", ")} WHERE id = $1 AND company_id = $2`, values);
   await writeAudit(req, { auth, action: "PROFILE_UPDATED", entityType: "user", entityId: auth.userId, metadata: { fields } });
-  res.json({ data: result.rows[0] });
+  res.json({ data: await ownProfile(auth) });
+}));
+
+teamRouter.post("/me/avatar", avatarUpload.single("file"), asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  if (!req.file) throw new ApiError(400, "FILE_REQUIRED", "A photo is required");
+  const result = await replaceAvatar({ id: auth.userId, companyId: auth.companyId }, req.file.buffer);
+  await writeAudit(req, { auth, action: "PROFILE_PHOTO_UPDATED", entityType: "user", entityId: auth.userId, metadata: { size: req.file.size, replaced: result.replaced } });
+  res.status(201).json({ data: { avatarUrl: result.avatarUrl } });
+}));
+
+teamRouter.delete("/me/avatar", asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const result = await replaceAvatar({ id: auth.userId, companyId: auth.companyId }, null);
+  if (result.replaced) await writeAudit(req, { auth, action: "PROFILE_PHOTO_REMOVED", entityType: "user", entityId: auth.userId });
+  res.json({ data: { avatarUrl: null } });
 }));
 
 teamRouter.patch("/me/consent", asyncHandler(async (req, res) => {

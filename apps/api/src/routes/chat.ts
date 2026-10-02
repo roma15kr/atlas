@@ -120,7 +120,7 @@ async function assertCompanyUsers(auth: AuthContext, ids: string[]): Promise<voi
   if (result.rowCount !== unique.length) throw new ApiError(400, "CHAT_INVALID_MEMBERS", "Every participant must be an active colleague");
 }
 
-const authorJson = `json_build_object('id', u.id, 'fullName', u.full_name, 'username', u.username, 'active', u.status = 'ACTIVE')`;
+const authorJson = `json_build_object('id', u.id, 'fullName', u.full_name, 'username', u.username, 'active', u.status = 'ACTIVE', 'avatarUrl', u.avatar_url)`;
 const messageColumns = `x.id, x.conversation_id AS "conversationId", x.parent_id AS "parentId",
   CASE WHEN x.deleted_at IS NULL THEN x.body END AS body,
   x.reply_count AS "replyCount", x.last_reply_at AS "lastReplyAt", x.edited_at AS "editedAt",

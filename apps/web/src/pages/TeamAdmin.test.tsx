@@ -81,3 +81,34 @@ describe('forced password change', () => {
     expect(await screen.findByText(/Добрый день, Анна/)).toBeInTheDocument();
   });
 });
+
+describe('member details', () => {
+  it('shows contacts, the birthday without a year and the "about" text', async () => {
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.manager));
+    renderAt('/team?user=u4');
+    await screen.findByRole('heading', { name: 'Алексей Ким' });
+    expect(screen.getByRole('link', { name: '+380 67 123 45 67' })).toHaveAttribute('href', 'tel:+380671234567');
+    expect(screen.getByRole('link', { name: 'alex.kim@atlas.test' })).toHaveAttribute('href', 'mailto:alex.kim@atlas.test');
+    expect(screen.getByText('21 июля')).toBeInTheDocument();
+    expect(screen.getByText(/Веду партнёрские продажи/)).toBeInTheDocument();
+  });
+
+  it('lets a director remove a member photo after confirming', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.director));
+    renderAt('/team?user=u5');
+    await screen.findByRole('heading', { name: 'Ольга Соколова' });
+    expect(document.querySelector('.team-profile .avatar img')).not.toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Удалить фото' }));
+    await user.click(within(screen.getByRole('dialog', { name: 'Удалить фото?' })).getByRole('button', { name: 'Удалить' }));
+    expect(document.querySelector('.team-profile .avatar img')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Удалить фото' })).not.toBeInTheDocument();
+  });
+
+  it('does not offer photo removal to an employee', async () => {
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.alex));
+    renderAt('/team');
+    await screen.findByRole('heading', { name: 'Алексей Ким' });
+    expect(screen.queryByRole('button', { name: 'Удалить фото' })).not.toBeInTheDocument();
+  });
+});

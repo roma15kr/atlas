@@ -22,6 +22,28 @@ export interface User {
   status?: 'ACTIVE' | 'DISABLED';
   /** Set after an administrative password reset until the person picks a new password. */
   mustChangePassword?: boolean;
+  /** Full date of birth, YYYY-MM-DD; only on the person's own record. */
+  birthDate?: string;
+  /** Day and month, MM-DD; on colleagues' records only while they show their birthday. */
+  birthday?: string;
+  /** Whether colleagues see the birthday; only on the person's own record. */
+  showBirthday?: boolean;
+  phone?: string;
+  contactEmail?: string;
+  city?: string;
+  about?: string;
+}
+
+/** The fields a person edits in their own profile; an empty string clears a field. */
+export interface ProfileInput {
+  fullName?: string;
+  specialty?: string;
+  birthDate?: string;
+  phone?: string;
+  contactEmail?: string;
+  city?: string;
+  about?: string;
+  showBirthday?: boolean;
 }
 
 export type KpiSource = 'MANUAL' | 'DEALS_WON_VALUE' | 'DEALS_WON_COUNT' | 'TASKS_DONE' | 'TASKS_ON_TIME_RATE';

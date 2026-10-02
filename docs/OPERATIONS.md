@@ -175,6 +175,14 @@ The automation scheduler starts with the API. `AUTOMATION_INTERVAL_MS`
 (default `600000`) sets how often KPIs are recomputed, achievements awarded, alert rules evaluated and due reports run;
 `0` turns it off. Only one API instance runs a tick at a time.
 
+## Deploying migration 012 (profile details and photos)
+
+`012_profile_details.sql` is additive: it adds personal fields and photo
+columns to `users`, all empty for existing people. Profile photos are stored on
+the documents volume (or S3) under the company prefix, so the existing document
+backups include them. Photos are served from `/api/v1/avatars/<id>` with a
+year-long immutable cache. Nginx needs no change, because the path is under `/api/`.
+
 ## Email
 
 Users connect their own mailboxes under Почта → Настройки. Mail is private to its
