@@ -22,4 +22,4 @@
 ## 3. Verification
 
 - [x] 3.1 Run `npm run typecheck && npm test && npm run build` and `openspec validate improve-job-description-editing --strict`.
-- [ ] 3.2 Deploy to the Coolify test app. As the director, fill in and then clear a description.
+- [x] 3.2 Deploy to the Coolify test app. As the director, fill in and then clear a description.
