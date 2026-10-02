@@ -22,12 +22,12 @@
 - [x] 3.1 Add `lib/image.ts` `prepareAvatar`, the `Avatar` `src` with its fallback, and the `AppContext` actions with their demo variants.
 - [x] 3.2 Update the profile screen with the photo card and the new fields. Verify with Testing Library: the save sends only the changed fields, the upload calls the API with the prepared blob, and a bad email shows a Russian error.
 - [x] 3.3 Show contacts, birthday and "about" in the Team panel, and photos in the sidebar, team list, dashboard and task cards.
-- [ ] 3.4 Take screenshots at desktop and 400px widths, checked against `ui-design-system`.
+- [x] 3.4 Take screenshots at desktop and 400px widths, checked against `ui-design-system`.
 
 ## 4. Verification
 
 - [x] 4.1 Run `npm run typecheck && npm test && npm run build` and `openspec validate add-profile-details-and-photo --strict`.
-- [ ] 4.2 On the test app:
+- [x] 4.2 On the test app:
   - upload a photo, reload, and see it in the sidebar;
   - set a birthday and see it from a colleague's session without the year;
   - remove the photo.
