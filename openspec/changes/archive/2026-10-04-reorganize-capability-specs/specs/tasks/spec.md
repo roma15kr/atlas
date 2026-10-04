@@ -1,9 +1,6 @@
-# task-boards Specification
+# Spec Delta
 
-## Purpose
-Lets departments organize work on several task boards with their own configurable stages, shared by the department and invited colleagues, and managed by the department head or a director.
-
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Boards
 The system SHALL let a company have task boards. Each board SHALL have:

@@ -1,9 +1,6 @@
-# crm-funnels Specification
+# Spec Delta
 
-## Purpose
-Lets a company run several sales funnels, each with its own Director-managed stages, and restrict each funnel to chosen departments or people while keeping owner-based deal privacy inside it.
-
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Funnels
 The system SHALL let a company have one or more funnels, each with a name (1-100 characters, unique per company, case-insensitive), a sort order, an access mode (`COMPANY` or `RESTRICTED`), and an ordered list of stages. Every deal SHALL belong to exactly one funnel.

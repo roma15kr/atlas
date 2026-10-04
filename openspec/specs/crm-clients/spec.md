@@ -58,3 +58,10 @@ The system SHALL allow only a DIRECTOR to export the whole company client databa
 #### Scenario: Non-director export
 - **WHEN** a MANAGER or EMPLOYEE requests the export
 - **THEN** the response is 403 `DIRECTOR_ONLY` and `CLIENT_EXPORT_DENIED` is audited
+
+### Requirement: Director-only export control
+The CRM screen SHALL download the full client CSV through the authenticated export endpoint and show the server's refusal message to non-directors.
+
+#### Scenario: Director downloads export
+- **WHEN** a DIRECTOR clicks export
+- **THEN** the CSV returned by `/api/v1/clients/export.csv` is saved by the browser
