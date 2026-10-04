@@ -24,7 +24,7 @@ The system SHALL let a DIRECTOR acknowledge any company alert and a MANAGER ackn
 - **THEN** the response is 403 `FORBIDDEN`
 
 ### Requirement: Work analysis
-The system SHALL produce an ADVICE, EVALUATION or FORECAST analysis for the caller or a user they can manage from KPI progress, task totals and overdue count, open and weighted pipeline in UAH, and 30-day presence activity, and SHALL audit `AI_ANALYSIS_REQUESTED` with mode and source.
+The system SHALL produce an ADVICE, EVALUATION or FORECAST analysis for the caller or a user they can manage. It SHALL use KPI progress, task totals and overdue count, open and weighted pipeline in UAH, and 30-day presence activity. Pipeline figures SHALL include only deals in `OPEN` stages of funnels the requester can access. The request SHALL be audited as `AI_ANALYSIS_REQUESTED` with mode and source.
 
 #### Scenario: No Claude key
 - **WHEN** `ANTHROPIC_API_KEY` is not configured
@@ -38,9 +38,20 @@ The system SHALL produce an ADVICE, EVALUATION or FORECAST analysis for the call
 - **WHEN** the Claude call errors, times out or returns invalid JSON
 - **THEN** the rule-based result is returned with `source: RULES` and a `fallbackReason`
 
+#### Scenario: Restricted funnel excluded from forecast
+- **WHEN** a MANAGER without access to the "Опт" funnel requests a FORECAST for an employee who owns "Опт" deals
+- **THEN** the forecast's open and weighted pipeline exclude those deals
+
 ### Requirement: Metadata-only AI input
 The system SHALL send Claude only aggregated system metrics and the viewer's role, never message bodies, client data or documents, and SHALL instruct the model not to infer protected traits, intent or misconduct. The API key SHALL stay server-side.
 
 #### Scenario: AI request payload
 - **WHEN** an analysis is sent to Claude
 - **THEN** the payload contains only mode, viewer role, the metrics object and the rule-based baseline
+
+### Requirement: Consent-gated activity metrics
+The system SHALL include presence activity in AI analysis only for target users who have accepted the current monitoring policy. For other users, it SHALL mark activity as `consent: false` and SHALL NOT send presence figures to Claude.
+
+#### Scenario: Analysis of a non-consenting employee
+- **WHEN** a manager requests an EVALUATION of an employee without consent
+- **THEN** the metrics contain `presence: { consent: false }` and the recommendations don't mention activity days

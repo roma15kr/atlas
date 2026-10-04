@@ -13,22 +13,11 @@ The system SHALL report every provider (GMAIL, OUTLOOK, TELEGRAM, WHATSAPP, VIBE
 - **THEN** Telegram is reported as DISCONNECTED with `serverConfigured: false`
 
 ### Requirement: Scoped inbox
-The system SHALL list messages newest first within the caller's record scope (by message owner), filterable by channel and client, with a 180-character preview and linked client summary.
+The system SHALL list external-channel messages newest first within the caller's record scope (by message owner), filterable by channel and client, with a 180-character preview and linked client summary. Messages stored on the `INTERNAL` channel before team chat existed SHALL remain listed as history, and no new ones SHALL be created.
 
 #### Scenario: Employee inbox
 - **WHEN** an EMPLOYEE lists messages
 - **THEN** only messages owned by that employee are returned
-
-### Requirement: Internal sending only
-The system SHALL store and mark SENT an outbound INTERNAL message, optionally linked to a visible client, and SHALL reject sending on any external channel with 501 `CHANNEL_ADAPTER_UNAVAILABLE`, auditing `MESSAGE_SEND_DENIED`.
-
-#### Scenario: Send via WhatsApp
-- **WHEN** a user posts a message with `channel: WHATSAPP`
-- **THEN** the response is 501 and nothing is stored
-
-#### Scenario: Send internal message
-- **WHEN** a user posts an INTERNAL message
-- **THEN** the message is stored as OUTBOUND/SENT and `MESSAGE_SENT` is audited
 
 ### Requirement: Link message to client
 The system SHALL let a user link or unlink an in-scope message to a client they can see, auditing `MESSAGE_LINKED`.

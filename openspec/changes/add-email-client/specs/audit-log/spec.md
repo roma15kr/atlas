@@ -8,7 +8,10 @@ The system SHALL audit at least:
 - team member creation;
 - consent changes;
 - client list, view, create, update, delete, comment and export success or denial;
-- deal and stage changes;
+- deal changes;
+- funnel creation, update and deletion, and funnel access changes;
+- stage creation, update, reordering and deletion (with the number of relocated deals);
+- denied funnel configuration attempts;
 - task changes;
 - document upload, new version and download;
 - report creation;
@@ -23,6 +26,14 @@ Message text, mail subjects, email addresses and credentials SHALL NOT be writte
 #### Scenario: Denied action
 - **WHEN** a denied export or login occurs
 - **THEN** an event whose action ends in `DENIED` is written
+
+#### Scenario: Denied funnel configuration
+- **WHEN** a non-director tries to change a funnel or stage
+- **THEN** a `FUNNEL_CONFIG_DENIED` event with the attempted operation is written
+
+#### Scenario: Access change trail
+- **WHEN** a DIRECTOR changes a funnel's access
+- **THEN** a `FUNNEL_ACCESS_UPDATED` event records the previous and new mode, departments and users
 
 #### Scenario: Moderator deletes a message
 - **WHEN** a channel admin deletes a colleague's message

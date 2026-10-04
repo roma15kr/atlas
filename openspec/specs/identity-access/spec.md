@@ -78,3 +78,35 @@ When a record is created or reassigned with an owner or assignee, the system SHA
 #### Scenario: Manager assigns outside department
 - **WHEN** a MANAGER assigns a task to a user in another department
 - **THEN** the response is 403 `INVALID_OWNER`
+
+### Requirement: Per-user API rate limit
+The system SHALL rate-limit `/api/v1` requests per authenticated user to 1,500 per 15 minutes. It SHALL limit requests without a valid access token per client IP to 300 per 15 minutes. It SHALL apply a per-IP flood ceiling of 6,000 requests per 15 minutes. Exceeding a limit SHALL return 429 `RATE_LIMITED`. Users who share an office IP SHALL NOT consume each other's allowance.
+
+#### Scenario: Office behind one IP
+- **WHEN** 20 signed-in users share one public IP and each makes 400 requests in 15 minutes
+- **THEN** no request is rejected
+
+#### Scenario: Anonymous flood
+- **WHEN** a client without a token makes more than 300 API requests in 15 minutes
+- **THEN** further requests get 429 `RATE_LIMITED`
+
+### Requirement: Own password change
+The system SHALL let an authenticated user change their password by giving the current password and a new one that meets the strength rule and differs from the current one. A successful change SHALL revoke all of the user's refresh sessions and issue a new session to the caller.
+
+#### Scenario: Wrong current password
+- **WHEN** the current password is wrong
+- **THEN** the response is 400 `INVALID_CURRENT_PASSWORD` and `PASSWORD_CHANGE_DENIED` is audited
+
+#### Scenario: Successful change
+- **WHEN** the current password is correct and the new password is strong
+- **THEN** sessions on other devices stop refreshing, the caller receives a working access token and refresh cookie, and `PASSWORD_CHANGED` is audited
+
+### Requirement: Forced password change
+The system SHALL mark a user as requiring a password change after an administrative reset. While the mark is set:
+- `/api/v1` requests other than `/auth/*` SHALL get 403 `PASSWORD_CHANGE_REQUIRED`;
+- socket connections SHALL be refused;
+- login and refresh responses SHALL include `mustChangePassword: true`.
+
+#### Scenario: Signing in after a reset
+- **WHEN** a user signs in with a temporary password set by a reset and calls `GET /api/v1/clients`
+- **THEN** the response is 403 `PASSWORD_CHANGE_REQUIRED` until they change their password
