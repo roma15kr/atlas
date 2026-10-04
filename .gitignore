@@ -16,3 +16,11 @@ playwright-report/
 test-results/
 *.tsbuildinfo
 
+
+# Personal AI tool settings (keep shared ones in git)
+.claude/settings.local.json
+.gemini/.env
+
+# factory.sh local state
+.factory/
+Thumbs.db

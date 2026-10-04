@@ -3,7 +3,7 @@ schema: spec-driven
 context: |
   Atlas: self-hosted virtual office for a ~20-person company team (path to 100+ users).
   Docker-first modular monolith; npm workspaces in apps/api and apps/web, Node.js 22.
-  API: TypeScript, Express, zod, pg (PostgreSQL), redis, Socket.IO presence, MinIO object storage, pino, vitest + supertest.
+  API: TypeScript, Express, zod, pg (PostgreSQL), redis, Socket.IO presence, file storage on a local volume (STORAGE_DIR; S3 optional when fully configured), pino, vitest + supertest.
   Web: React + TypeScript + Vite, served by Nginx on a single origin; vitest.
   UI is Russian-first, optimized for desktop Chrome.
   Roles: DIRECTOR (company-wide), MANAGER (own department), EMPLOYEE (own records);

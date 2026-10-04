@@ -282,3 +282,43 @@ runtime secret when the user table is empty.
 Atlas uses Ukrainian hryvnia (`UAH`) as its single operating currency. The API
 and database reject other deal currencies so dashboard, pipeline, report, and AI
 aggregates cannot mix incompatible monetary values.
+
+## Code map
+
+Where to look when a task spans several files.
+
+- **Request path:** `apps/api/src/app.ts` mounts the routers, and the order matters:
+  1. the Telegram webhook comes before the rate limiters;
+  2. `/api/v1/avatars` sits behind only `ipFloodLimiter`, because `<img>` sends no token;
+  3. `ipFloodLimiter` and `apiLimiter` apply next (`middleware.ts`; `apiLimiter` is keyed per user when signed in, per IP otherwise);
+  4. `/api/v1/auth` is public;
+  5. `authenticate` (`auth.ts`) guards the rest. It answers 403 `PASSWORD_CHANGE_REQUIRED` outside `/auth/*` while a reset password must be changed.
+- **Access:**
+  - `scope.ts` `recordScope(auth, columns)` builds the SQL predicate for each role.
+  - Team administration rules are in `routes/teamAdmin.ts` `adminDenial`.
+  - Funnel access (`deal_funnel_access`) and board access are extra gates.
+  - Audit: `audit.ts` `writeAudit` for requests, `writeAutomationAudit` for background jobs.
+- **Database:**
+  - `migrations.ts` applies `database/NNN_*.sql` in order and verifies checksums. `*_seed.sql` runs only with `SEED_DEMO_DATA`.
+  - Some rules are triggers: a deal's close date follows its stage outcome; disabling a user removes chat memberships and unassigns Telegram contacts.
+- **Background work:**
+  - `automation/scheduler.ts` runs every `AUTOMATION_INTERVAL_MS` (`0` turns it off) under the advisory lock `atlas:automation`. Its steps are `kpis.ts` → `achievements.ts` → `alerts.ts` → `reports.ts`.
+  - Mail sync is `mail/scheduler.ts` (`MAIL_SCHEDULER`).
+  - Telegram is `telegram/runner.ts` or the webhook.
+- **Realtime:**
+  - `socket.ts`: one authenticated socket per tab. It refuses connections that still need a password change, and attaches its handlers before any await.
+  - `presence.ts`: the presence store, Redis or in memory.
+  - `realtime.ts`: `disconnectUser`.
+- **Files:** `storage.ts` `objectStorage` stores files on the local volume, or on S3 when fully configured. `routes/avatars.ts` serves profile photos by a random id.
+- **Web:**
+  - `context/AppContext.tsx` has two providers:
+    - `AuthProvider`: the session, profile and password;
+    - `WorkspaceProvider`: all workspace data, loaded through `listAll`, with refresh and the actions.
+  - Chat, mail and Telegram have their own contexts and share the one socket through `atlas:socket` window events.
+  - `lib/api.ts` holds the session store in memory, the refresh serialised by the Web Lock `atlas-refresh`, and `apiRequest`, `api.*` and `api.download`.
+  - Shared UI primitives are in `components/ui.tsx`, and styles are plain CSS in `styles.css` with tokens on `:root`.
+  - Demo data is in `data/demo.ts`. Demo sessions have tokens starting with `demo-`.
+- **Tests:**
+  - API database tests use `src/test/dbHarness.ts` (PGlite with the real migrations). `harness.user(name, role, department)` returns a user with a signed token.
+  - Web tests use Testing Library with jsdom (`src/test/setup.ts`).
+  - `infra/test/backup-roundtrip.sh` checks encrypted backups and their restore.
