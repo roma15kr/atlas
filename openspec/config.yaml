@@ -14,14 +14,33 @@ context: |
   "disabled" until server-side credentials exist; secrets never reach the web bundle.
   SQL migrations are checksummed and must never be edited after being applied; add new files.
   Conventional commits (feat:, fix(web):, docs:). See docs/ARCHITECTURE.md, docs/OPERATIONS.md.
+  Agent rules, commands and testing traps are in AGENTS.md; decisions in docs/decisions/; lessons
+  learned in docs/learnings.md; current state in STATUS.md; customer and business evidence in docs/product/.
 
 rules:
+  proposal:
+    - "Start with Problem (in the end user's words), Evidence (links to docs/product/inbox reports, feedback or issues) and Success metric (one number tied to the business, and how it is measured)."
+    - "Include an Announcement: 3-5 sentences telling users about the change. If you cannot write it convincingly, say the change may be the wrong one."
+    - "Include a Non-goals section."
+    - "No implementation details (tables, endpoints, file names) in the proposal; they belong in design."
+    - "For UI changes, create plain HTML mockups (no framework) in mockups/ inside the change folder, one file per screen."
+  specs:
+    - "Requirements describe observable behavior with WHEN/THEN scenarios, never implementation details."
+    - "Put each requirement in the spec of the feature it describes, including that feature's screens; web-workspace covers only the shared app shell."
   design:
-    - State the role/department access rules for any new data or endpoint
-    - Call out new migrations and audit events explicitly
-    - For web UI changes, follow the ui-design-system spec (tokens, type scale, padded cards, read-only lists, dialog editing, one primary action)
+    - "State the role/department access rules (DIRECTOR, MANAGER, EMPLOYEE) for any new data or endpoint."
+    - "Call out new migrations and audit events explicitly."
+    - "For web UI changes, follow the ui-design-system spec (tokens, type scale, padded cards, read-only lists, dialog editing, one primary action)."
+    - "Read the relevant existing code before writing; never design against an imagined codebase."
+    - "Include: Files (each file created or changed, and why), Types and signatures (no bodies), Call stack for each main flow, Test plan (test names and what each asserts)."
+    - "End with Least confident decisions: a numbered list of the choices most worth challenging now."
+    - "Record env var NAMES and external services in docs/external/ (never secret values)."
   tasks:
-    - Include typecheck, test, and build verification (npm run typecheck && npm test && npm run build)
+    - "Organize tasks as vertical slices. Slice 1 is a tracer bullet: thin, end to end and runnable. Then real logic one testable slice at a time. Never build horizontally (all database, then all API, then all UI)."
+    - "Every slice ends in a working state, includes its tests, and is committed. A test must fail without the change it tests."
+    - "Never skip, weaken or delete tests to get to green."
+    - "Include verification with make check && npm run build (typecheck, lint, tests and build)."
+    - "The last task is always to update STATUS.md."
 
 # Project context (optional)
 # This is shown to AI when creating artifacts.
