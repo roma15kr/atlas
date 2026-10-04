@@ -12,9 +12,17 @@
     "test": "npm run test --workspace @atlas/api && npm run test --workspace @atlas/web",
     "dev": "docker compose -f compose.yaml -f compose.local.yaml up --build",
     "down": "docker compose -f compose.yaml -f compose.local.yaml down",
-    "logs": "docker compose -f compose.yaml -f compose.local.yaml logs -f web api"
+    "logs": "docker compose -f compose.yaml -f compose.local.yaml logs -f web api",
+    "lint": "eslint . --max-warnings=0"
   },
   "engines": {
     "node": ">=22"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "typescript-eslint": "^8.71.0"
   }
 }

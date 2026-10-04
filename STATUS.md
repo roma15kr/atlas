@@ -3,6 +3,7 @@ _Last updated: 2026-10-04 by Claude_
 
 ## Current focus
 - AI project setup added with `ai-init`: `AGENTS.md`, `make check`, agent commands, product docs.
+- `make check` now includes ESLint (ADR 0004), and `ci.yml` runs it.
 - Active OpenSpec changes, all implemented. Each waits only for a live check before archiving:
   - `add-email-client`: needs a real mailbox (task 6.2);
   - `add-telegram-customer-inbox`: needs a test bot (task 5.2);
@@ -15,10 +16,9 @@ _Last updated: 2026-10-04 by Claude_
 - `feat/crm-funnels` merged into `main` and deleted. The Coolify test app now deploys from `main`.
 
 ## Next steps
-1. Decide how `make check` lints: the project has no lint script yet, so the gate fails.
-2. Run the three live checks above, then archive those changes.
-3. Fold `messaging-integrations` into the email and Telegram specs once `add-email-client` is archived.
-4. Feed job descriptions into the AI analysis.
+1. Run the three live checks above, then archive those changes.
+2. Fold `messaging-integrations` into the email and Telegram specs once `add-email-client` is archived.
+3. Feed job descriptions into the AI analysis.
 
 ## Open questions
 - Should employees see colleagues in the Team directory? Today they see only themselves.

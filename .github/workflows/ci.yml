@@ -19,8 +19,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm test
+      # The same gate as people and AI agents run locally: typecheck + lint + test.
+      - run: make check
       - run: npm run build
 
   compose:
