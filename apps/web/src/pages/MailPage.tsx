@@ -11,7 +11,6 @@ import { folderOrder, type MailAction, type MailDraft, type MailFolder, type Mai
 import { mailErrorMessage } from '../lib/mailErrors';
 
 const UNREAD: [string, string, string] = ['непрочитанное', 'непрочитанных', 'непрочитанных'];
-const THREADS: [string, string, string] = ['переписка', 'переписки', 'переписок'];
 const folderIcons: Record<SpecialUse, typeof Inbox> = { INBOX: Inbox, SENT: Send, DRAFTS: FileText, ARCHIVE: Archive, JUNK: ShieldAlert, TRASH: Trash2, ALL: Mail };
 type View = { kind: 'folder'; folderId: string } | { kind: 'starred' };
 

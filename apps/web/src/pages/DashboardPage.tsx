@@ -2,7 +2,7 @@ import { Activity, ArrowUpRight, ShieldCheck, Banknote, Bot, CalendarDays, Check
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TaskDialog } from '../components/TaskDialog';
-import { Avatar, Badge, Button, EmptyState, Meter, PageHeader, SectionHeader, Surface } from '../components/ui';
+import { Avatar, Badge, Button, EmptyState, PageHeader, SectionHeader, Surface } from '../components/ui';
 import { hasMonitoringConsent, useAuth, useWorkspace } from '../context/AppContext';
 import { formatDate, formatMoney, relativeTime } from '../lib/format';
 import { defaultBoard, isAssignedTo, rememberedBoard } from '../lib/boards';

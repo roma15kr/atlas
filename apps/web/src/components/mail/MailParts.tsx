@@ -4,7 +4,7 @@ import { useMail } from '../../context/MailContext';
 import { fileSize, formatDateTime } from '../../lib/format';
 import { displayAddress, parseAddresses, senderName, type Address, type MailAttachment, type MailMessage } from '../../lib/mail';
 import { mailErrorMessage } from '../../lib/mailErrors';
-import { Avatar, Badge, Button } from '../ui';
+import { Avatar, Badge } from '../ui';
 
 const frameStyles = `html,body{margin:0}body{padding:1px 0 4px;font:13px/1.55 Inter,ui-sans-serif,-apple-system,"Segoe UI",sans-serif;color:#202827;word-wrap:break-word;overflow-wrap:anywhere}
 img{max-width:100%;height:auto}a{color:#176f68}blockquote{margin:8px 0;padding-left:10px;border-left:3px solid #dfe5e3;color:#687472}table{max-width:100%}pre{white-space:pre-wrap}`;

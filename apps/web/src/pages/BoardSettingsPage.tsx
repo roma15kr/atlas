@@ -29,11 +29,9 @@ type DialogState =
 
 /** Board settings for directors (every board) and department heads (their department's boards). */
 export function BoardSettingsPage() {
-  const { session } = useAuth();
   const { taskBoards, tasks, taskBoardConfig } = useWorkspace();
   const navigate = useNavigate();
   const { id } = useParams();
-  const user = session!.user;
   const [dialog, setDialog] = useState<DialogState>(null);
   const [pageError, setPageError] = useState('');
   const [people, setPeople] = useState<BoardUser[] | null>(null);

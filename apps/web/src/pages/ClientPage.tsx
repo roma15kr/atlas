@@ -4,7 +4,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { ClientCorrespondence } from '../components/mail/ClientCorrespondence';
 import { InviteDialog } from '../components/telegram/TelegramDialogs';
 import { Avatar, Badge, Button, Dialog, EmptyState, Field, PageHeader, SectionHeader, SelectField, Surface } from '../components/ui';
-import { DEMO_MODE, useWorkspace } from '../context/AppContext';
+import { useWorkspace } from '../context/AppContext';
 import { formatDate, formatMoney } from '../lib/format';
 import type { Client } from '../types';
 

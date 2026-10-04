@@ -17,7 +17,7 @@ export interface Preview { id: string; userId: string; createdAt: number; rows: 
 // Previews live in this process for 30 minutes; with several API instances the apply must reach the same one.
 const previews = new Map<string, Preview>();
 
-const COLUMNS = ["telegram_id", "client_id", "client_email", "client_phone", "responsible", "name"] as const;
+type Column = "telegram_id" | "client_id" | "client_email" | "client_phone" | "responsible" | "name";
 const digits = (value: string) => value.replace(/\D/g, "");
 
 /**
@@ -30,7 +30,7 @@ export async function previewImport(auth: AuthContext, csv: string): Promise<Pre
   const header = (table.shift() ?? []).map((value) => value.toLowerCase());
   if (!header.includes("telegram_id")) throw new ApiError(400, "TELEGRAM_IMPORT_INVALID", "The file needs a telegram_id column");
   if (table.length > IMPORT_MAX_ROWS) throw new ApiError(400, "TELEGRAM_IMPORT_TOO_LARGE", `At most ${IMPORT_MAX_ROWS} rows per import`);
-  const column = (cells: string[], name: (typeof COLUMNS)[number]) => { const index = header.indexOf(name); return index >= 0 ? cells[index]?.trim() || null : null; };
+  const column = (cells: string[], name: Column) => { const index = header.indexOf(name); return index >= 0 ? cells[index]?.trim() || null : null; };
 
   const [clients, users, contacts] = await Promise.all([
     query<{ id: string; name: string; company_name: string | null; email: string | null; phone: string | null; department_id: string | null; owner_id: string }>(

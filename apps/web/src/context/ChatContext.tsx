@@ -120,7 +120,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     setActive: (id) => { activeRef.current = id; },
     subscribe,
     notify: emit,
-  }), [backend, people, conversations, mentions, loaded, refresh, emit]);
+  }), [backend, people, conversations, mentions, loaded, refresh, subscribe, emit]);
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }

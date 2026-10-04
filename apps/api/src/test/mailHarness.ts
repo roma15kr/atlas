@@ -20,7 +20,7 @@ export interface Delivery { to: string[]; raw: string }
 /** RFC 822 text with UTF-8 headers and a base64 body, as real mail clients send it. */
 export const rawMessage = (headers: Record<string, string>, body: string): string =>
   Object.entries({ "Content-Type": "text/plain; charset=utf-8", Date: new Date().toUTCString(), ...headers, "Content-Transfer-Encoding": "base64" })
-    .map(([key, value]) => `${key}: ${/[^\x00-\x7f]/.test(value) ? `=?UTF-8?B?${Buffer.from(value).toString("base64")}?=` : value}`).join("\r\n")
+    .map(([key, value]) => `${key}: ${/[\u0080-\uffff]/.test(value) ? `=?UTF-8?B?${Buffer.from(value).toString("base64")}?=` : value}`).join("\r\n")
   + "\r\n\r\n" + Buffer.from(body).toString("base64");
 
 export async function startMailHarness(inbox: string[] = []) {

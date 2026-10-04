@@ -1,6 +1,6 @@
 /** RFC 4180 CSV: UTF-8 with or without BOM, comma or semicolon (detected from the header), quoted fields and CRLF. */
 export function parseCsv(input: string): string[][] {
-  const text = input.replace(/^﻿/, "");
+  const text = input.replace(/^\uFEFF/, "");
   const header = text.split(/\r?\n/, 1)[0] ?? "";
   const delimiter = (header.match(/;/g)?.length ?? 0) > (header.match(/,/g)?.length ?? 0) ? ";" : ",";
   const rows: string[][] = [];

@@ -1,4 +1,4 @@
-import { Building2, Download, Filter, Mail, MoreHorizontal, Pencil, Phone, Plus, Search, UserRound, UsersRound } from 'lucide-react';
+import { Building2, Download, Filter, Mail, MoreHorizontal, Phone, Plus, Search, UsersRound } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, Badge, Button, Dialog, EmptyState, Field, IconButton, PageHeader, SelectField, Surface } from '../components/ui';

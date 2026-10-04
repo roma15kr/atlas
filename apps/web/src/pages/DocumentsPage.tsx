@@ -1,4 +1,4 @@
-import { Download, Eye, File, FileArchive, FileImage, FileSpreadsheet, FileText, Folder, FolderOpen, Grid2X2, List, MoreHorizontal, Plus, Search, Shield, UploadCloud } from 'lucide-react';
+import { Download, Eye, File, FileArchive, FileImage, FileSpreadsheet, FileText, Folder, FolderOpen, Plus, Search, UploadCloud } from 'lucide-react';
 import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { api } from '../lib/api';
 import { Badge, Button, Dialog, EmptyState, Field, IconButton, PageHeader, Segmented, SelectField, Surface } from '../components/ui';

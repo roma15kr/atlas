@@ -208,7 +208,7 @@ export function createDemoTelegram(me: User, users: User[], clients: Client[], d
     },
     previewImport: async (csv) => {
       if (me.role === 'EMPLOYEE') throw new TelegramError('TELEGRAM_FORBIDDEN', 'Импортировать контакты могут директор и руководители отделов');
-      const lines = csv.replace(/^﻿/, '').split(/\r?\n/).filter((line) => line.trim());
+      const lines = csv.replace(/^\uFEFF/, '').split(/\r?\n/).filter((line) => line.trim());
       const header = lines.shift()?.toLowerCase().split(/[;,]/).map((item) => item.trim()) ?? [];
       if (!header.includes('telegram_id')) throw new TelegramError('TELEGRAM_IMPORT_INVALID', 'В файле нет колонки telegram_id');
       const seen = new Set<string>();

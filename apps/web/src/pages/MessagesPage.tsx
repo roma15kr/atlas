@@ -1,5 +1,5 @@
 import { AtSign, Bell, BellOff, Hash, MessageSquare, Plus, Search, Settings2, Users, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { BrowseChannelsDialog, ChannelFormDialog, ConfirmDialog, ConversationSettingsDialog, EditMessageDialog, NewMessageDialog, usePeopleByUsername } from '../components/chat/ChatDialogs';
 import { Composer, ConversationIcon, MessageItem, MessageText } from '../components/chat/ChatParts';
 import { Badge, Button, EmptyState, IconButton, LoadingState, PageHeader, SectionHeader, Surface } from '../components/ui';
