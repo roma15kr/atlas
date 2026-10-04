@@ -33,10 +33,9 @@ The baseline audit found three features that look finished but never work in pro
 ## Capabilities
 
 ### Modified Capabilities
-- `alerts-ai`: alert rules, deduplication and resolution, deal-aware feed, AI analysis screens.
-- `reports`: recurring runs, run history, pause, resume and delete.
+- `alerts-ai`: alert rules, deduplication and resolution, deal-aware feed, and the AI analysis screens (the "AI-анализ" dialog on the member panel and the profile).
+- `reports`: recurring runs, run history, pause, resume and delete, and the report results screen with its history view.
 - `audit-log`: report schedule events.
-- `web-workspace`: report results, the history view and the AI analysis dialog.
 
 ## Impact
 
