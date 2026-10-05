@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup: Обращения</title>
+<style>
+  :root { --bg:#f4f6f7; --surface:#fff; --surface-soft:#f8faf9; --line:#dfe5e3; --line-strong:#cbd5d2; --text:#202827; --muted:#687472; --primary:#176f68; --primary-soft:#e7f2f0; --blue:#366e9e; --blue-soft:#e9f0f7; --amber:#a66c20; --amber-soft:#f8efe1; --red:#a44444; --red-soft:#f8eaea; --green:#39815a; --green-soft:#e8f3ed; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:13px/1.45 Inter, -apple-system, "Segoe UI", sans-serif; color:var(--text); background:var(--bg); padding:24px; }
+  h1 { margin:0; font-size:24px; } .lead { margin:4px 0 16px; color:var(--muted); }
+  .head { display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; }
+  .seg { display:inline-flex; background:var(--surface); border:1px solid var(--line); border-radius:7px; padding:2px; }
+  .seg span { padding:5px 12px; border-radius:5px; color:var(--muted); font-weight:600; }
+  .seg .on { background:var(--primary-soft); color:var(--primary); }
+  .notice { margin:14px 0; padding:10px 12px; border-radius:7px; background:var(--amber-soft); color:var(--amber); border:1px solid #ecd9b8; }
+  .grid { display:grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap:12px; }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:8px; }
+  .toolbar { padding:12px 14px; border-bottom:1px solid var(--line); display:flex; gap:8px; flex-wrap:wrap; }
+  .chip { border:1px solid var(--line); border-radius:999px; padding:3px 10px; color:var(--muted); background:var(--surface-soft); }
+  .chip.on { border-color:var(--primary); color:var(--primary); background:var(--primary-soft); }
+  .row { display:grid; grid-template-columns: 1fr auto; gap:6px 12px; padding:12px 14px; border-bottom:1px solid var(--line); }
+  .row.active { background:var(--primary-soft); box-shadow:inset 3px 0 var(--primary); }
+  .row strong { font-size:13px; } .row small { color:var(--muted); grid-column:1 / -1; }
+  .badge { font-size:11px; font-weight:650; border-radius:5px; padding:2px 7px; white-space:nowrap; }
+  .b-ok { background:var(--green-soft); color:var(--green); } .b-wait { background:var(--blue-soft); color:var(--blue); } .b-fail { background:var(--red-soft); color:var(--red); } .b-off { background:#eef1f0; color:var(--muted); }
+  .detail { padding:16px; display:grid; gap:12px; }
+  .detail h2 { margin:0; font-size:16px; }
+  .meta { color:var(--muted); font-size:12px; }
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .box { border:1px solid var(--line); border-radius:7px; padding:10px; background:var(--surface-soft); }
+  .box b { display:block; font-size:11px; color:var(--muted); text-transform:uppercase; margin-bottom:4px; }
+  .shot { height:120px; border:1px solid var(--line); border-radius:6px; background:linear-gradient(#fff 0 16%, #e7f2f0 16% 20%, #fff 20%); }
+  pre { margin:0; font:11px/1.5 ui-monospace, Menlo, monospace; white-space:pre-wrap; color:#36423f; }
+  .actions { display:flex; gap:8px; justify-content:flex-end; }
+  .btn { border:1px solid var(--line-strong); background:var(--surface); border-radius:6px; padding:7px 11px; font:inherit; font-weight:600; }
+  .btn.ghost { border-color:transparent; color:var(--red); }
+  a { color:var(--primary); }
+  h3 { font-size:13px; margin:18px 0 8px; }
+  @media (max-width: 760px) { .grid, .cols { grid-template-columns:1fr; } body { padding:16px; } }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div><h1>Обращения</h1><p class="lead">Проблемы, жалобы и идеи сотрудников</p></div>
+    <div class="seg" role="group" aria-label="Раздел"><span>Мои обращения</span><span class="on">Все обращения · 12</span></div>
+  </div>
+  <div class="notice">Задачи в GitHub не создаются: не задан GITHUB_TOKEN. Обращения сохраняются и будут обработаны после настройки.</div>
+
+  <div class="grid">
+    <section class="card" aria-label="Список обращений">
+      <div class="toolbar"><span class="chip on">Все</span><span class="chip">Ожидают · 3</span><span class="chip">Ошибки обработки · 1</span><span class="chip">Отклонённые</span></div>
+      <div class="row active"><strong>[Bug] Deal changes are lost after saving</strong><span class="badge b-ok">GitHub #42</span><small>Проблема · Воронка · Анна Петрова · сегодня 10:14 · высокая</small></div>
+      <div class="row"><strong>Не можу знайти звіт за вересень…</strong><span class="badge b-wait">Ожидает обработки</span><small>Проблема · Отчёты · Алексей Ким · сегодня 09:02</small></div>
+      <div class="row"><strong>[Complaint] Notifications arrive twice</strong><span class="badge b-fail">Ошибка · попытка 5</span><small>Жалоба · Сообщения · Ольга Соколова · вчера</small></div>
+      <div class="row"><strong>Додайте темну тему</strong><span class="badge b-off">Отклонено</span><small>Идея · вчера</small></div>
+    </section>
+
+    <section class="card detail" aria-label="Обращение">
+      <div><h2>Deal changes are lost after saving</h2><p class="meta">Анна Петрова · Продажи · /sales · Atlas a1b2c3d · Chrome 141 · 1440×900 · <a href="#">GitHub #42</a></p></div>
+      <div class="cols">
+        <div class="box"><b>Оригинал (украинский)</b>Натискаю «Зберегти» на угоді — нічого не відбувається, зміни зникають після оновлення сторінки.</div>
+        <div class="box"><b>Перевод (обезличенный)</b>When I press "Save" on a deal nothing happens, and the changes disappear after reloading the page.</div>
+      </div>
+      <div class="cols">
+        <div class="box"><b>Снимок экрана</b><div class="shot" role="img" aria-label="Снимок экрана"></div></div>
+        <div class="box"><b>Технический журнал</b><pre>10:13:51 route /sales
+10:13:58 PATCH /api/v1/deals/7f3…  500  412 ms  req 9c1e…
+10:13:58 error Не удалось выполнить запрос
+10:14:02 socket connect</pre></div>
+      </div>
+      <div class="box"><b>Категория</b>Ошибка · высокая · sales-pipeline</div>
+      <div class="actions"><button class="btn ghost">Отклонить</button><button class="btn">Обработать заново</button></div>
+    </section>
+  </div>
+
+  <h3>Вид «Мои обращения» (сотрудник)</h3>
+  <section class="card" aria-label="Мои обращения">
+    <div class="row"><strong>Натискаю «Зберегти» на угоді — нічого не відбувається…</strong><span class="badge b-ok">Задача #42</span><small>Проблема · сегодня 10:14 · снимок экрана приложен</small></div>
+    <div class="row"><strong>Не можу знайти звіт за вересень…</strong><span class="badge b-wait">Ожидает обработки</span><small>Проблема · сегодня 09:02</small></div>
+  </section>
+</body>
+</html>

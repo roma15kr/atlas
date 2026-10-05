@@ -1,7 +1,8 @@
 # Status
-_Last updated: 2026-10-04 by Claude_
+_Last updated: 2026-10-05 by Claude_
 
 ## Current focus
+- **Awaiting review:** OpenSpec proposal `add-in-app-feedback`. It adds problem reports from every screen with a screenshot and a diagnostic log, and turns each into an anonymised English GitHub issue. Decide its "Least confident decisions" first, especially automatic publishing to the public repository.
 - AI project setup added with `ai-init`: `AGENTS.md`, `make check`, agent commands, product docs.
 - `make check` now includes ESLint (ADR 0004), and `ci.yml` runs it.
 - Active OpenSpec changes, all implemented. Each waits only for a live check before archiving:
@@ -21,6 +22,7 @@ _Last updated: 2026-10-04 by Claude_
 3. Feed job descriptions into the AI analysis.
 
 ## Open questions
+- Feedback: publish every report automatically to the public GitHub repository, or hold complaints for approval? May we add `modern-screenshot` and `@anthropic-ai/sdk`?
 - Should employees see colleagues in the Team directory? Today they see only themselves.
 - Should a director see colleagues' full birth dates, not just day and month?
 - Should employees be able to write or suggest their own job description?

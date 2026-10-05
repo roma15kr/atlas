@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup: Сообщить о проблеме</title>
+<style>
+  :root { --bg:#f4f6f7; --surface:#fff; --surface-soft:#f8faf9; --line:#dfe5e3; --line-strong:#cbd5d2; --text:#202827; --muted:#687472; --primary:#176f68; --primary-soft:#e7f2f0; --amber:#a66c20; --amber-soft:#f8efe1; --red:#a44444; --red-soft:#f8eaea; --sidebar:#1d2a28; }
+  * { box-sizing: border-box; }
+  body { margin:0; font: 13px/1.45 Inter, -apple-system, "Segoe UI", sans-serif; color:var(--text); background:var(--bg); }
+  .app { display:grid; grid-template-columns: 220px 1fr; min-height:100vh; }
+  .sidebar { background:var(--sidebar); color:#cfd8d6; padding:18px 14px; }
+  .sidebar b { color:#fff; display:block; margin-bottom:18px; }
+  .sidebar div { padding:7px 8px; border-radius:6px; }
+  .sidebar .on { background:rgba(255,255,255,.08); color:#fff; }
+  .topbar { height:60px; background:var(--surface); border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; padding:0 22px; }
+  .topbar small { color:var(--muted); display:block; font-size:10px; text-transform:uppercase; }
+  .topbar .right { display:flex; gap:10px; align-items:center; }
+  .btn { border:1px solid var(--line-strong); background:var(--surface); border-radius:6px; padding:7px 11px; font:inherit; font-weight:600; color:var(--text); cursor:pointer; display:inline-flex; gap:6px; align-items:center; }
+  .btn.primary { background:var(--primary); border-color:var(--primary); color:#fff; }
+  .btn.ghost { border-color:transparent; background:transparent; color:var(--muted); }
+  .btn.report { border-color:var(--amber-soft); background:var(--amber-soft); color:var(--amber); }
+  .page { padding:24px; opacity:.55; }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:18px; height:220px; }
+  .backdrop { position:fixed; inset:0; background:rgba(21,37,35,.35); display:flex; align-items:center; justify-content:center; padding:16px; }
+  .dialog { width:min(620px,100%); background:var(--surface); border-radius:10px; box-shadow:0 20px 50px rgba(0,0,0,.18); }
+  .dialog header { padding:18px 20px 12px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; }
+  .dialog header h2 { margin:0; font-size:16px; }
+  .dialog header p { margin:3px 0 0; color:var(--muted); font-size:12px; }
+  .body { padding:16px 20px; display:grid; gap:14px; }
+  .seg { display:inline-flex; background:var(--surface-soft); border:1px solid var(--line); border-radius:7px; padding:2px; }
+  .seg span { padding:5px 12px; border-radius:5px; color:var(--muted); font-weight:600; }
+  .seg .on { background:var(--surface); color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,.08); }
+  label.field { display:grid; gap:6px; font-weight:650; font-size:12px; color:#45514f; }
+  label.field small { font-weight:400; color:var(--muted); }
+  textarea { font:inherit; border:1px solid var(--line-strong); border-radius:6px; padding:9px 10px; min-height:110px; resize:vertical; }
+  .attach { display:grid; grid-template-columns: 150px 1fr; gap:12px; border:1px solid var(--line); border-radius:8px; padding:10px; background:var(--surface-soft); }
+  .shot { height:92px; border-radius:6px; border:1px solid var(--line); background:linear-gradient(#fff 0 18%, #e7f2f0 18% 22%, #fff 22%), #fff; position:relative; }
+  .shot::after { content:"/sales · снимок"; position:absolute; bottom:4px; left:6px; font-size:10px; color:var(--muted); }
+  .attach strong { display:block; }
+  .attach p { margin:3px 0 8px; color:var(--muted); font-size:12px; }
+  .check { display:flex; gap:8px; align-items:flex-start; }
+  .check input { margin-top:2px; accent-color:var(--primary); }
+  details { font-size:12px; color:var(--muted); }
+  details ul { margin:6px 0 0; padding-left:18px; }
+  footer { padding:12px 20px 16px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--line); }
+  footer small { color:var(--muted); }
+  footer .actions { display:flex; gap:8px; }
+  @media (max-width: 640px) { .app { grid-template-columns:1fr; } .sidebar { display:none; } .attach { grid-template-columns:1fr; } footer { flex-direction:column; gap:10px; align-items:stretch; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar"><b>ATLAS</b><div>Дашборд</div><div>CRM</div><div class="on">Воронка</div><div>Мои задачи</div><div>Документы</div><div>Обращения</div></aside>
+  <main>
+    <div class="topbar">
+      <div><small>Рабочее пространство</small><strong>Воронка</strong></div>
+      <div class="right"><button class="btn report" title="Сообщить о проблеме (Ctrl+Shift+F)">⚑ Сообщить о проблеме</button><span style="color:var(--muted)">● В сети</span></div>
+    </div>
+    <div class="page"><div class="card">Канбан сделок (страница под диалогом)</div></div>
+  </main>
+</div>
+
+<div class="backdrop" role="presentation">
+  <section class="dialog" role="dialog" aria-labelledby="t">
+    <header><div><h2 id="t">Сообщить о проблеме</h2><p>Пишите своими словами — на украинском или русском</p></div><button class="btn ghost" aria-label="Закрыть">✕</button></header>
+    <div class="body">
+      <div class="seg" role="group" aria-label="Тип обращения"><span class="on">Проблема</span><span>Жалоба</span><span>Идея</span></div>
+      <label class="field">Что случилось?
+        <textarea>Натискаю «Зберегти» на угоді — нічого не відбувається, зміни зникають після оновлення сторінки.</textarea>
+        <small>94 / 5 000 · Страница: Воронка (/sales)</small>
+      </label>
+      <div class="attach">
+        <div class="shot" role="img" aria-label="Предпросмотр снимка экрана"></div>
+        <div>
+          <label class="check"><input type="checkbox" checked><span><strong>Приложить снимок экрана</strong><p>Снимок страницы до открытия этого окна. Поля паролей скрыты.</p></span></label>
+          <label class="check"><input type="checkbox" checked><span><strong>Приложить технический журнал</strong><p>Ошибки и запросы за последние 15 минут — без введённого текста и данных записей.</p></span></label>
+          <details><summary>Что входит в журнал</summary><ul><li>3 ошибки приложения, 24 запроса (1 с ошибкой 500)</li><li>Переходы по страницам, подключение к серверу</li><li>Версия Atlas a1b2c3d, Chrome 141, 1440×900, uk-UA</li></ul></details>
+        </div>
+      </div>
+    </div>
+    <footer><small>Видят только директора компании. В GitHub попадёт обезличенный перевод.</small><div class="actions"><button class="btn">Отмена</button><button class="btn primary">Отправить</button></div></footer>
+  </section>
+</div>
+</body>
+</html>
