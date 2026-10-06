@@ -30,8 +30,8 @@ Each slice ends with `make check && npm run build` passing, and a commit. A test
 
 ## 5. Translation and summary
 
-- [ ] 5.1 Requires `use-openai-for-ai-analysis` slice 1, which provides `llm/openai.ts`. `triageReport` uses `structuredResponse` with `FEEDBACK_MODEL` (default `gpt-6-luna`), handles refusals and unparsable output, and runs `scrubPersonalData`. Unit tests with a stubbed client, plus a fixture for the source-language code and the placeholders.
-- [ ] 5.2 The `processFeedback` automation step (claim, triage, store), without GitHub yet; it runs after submit and every 10 minutes. Tests: waits without credentials, backoff, the attempt limit.
+- [x] 5.1 Requires `use-openai-for-ai-analysis` slice 1, which provides `llm/openai.ts`. `triageReport` uses `structuredResponse` with `FEEDBACK_MODEL` (default `gpt-6-luna`), handles refusals and unparsable output, and runs `scrubPersonalData`. Unit tests with a stubbed client, plus a fixture for the source-language code and the placeholders.
+- [x] 5.2 The `processFeedback` automation step (claim, triage, store), without GitHub yet; it runs after submit and every 10 minutes. Tests: waits without credentials, backoff, the attempt limit.
 
 ## 6. GitHub issues
 

@@ -2,6 +2,7 @@ import { config } from "../config";
 import { pool } from "../db";
 import { awardAchievements } from "./achievements";
 import { evaluateAlerts } from "./alerts";
+import { processFeedback } from "./feedback";
 import { recomputeKpis } from "./kpis";
 import { runDueReports } from "./reports";
 
@@ -12,6 +13,7 @@ const steps: AutomationStep[] = [
   { name: "kpis", run: () => recomputeKpis() },
   { name: "achievements", run: () => awardAchievements() },
   { name: "alerts", run: () => evaluateAlerts() },
+  { name: "feedback", run: () => processFeedback() },
   { name: "reports", run: () => runDueReports() }
 ];
 

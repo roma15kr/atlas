@@ -82,6 +82,7 @@ feedbackRouter.post("/", feedbackLimiter, upload.single("screenshot"), asyncHand
     auth, action: "FEEDBACK_SUBMITTED", entityType: "feedback_report", entityId: report.id, departmentId: auth.departmentId,
     metadata: { kind: input.kind, screenshot: Boolean(screenshot), log: Boolean(diagnostics) }
   });
+  scheduleFeedbackProcessing();
   res.status(201).json({ data: { id: report.id, status: "PENDING", createdAt: report.createdAt } });
 }));
 
@@ -187,8 +188,11 @@ feedbackRouter.post("/:id/retry", asyncHandler(async (req, res) => {
   res.json({ data: { id: id.data, status: "PENDING" } });
 }));
 
-/** Replaced in slice 5 by the processing step; kept as a seam so submit and retry can trigger it. */
-export let scheduleFeedbackProcessing: () => void = () => undefined;
+/**
+ * Starts processing right after a submit or retry instead of waiting for the next automation tick.
+ * The server sets it at start-up; tests leave it inert and call the step themselves.
+ */
+let scheduleFeedbackProcessing: () => void = () => undefined;
 export function setFeedbackProcessor(run: () => void): void {
   scheduleFeedbackProcessing = run;
 }

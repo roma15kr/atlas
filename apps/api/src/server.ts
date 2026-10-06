@@ -5,7 +5,9 @@ import { config } from "./config";
 import { pool } from "./db";
 import { runMigrations } from "./migrations";
 import { connectRedis, redis } from "./redis";
+import { processFeedback } from "./automation/feedback";
 import { startAutomation, stopAutomation } from "./automation/scheduler";
+import { setFeedbackProcessor } from "./routes/feedback";
 import { startMailScheduler, stopMailScheduler } from "./mail/scheduler";
 import { setRealtimeServer } from "./realtime";
 import { startTelegram, stopTelegram } from "./telegram/runner";
@@ -23,6 +25,7 @@ async function main(): Promise<void> {
   });
   startMailScheduler();
   startAutomation();
+  setFeedbackProcessor(() => setImmediate(() => { void processFeedback().catch((error) => console.error("Feedback processing failed", error)); }));
   void startTelegram();
 
   const shutdown = async (signal: string): Promise<void> => {
