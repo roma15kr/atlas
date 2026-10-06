@@ -24,9 +24,9 @@ Each slice ends with `make check && npm run build` passing, and a commit. A test
 
 ## 4. Director inbox and rate limit
 
-- [ ] 4.1 `GET /feedback`, `GET /feedback/:id` (with `FEEDBACK_VIEWED`), the director screenshot read and retry; 404 or 403 for other roles. Tests for each role.
-- [ ] 4.2 `feedbackLimiter`, 10 per hour per user. Test.
-- [ ] 4.3 The director view on `FeedbackPage`: filters, a detail dialog with the original, the screenshot, the log and the translation, plus retry. Tests.
+- [x] 4.1 `GET /feedback`, `GET /feedback/:id` (with `FEEDBACK_VIEWED`), the director screenshot read and retry; 404 or 403 for other roles. Tests for each role.
+- [x] 4.2 `feedbackLimiter`, 10 per hour per user. Test.
+- [x] 4.3 The director view on `FeedbackPage`: filters, a detail dialog with the original, the screenshot, the log and the translation, plus retry. Tests.
 
 ## 5. Translation and summary
 

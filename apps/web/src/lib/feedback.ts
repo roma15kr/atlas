@@ -1,7 +1,7 @@
-import { apiRequest, sessionStore } from './api';
+import { api, apiRequest, sessionStore } from './api';
 import { diagnosticsSnapshot } from './diagnostics';
 import { APP_VERSION } from './version';
-import type { FeedbackKind, FeedbackReport } from '../types';
+import type { FeedbackDetail, FeedbackKind, FeedbackReport, FeedbackStatus } from '../types';
 
 export interface FeedbackDraft {
   kind: FeedbackKind;
@@ -50,6 +50,39 @@ export async function submitFeedback(draft: FeedbackDraft, screenshot: Blob | nu
 export async function loadMyFeedback(): Promise<FeedbackReport[]> {
   if (isDemo()) return demoReports;
   return apiRequest<FeedbackReport[]>('/feedback/mine?limit=100');
+}
+
+const demoDetail = (report: FeedbackReport): FeedbackDetail => ({
+  ...report, userId: sessionStore.get()?.user.id ?? '', reporterName: sessionStore.get()?.user.fullName ?? '', departmentName: null,
+  appVersion: 'dev', userAgent: null, viewport: null, attempts: 0, lastError: null, language: null, titleEn: null, summaryEn: null,
+  translationEn: null, stepsEn: null, category: null, severity: null, area: null, triagedAt: null,
+});
+
+/** Every report of the company; directors only. */
+export async function loadAllFeedback(status?: FeedbackStatus): Promise<FeedbackDetail[]> {
+  if (isDemo()) return demoReports.filter((report) => !status || report.status === status).map(demoDetail);
+  return apiRequest<FeedbackDetail[]>(`/feedback?limit=100${status ? `&status=${status}` : ''}`);
+}
+
+/** One report with its log (directors) or without it (the reporter). */
+export async function loadFeedback(id: string): Promise<FeedbackDetail> {
+  if (isDemo()) {
+    const found = demoReports.find((report) => report.id === id);
+    if (!found) throw new Error('Обращение не найдено');
+    return { ...demoDetail(found), diagnostics: { events: [] } };
+  }
+  return apiRequest<FeedbackDetail>(`/feedback/${id}`);
+}
+
+/** The screenshot as an object URL; the caller revokes it. */
+export async function loadFeedbackScreenshot(id: string): Promise<string | null> {
+  if (isDemo()) return null;
+  return URL.createObjectURL(await api.download(`/feedback/${id}/screenshot`));
+}
+
+export async function retryFeedback(id: string): Promise<void> {
+  if (isDemo()) return;
+  await apiRequest(`/feedback/${id}/retry`, { method: 'POST' });
 }
 
 /** Test helper: forget demo reports between tests. */

@@ -67,3 +67,14 @@ export const chatPostLimiter = rateLimit({
   keyGenerator: (req) => req.auth?.userId ?? req.ip ?? "unknown",
   message: { error: { code: "CHAT_RATE_LIMITED", message: "Too many messages, slow down" } }
 });
+
+/** Problem reports: 10 per person per hour; refused submissions don't count. */
+export const feedbackLimiter = rateLimit({
+  windowMs: 60 * 60_000,
+  limit: 10,
+  skipFailedRequests: true,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  keyGenerator: (req) => req.auth?.userId ?? req.ip ?? "unknown",
+  message: { error: { code: "FEEDBACK_RATE_LIMITED", message: "Too many reports, try again later" } }
+});

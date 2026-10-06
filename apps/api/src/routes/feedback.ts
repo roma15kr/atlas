@@ -6,6 +6,7 @@ import { requireAuth } from "../auth";
 import { query } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { pagination } from "../http";
+import { feedbackLimiter } from "../middleware";
 import { objectStorage } from "../storage";
 import { detectImageType } from "./avatars";
 
@@ -49,7 +50,7 @@ const ownColumns = `f.id, f.kind, f.message, f.page, f.status, f.issue_number AS
 
 export const feedbackRouter = Router();
 
-feedbackRouter.post("/", upload.single("screenshot"), asyncHandler(async (req, res) => {
+feedbackRouter.post("/", feedbackLimiter, upload.single("screenshot"), asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
   let raw: unknown;
   try { raw = JSON.parse(String(req.body?.report ?? "")); } catch { throw new ApiError(400, "VALIDATION_ERROR", "The report must be JSON"); }
@@ -116,3 +117,78 @@ feedbackRouter.get("/:id/screenshot", asyncHandler(async (req, res) => {
   stream.on("error", (error) => res.destroy(error));
   stream.pipe(res);
 }));
+
+const directorColumns = `${ownColumns}, f.user_id AS "userId", u.full_name AS "reporterName", d.name AS "departmentName",
+  f.app_version AS "appVersion", f.user_agent AS "userAgent", f.viewport, f.attempts, f.last_error AS "lastError",
+  f.language, f.title_en AS "titleEn", f.summary_en AS "summaryEn", f.translation_en AS "translationEn",
+  f.steps_en AS "stepsEn", f.category, f.severity, f.area, f.triaged_at AS "triagedAt"`;
+
+const requireDirector = (auth: ReturnType<typeof requireAuth>) => {
+  if (auth.role !== "DIRECTOR") throw new ApiError(403, "FORBIDDEN", "Only directors can see everyone's reports");
+};
+
+/** All reports of the company, newest first; directors only. */
+feedbackRouter.get("/", asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  requireDirector(auth);
+  const filters = z.object({ status: z.enum(["PENDING", "PROCESSING", "ISSUE_CREATED", "FAILED"]).optional() }).parse(req.query);
+  const page = pagination(req);
+  const values: unknown[] = [auth.companyId];
+  let where = "f.company_id = $1";
+  if (filters.status) { values.push(filters.status); where += ` AND f.status = $${values.length}`; }
+  values.push(page.limit, page.offset);
+  const result = await query<Record<string, unknown> & { totalCount: number }>(
+    `SELECT ${directorColumns}, count(*) OVER()::int AS "totalCount"
+     FROM feedback_reports f JOIN users u ON u.id = f.user_id LEFT JOIN departments d ON d.id = f.department_id
+     WHERE ${where} ORDER BY f.created_at DESC LIMIT $${values.length - 1} OFFSET $${values.length}`,
+    values
+  );
+  res.json({ data: result.rows.map(({ totalCount: _total, ...row }) => row), meta: { ...page, total: Number(result.rows[0]?.totalCount ?? 0) } });
+}));
+
+/** One report: the director sees everything (the view is audited); the reporter their own, without the log. */
+feedbackRouter.get("/:id", asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const id = z.string().uuid().safeParse(req.params.id);
+  if (!id.success) throw new ApiError(404, "FEEDBACK_NOT_FOUND", "Report not found");
+  const row = (await query<Record<string, unknown> & { userId: string }>(
+    `SELECT ${directorColumns}, f.diagnostics FROM feedback_reports f JOIN users u ON u.id = f.user_id LEFT JOIN departments d ON d.id = f.department_id
+     WHERE f.id = $1 AND f.company_id = $2 AND (f.user_id = $3 OR $4 = 'DIRECTOR')`,
+    [id.data, auth.companyId, auth.userId, auth.role]
+  )).rows[0];
+  if (!row) throw new ApiError(404, "FEEDBACK_NOT_FOUND", "Report not found");
+  if (row.userId !== auth.userId) {
+    await writeAudit(req, { auth, action: "FEEDBACK_VIEWED", entityType: "feedback_report", entityId: id.data, metadata: { part: "report" } });
+    res.json({ data: row });
+    return;
+  }
+  const { diagnostics: _log, ...own } = row;
+  res.json({ data: own });
+}));
+
+/** Sends a failed report through processing again; directors only. */
+feedbackRouter.post("/:id/retry", asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  requireDirector(auth);
+  const id = z.string().uuid().safeParse(req.params.id);
+  if (!id.success) throw new ApiError(404, "FEEDBACK_NOT_FOUND", "Report not found");
+  const result = await query<{ id: string }>(
+    `UPDATE feedback_reports SET status = 'PENDING', attempts = 0, next_attempt_at = NULL, last_error = NULL
+     WHERE id = $1 AND company_id = $2 AND status IN ('FAILED', 'PENDING') AND issue_number IS NULL RETURNING id`,
+    [id.data, auth.companyId]
+  );
+  if (!result.rows[0]) {
+    const exists = (await query("SELECT 1 FROM feedback_reports WHERE id = $1 AND company_id = $2", [id.data, auth.companyId])).rowCount;
+    if (!exists) throw new ApiError(404, "FEEDBACK_NOT_FOUND", "Report not found");
+    throw new ApiError(409, "FEEDBACK_NOT_RETRYABLE", "Only reports that failed or are still waiting can be retried");
+  }
+  await writeAudit(req, { auth, action: "FEEDBACK_RETRIED", entityType: "feedback_report", entityId: id.data });
+  scheduleFeedbackProcessing();
+  res.json({ data: { id: id.data, status: "PENDING" } });
+}));
+
+/** Replaced in slice 5 by the processing step; kept as a seam so submit and retry can trigger it. */
+export let scheduleFeedbackProcessing: () => void = () => undefined;
+export function setFeedbackProcessor(run: () => void): void {
+  scheduleFeedbackProcessing = run;
+}

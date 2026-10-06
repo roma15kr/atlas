@@ -328,3 +328,25 @@ export interface FeedbackReport {
   hasScreenshot: boolean;
   createdAt: string;
 }
+
+/** What a director sees of a report. `diagnostics` is included only when one report is opened. */
+export interface FeedbackDetail extends FeedbackReport {
+  userId: string;
+  reporterName: string;
+  departmentName: string | null;
+  appVersion: string | null;
+  userAgent: string | null;
+  viewport: string | null;
+  attempts: number;
+  lastError: string | null;
+  language: string | null;
+  titleEn: string | null;
+  summaryEn: string | null;
+  translationEn: string | null;
+  stepsEn: string[] | null;
+  category: 'BUG' | 'COMPLAINT' | 'IDEA' | 'QUESTION' | null;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | null;
+  area: string | null;
+  triagedAt: string | null;
+  diagnostics?: { events: Array<Record<string, unknown> & { at: string; type: string }> } & Record<string, unknown>;
+}

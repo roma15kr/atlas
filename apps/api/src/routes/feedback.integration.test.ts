@@ -144,3 +144,66 @@ describe("diagnostic log", () => {
     expect(row).toEqual({ diagnostics: null, user_agent: null, app_version: "abc1234", page: "/sales" });
   });
 });
+
+describe("director inbox", () => {
+  let head: TestUser, reportId: string;
+  const as = (who: TestUser) => ({
+    get: (path: string) => request(app).get(`/api/v1/feedback${path}`).set("Authorization", `Bearer ${who.token}`),
+    retry: (id: string) => request(app).post(`/api/v1/feedback/${id}/retry`).set("Authorization", `Bearer ${who.token}`)
+  });
+
+  beforeAll(async () => {
+    head = await harness.user("head", "MANAGER", "Sales");
+    const sent = await submit(anna, report({ message: "Звіт за вересень зник зі списку", diagnostics: { version: "abc", page: "/reports", userAgent: "Chrome", viewport: "1x1", language: "uk", timeZone: "Europe/Kyiv", online: true, events: [] } }));
+    reportId = sent.body.data.id;
+  });
+
+  it("lists every report of the company for a director, with the reporter, and filters by status", async () => {
+    const list = await as(boss).get("");
+    expect(list.status).toBe(200);
+    expect(list.body.data.length).toBeGreaterThan(3);
+    expect(list.body.data[0]).toMatchObject({ id: reportId, reporterName: expect.any(String), departmentName: "Sales", status: "PENDING" });
+    expect((await as(boss).get("?status=ISSUE_CREATED")).body.data).toEqual([]);
+  });
+
+  it("refuses the list to heads and employees", async () => {
+    expect((await as(head).get("")).status).toBe(403);
+    expect((await as(anna).get("")).status).toBe(403);
+  });
+
+  it("shows a director the full report with its log and audits it; the reporter sees their own without the log", async () => {
+    const full = await as(boss).get(`/${reportId}`);
+    expect(full.body.data).toMatchObject({ message: expect.stringContaining("вересень"), diagnostics: { page: "/reports" } });
+    const viewed = (await harness.query<{ metadata: { part: string } }>("SELECT metadata FROM audit_logs WHERE action = 'FEEDBACK_VIEWED' AND entity_id = $1", [reportId])).rows;
+    expect(viewed.map((row) => row.metadata.part)).toContain("report");
+    const own = await as(anna).get(`/${reportId}`);
+    expect(own.status).toBe(200);
+    expect(own.body.data).not.toHaveProperty("diagnostics");
+    expect((await as(boris).get(`/${reportId}`)).status).toBe(404);
+    expect((await as(head).get(`/${reportId}`)).status).toBe(404);
+  });
+
+  it("lets only a director retry, and only a report without an issue", async () => {
+    expect((await as(anna).retry(reportId)).status).toBe(403);
+    expect((await as(head).retry(reportId)).status).toBe(403);
+    await harness.query("UPDATE feedback_reports SET status = 'FAILED', attempts = 5, last_error = 'GitHub 502' WHERE id = $1", [reportId]);
+    const retried = await as(boss).retry(reportId);
+    expect(retried.body.data).toEqual({ id: reportId, status: "PENDING" });
+    const row = (await harness.query<{ attempts: number; last_error: string | null }>("SELECT attempts, last_error FROM feedback_reports WHERE id = $1", [reportId])).rows[0];
+    expect(row).toEqual({ attempts: 0, last_error: null });
+    await harness.query("UPDATE feedback_reports SET status = 'ISSUE_CREATED', issue_number = 7, issue_url = 'https://github.com/x/y/issues/7' WHERE id = $1", [reportId]);
+    expect((await as(boss).retry(reportId)).status).toBe(409);
+  });
+});
+
+describe("rate limit", () => {
+  it("allows 10 reports per hour per person, and refused ones don't count", async () => {
+    const carol = await harness.user("carol", "EMPLOYEE", "Sales");
+    expect((await submit(carol, report({ message: "коротко" }))).status).toBe(400);
+    for (let index = 0; index < 10; index += 1) expect((await submit(carol)).status).toBe(201);
+    const limited = await submit(carol);
+    expect(limited.status).toBe(429);
+    expect(limited.body.error.code).toBe("FEEDBACK_RATE_LIMITED");
+    expect((await submit(boris, report({ message: "Інший співробітник теж має проблему" }))).status).toBe(201);
+  });
+});
