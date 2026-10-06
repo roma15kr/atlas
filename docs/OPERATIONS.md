@@ -183,6 +183,19 @@ the documents volume (or S3) under the company prefix, so the existing document
 backups include them. Photos are served from `/api/v1/avatars/<id>` with a
 year-long immutable cache. Nginx needs no change, because the path is under `/api/`.
 
+## AI analysis (OpenAI)
+
+The AI analysis on the Team and Profile screens calls OpenAI when `OPENAI_API_KEY`
+is set in Coolify. `AI_ANALYSIS_MODEL` (default `gpt-6-luna`) picks the model and
+can be changed without a release. Without a key, or when the model fails, the
+built-in rule texts are returned, labelled «Правила»; the stored analysis records
+why (`fallback_reason`).
+
+Only aggregated figures and the viewer's role are sent: never names, messages or
+client data. Every analysis is kept in `ai_analyses` (migration 013). Set a
+monthly spending limit on the OpenAI project. To rotate the key, create a new key,
+set it in Coolify, redeploy, then delete the old key in OpenAI.
+
 ## Email
 
 Users connect their own mailboxes under Почта → Настройки. Mail is private to its

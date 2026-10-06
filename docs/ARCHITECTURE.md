@@ -23,8 +23,10 @@ storage, which the API supports through optional `S3_*` settings.
 External integrations are adapter boundaries. An adapter reports `disabled`
 until its server-side credentials are configured; secrets never enter the web
 bundle. The AI boundary (`/api/v1/ai/analyze`, shown on the team and profile
-screens) combines deterministic rules with optional Claude summarization and
-never reads private message content.
+screens) sends aggregated figures to an OpenAI model (`AI_ANALYSIS_MODEL`, default
+`gpt-6-luna`) through `llm/openai.ts`, falls back to deterministic rules, and
+never reads private message content. Every analysis is stored in `ai_analyses`;
+nobody sees analyses someone else ran about them.
 
 ## Access model
 

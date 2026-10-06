@@ -20,6 +20,6 @@ Each slice ends with `make check && npm run build` passing, and a commit. A test
 
 ## 4. Remove Claude and release
 
-- [ ] 4.1 Remove `ANTHROPIC_*` from `config.ts` and `.env.example`, and update `docs/external/README.md` and `docs/OPERATIONS.md`.
+- [x] 4.1 Remove `ANTHROPIC_*` from `config.ts` and `.env.example`, and update `docs/external/README.md` and `docs/OPERATIONS.md`.
 - [ ] 4.2 Set `OPENAI_API_KEY` in Coolify, deploy, and check all three modes live, in Russian with "₴", with no attendance without consent, and `source: AI` in the audit.
 - [ ] 4.3 Update `STATUS.md`.
