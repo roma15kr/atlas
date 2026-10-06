@@ -13,20 +13,20 @@ The system SHALL store every analysis it returns, whether from the model or the 
 
 Stored analyses SHALL NOT be sent outside Atlas, and SHALL NOT be edited.
 
-A stored analysis SHALL be visible to the people who may analyse that person:
-- the person it is about;
-- the managers of their department;
+A stored analysis SHALL be visible to:
+- the person it is about, only if they requested it themselves;
+- the managers of that person's department;
 - the directors of the company.
 
-Anyone else SHALL get 404.
+Anyone else, including the person it is about when a manager or director requested it, SHALL get 404.
 
 #### Scenario: Analysis is kept
 - **WHEN** a manager runs a FORECAST for an employee of their department
 - **THEN** the result is stored with the manager as requester, the employee as subject, mode FORECAST, the source and the model, and it appears in that employee's analysis history
 
-#### Scenario: Employee sees analyses about themselves
-- **WHEN** an employee opens the history in their profile
-- **THEN** they see every stored analysis about them, including ones their manager requested
+#### Scenario: Employee sees only their own analyses
+- **WHEN** an employee opens the history in their profile, after running two analyses themselves while their manager ran one about them
+- **THEN** they see their own two, and the manager's analysis is not listed and answers 404 if requested directly
 
 #### Scenario: Colleague's history is hidden
 - **WHEN** an employee requests the analysis history of a colleague

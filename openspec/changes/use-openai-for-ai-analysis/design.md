@@ -18,7 +18,7 @@ Access rules don't change: analysis of oneself, or of people the requester manag
 
 Indexes are on `(subject_id, created_at DESC)` and `(company_id, created_at DESC)`. The table is append-only: no update or delete endpoints. The feedback change's migration becomes `014`.
 
-**History visibility** follows `manageableUser`, the same rule as running an analysis: the subject themselves, managers of the subject's department, and directors of the company. Anyone else gets 404.
+**History visibility:** `manageableUser` decides who may see a person's history at all: themselves, managers of their department, directors. Within that, an EMPLOYEE viewing their own history gets only rows with `requested_by = subject_id`. Analyses a manager or director ran about them are filtered out of the list and answer 404 by id. Decided by the product owner on 2026-10-06.
 
 **Audit:** no new events. `AI_ANALYSIS_REQUESTED` gets `analysisId` and `model`, and its `source` becomes `AI` or `RULES`. Opening history is not audited, because the requester can see those people anyway.
 
@@ -100,6 +100,7 @@ type AiResult = { summary: string; recommendations: string[]; source: "AI" | "RU
 - `stores every analysis, including rule fallbacks`
 - `lets the subject, their department's manager and a director read the history`
 - `answers 404 to a colleague and to a manager of another department`
+- `hides analyses a manager ran about an employee from that employee's history and by id`
 
 **Web:**
 - `shows the model badge for AI results and "Правила" for the fallback`
@@ -112,6 +113,6 @@ type AiResult = { summary: string; recommendations: string[]; source: "AI" | "RU
 
 1. **One small model for both features.** `gpt-6-luna` is cheap, about $0.00016 per analysis, but its reasoning on forecasts was shallow in the test. The per-mode instructions should help; if not, `AI_ANALYSIS_MODEL` switches models without code changes.
 2. **Removing Claude entirely.** This removes the Anthropic integration rather than keeping both providers behind a switch. It means less code and one data processor; switching back later is a contained change.
-3. **Employees see analyses about themselves,** including evaluations their manager ran. This is the same transparency rule Atlas uses for alerts. The alternative is hiding manager-requested analyses from the subject.
+3. **Employees don't see analyses others ran about them** (product owner, 2026-10-06). Managers and directors can evaluate without the employee seeing it. This differs from alerts, where employees see alerts about themselves.
 4. **No retention limit.** Analyses are kept indefinitely. If that's too long for HR data, add a retention period, for example 24 months, in a later change.
 5. **The `source` value.** It changes from `CLAUDE` to `AI` in API responses and the audit. Old audit rows keep `CLAUDE`, so a report on the success metric must count both.
