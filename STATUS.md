@@ -1,5 +1,5 @@
 # Status
-_Last updated: 2026-10-05 by Claude_
+_Last updated: 2026-10-06 by Claude_
 
 ## Current focus
 - **Awaiting review:** OpenSpec proposal `add-in-app-feedback`. It adds problem reports from every screen with a screenshot and a diagnostic log, and turns each into an anonymised English GitHub issue. Decide its "Least confident decisions" first, especially automatic publishing to the public repository.
@@ -22,7 +22,7 @@ _Last updated: 2026-10-05 by Claude_
 3. Feed job descriptions into the AI analysis.
 
 ## Open questions
-- Feedback: publish every report automatically to the public GitHub repository, or hold complaints for approval? May we add `modern-screenshot` and `@anthropic-ai/sdk`?
+- Feedback: publish every report automatically to the public GitHub repository, or hold complaints for approval? May we add `modern-screenshot` and `openai`? (Triage model decided: OpenAI `gpt-6-luna`.)
 - Should employees see colleagues in the Team directory? Today they see only themselves.
 - Should a director see colleagues' full birth dates, not just day and month?
 - Should employees be able to write or suggest their own job description?

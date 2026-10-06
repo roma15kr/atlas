@@ -20,7 +20,7 @@ The development team works in English on GitHub. Users write in Ukrainian. Someo
 
 **At least 90% of submitted reports appear as a GitHub issue within 10 minutes,** measured monthly from each report's submission time to its issue's creation time.
 
-Reports the director dismisses on purpose are excluded. Reports still waiting because GitHub or Claude isn't configured count as misses.
+Reports the director dismisses on purpose are excluded. Reports still waiting because GitHub or the translation service isn't configured count as misses.
 
 ## Announcement
 
@@ -44,7 +44,7 @@ Reports the director dismisses on purpose are excluded. Reports still waiting be
   2. stripped of personal data;
   3. filed as a GitHub issue with labels.
 - **Privacy rule.** The GitHub repository is public, so an issue contains only the anonymised English text and technical context. The screenshot, the log, the original text and the reporter's identity stay in Atlas.
-- **Without credentials.** Until the GitHub and Claude credentials are configured, reports are kept and shown in the director inbox, and they are filed once the credentials exist.
+- **Without credentials.** Until the GitHub and translation-service (OpenAI) credentials are configured, reports are kept and shown in the director inbox, and they are filed once the credentials exist.
 
 ## Non-goals
 

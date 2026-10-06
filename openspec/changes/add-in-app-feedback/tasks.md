@@ -30,7 +30,7 @@ Each slice ends with `make check && npm run build` passing, and a commit. A test
 
 ## 5. Translation and summary
 
-- [ ] 5.1 Add `@anthropic-ai/sdk`. `triageReport` uses `messages.parse` with a Zod output format and `FEEDBACK_MODEL` (default `claude-opus-5-5`, effort low), handles refusals, and runs `scrubPersonalData`. Unit tests with a stubbed client.
+- [ ] 5.1 Add `openai`. `triageReport` uses `responses.parse` with `zodTextFormat` and `FEEDBACK_MODEL` (default `gpt-6-luna`), handles refusals and unparsable output, and runs `scrubPersonalData`. Unit tests with a stubbed client, plus a fixture for the source-language code and the placeholders.
 - [ ] 5.2 The `processFeedback` automation step (claim, triage, store), without GitHub yet; it runs after submit and every 10 minutes. Tests: waits without credentials, backoff, the attempt limit.
 
 ## 6. GitHub issues
@@ -46,5 +46,5 @@ Each slice ends with `make check && npm run build` passing, and a commit. A test
   - `docs/OPERATIONS.md`: creating the GitHub token, and finding a request id in the logs;
   - `docs/ARCHITECTURE.md`: the code map entry.
 - [ ] 7.2 Take screenshots of the dialog and the inbox at desktop and 400px widths, against `ui-design-system`.
-- [ ] 7.3 On the Coolify test app, after `GITHUB_TOKEN` and `ANTHROPIC_API_KEY` are set: a Ukrainian report with a screenshot becomes an English GitHub issue with labels and no personal data, and the status shows in Atlas.
+- [ ] 7.3 On the Coolify test app, after `GITHUB_TOKEN` and `OPENAI_API_KEY` are set: a Ukrainian report with a screenshot becomes an English GitHub issue with labels and no personal data, and the status shows in Atlas.
 - [ ] 7.4 Update `STATUS.md`.

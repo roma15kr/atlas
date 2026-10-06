@@ -111,7 +111,7 @@ Before it is created, the issue text SHALL be checked once more for email addres
 - **THEN** the issue shows "[email]" instead
 
 ### Requirement: Processing without configuration and retries
-- Without the GitHub and Claude credentials configured, reports SHALL be stored with the status "Ожидает обработки", and the director inbox SHALL say what is missing.
+- Without the GitHub and translation-service credentials configured, reports SHALL be stored with the status "Ожидает обработки", and the director inbox SHALL say what is missing.
 - Once both are configured, waiting reports SHALL be processed automatically.
 - A failure SHALL be retried at most 5 times with growing delays. After that the report SHALL be marked failed with the reason, and a director SHALL be able to retry it.
 - A director SHALL be able to dismiss a report so that no issue is created.

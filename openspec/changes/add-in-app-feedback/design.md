@@ -4,8 +4,9 @@
 
 - **Repository visibility.** The GitHub repository `roma15kr/atlas` is **public**: anything in an issue is world-readable.
 - **AI integration today.**
-  - `apps/api/src/ai.ts` calls Claude with raw `fetch`, using `ANTHROPIC_MODEL`, whose default is still `claude-sonnet-4-20250514`.
-  - The API has no Anthropic SDK and no GitHub client.
+  - `apps/api/src/ai.ts` calls Claude with raw `fetch` for the AI analysis screens. This change leaves it alone.
+  - Translation and triage use **OpenAI `gpt-6-luna`**, chosen by the product owner on 2026-10-06 for cost: $0.10 in and $0.50 out per million tokens.
+  - The API has no OpenAI SDK and no GitHub client.
   - `zod` is already an API dependency.
 - **Logging.** `pino-http` logs requests but assigns no request id that the client can see. The web build has no version.
 - **Uploads and storage.** `objectStorage` stores files (local volume or S3), and `routes/avatars.ts` `detectImageType` recognises PNG, JPEG and WebP by magic bytes.
@@ -42,8 +43,8 @@ Recorded in `docs/external/README.md` (names only):
 
 | Variable | Purpose |
 | --- | --- |
-| `ANTHROPIC_API_KEY` | Already exists; also enables triage |
-| `FEEDBACK_MODEL` | Default `claude-opus-5-5`, at effort `low` |
+| `OPENAI_API_KEY` | Enables triage; set in Coolify |
+| `FEEDBACK_MODEL` | Default `gpt-6-luna` |
 | `GITHUB_TOKEN` | A fine-grained token limited to the one repository with Issues read/write and nothing else; set in Coolify |
 | `GITHUB_REPOSITORY` | `owner/name`, for example `roma15kr/atlas` |
 | `VITE_APP_VERSION` | Build argument for the web image: the git revision |
@@ -53,15 +54,15 @@ Recorded in `docs/external/README.md` (names only):
 
 **API (`apps/api/src`):**
 - `routes/feedback.ts`: new. `POST /feedback` (multipart: `report` JSON plus an optional `screenshot`), `GET /feedback/mine`, `GET /feedback` (director), `GET /feedback/:id`, `GET /feedback/:id/screenshot`, `POST /feedback/:id/dismiss`, `POST /feedback/:id/retry`.
-- `feedback/triage.ts`: new. The Claude call through `@anthropic-ai/sdk` `messages.parse` with a Zod output format, plus the personal-data scrub.
+- `feedback/triage.ts`: new. The OpenAI call through the `openai` package's `responses.parse`, with `text.format = zodTextFormat(triageSchema, "feedback_triage")` (strict JSON schema), plus the personal-data scrub.
 - `feedback/github.ts`: new. Issue creation through the GitHub REST API with `fetch`; labels are created on first use.
 - `feedback/scrub.ts`: new. A regex pass that replaces email addresses, phone numbers and URLs with query strings.
 - `automation/feedback.ts`: new. The step `processFeedback(now)`, registered after alerts.
 - `app.ts`: `pino-http` `genReqId` uses an incoming `X-Request-Id` only if it is a UUID, otherwise `randomUUID()`, and sets the response header; mounts `feedbackRouter`.
 - `config.ts`: adds `FEEDBACK_MODEL`, `GITHUB_TOKEN`, `GITHUB_REPOSITORY` and `APP_VERSION`.
 - `middleware.ts`: `feedbackLimiter`, 10 per user per hour.
-- `routes/integrations.ts`: reports `feedback: { claude, github }` as enabled or disabled.
-- `package.json`: adds `@anthropic-ai/sdk`.
+- `routes/integrations.ts`: reports `feedback: { openai, github }` as enabled or disabled.
+- `package.json`: adds `openai`.
 
 **Database:** `database/013_feedback_reports.sql`.
 
@@ -106,7 +107,7 @@ export function captureScreen(root?: HTMLElement): Promise<Blob | null>;
 export function FeedbackDialog(props: { screenshot: Blob | null; onClose: () => void }): JSX.Element;
 
 // apps/api/src/feedback/triage.ts
-export const triageSchema: z.ZodObject<{ language; title; summary; translation; steps; category; severity; area }>;
+export const triageSchema: z.ZodObject<{ language: 'uk'|'ru'|'en'|'other'; title; summary; translation; steps; category; severity; area }>;
 export type Triage = z.infer<typeof triageSchema>;
 export function triageReport(input: { kind: string; message: string; page: string; errors: string[] }): Promise<Triage>;
 
@@ -132,15 +133,15 @@ export function processFeedback(now?: Date, deps?: { triage?: typeof triageRepor
 6. Then `setImmediate(() => processFeedback())`, so it doesn't wait for the 10-minute tick.
 
 **Process (automation step, also after each submit)**
-1. `processFeedback`: if Claude or GitHub isn't configured, return.
+1. `processFeedback`: if OpenAI or GitHub isn't configured, return.
 2. Claim up to 10 rows: `PENDING`, or `FAILED` with `attempts < 5` and `next_attempt_at <= now`, set to `PROCESSING`.
 3. For each row:
-   1. `triageReport`: `messages.parse` with `output_config.format = zodOutputFormat(triageSchema)`, effort `low`, and a system prompt with the anonymisation rules and the list of areas.
+   1. `triageReport`: `openai.responses.parse` with model `FEEDBACK_MODEL`, a system prompt with the anonymisation rules and the list of areas, and `text.format = zodTextFormat(triageSchema, "feedback_triage")`.
    2. `scrubPersonalData` on every English field.
    3. Build the body with `feedbackIssueBody`, then `createIssue`.
    4. `UPDATE status ISSUE_CREATED, issue_*` → `writeAutomationAudit FEEDBACK_ISSUE_CREATED`.
 4. On an error: `attempts+1`, `next_attempt_at = now + 2^attempts minutes`, `status FAILED`, `last_error` (the message only).
-5. A Claude `refusal` stop reason is recorded as a failure with reason "refused".
+5. A `refusal` content item in the response, or a missing `output_parsed`, is recorded as a failure with reason "refused" or "unparsable".
 
 **Director review**
 1. `FeedbackPage` → `GET /feedback` (list).
@@ -161,8 +162,9 @@ export function processFeedback(now?: Date, deps?: { triage?: typeof triageRepor
 **API unit (`feedback/*.test.ts`):**
 - `scrubPersonalData replaces emails, phones and query strings`
 - `feedbackIssueBody contains no original text, reporter or log`
-- `triageReport parses a structured response` (Anthropic client stubbed)
+- `triageReport parses a structured response` (OpenAI client stubbed)
 - `triageReport rejects a refusal`
+- `triage prompt keeps placeholders and reports the source language` (prompt fixture)
 
 **Automation (`automation/feedback.integration.test.ts`, fake triage and GitHub):**
 - `creates exactly one issue per report even when two runs overlap`
@@ -194,8 +196,13 @@ export function processFeedback(now?: Date, deps?: { triage?: typeof triageRepor
 2. **New libraries.**
    - `modern-screenshot` in the web app captures the page by redrawing the DOM, with no permission prompt. It can miss some cross-origin images and canvas content.
    - The alternative is the browser's screen-capture API. That needs no library, but asks the user's permission every time and opens a picker, so it isn't automatic.
-   - `@anthropic-ai/sdk` in the API is recommended over raw `fetch` for structured output and typed errors.
-3. **Model and cost.** `claude-opus-5-5` at effort `low` per report, a few thousand tokens, about $0.02 or less. A cheaper Sonnet or Haiku could do translation; it's switchable through `FEEDBACK_MODEL`.
+   - The `openai` package in the API gives the `responses.parse` and `zodTextFormat` helpers for strict structured output and typed errors.
+3. **Model quality.** `gpt-6-luna` was chosen for cost: about $0.0002 per report, so 50 reports a month cost under one cent. A live test on 2026-10-06 used a Ukrainian complaint containing two names, a company, a phone number, an email and an amount:
+   - **Good:** no personal value leaked; the category, severity and area were right; the steps to reproduce were useful.
+   - **Weak:** it reported the language as "English" and paraphrased the text instead of keeping `[person]`/`[client]` placeholders.
+
+   The prompt therefore asks for the ISO 639-1 code of the *original* text (`uk`, `ru`, `en` or `other`, as an enum) and a faithful translation that keeps a placeholder wherever a value was removed. A fixture test covers both. If leaks appear in practice, `FEEDBACK_MODEL` can switch to a stronger model without code changes.
+6. **A second AI provider.** Atlas will use Claude for the AI analysis screens and OpenAI for feedback triage. That means two keys and two data processors to mention in the privacy notice.
 4. **Who sees reports.** Directors only. Heads are excluded because complaints may concern them, but that means heads can't follow their own team's bug reports.
 5. **Log content.** Paths keep record ids, for example `/api/v1/clients/<uuid>`. That is useful for reproducing, but the ids aren't fully anonymous; they stay inside Atlas and are never sent to GitHub.
-6. **Signed-in only.** Problems on the sign-in screen can't be reported.
+7. **Signed-in only.** Problems on the sign-in screen can't be reported.
