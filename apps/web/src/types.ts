@@ -260,10 +260,17 @@ export interface ReportRun {
 
 export type AiMode = 'ADVICE' | 'EVALUATION' | 'FORECAST';
 
+/** A stored analysis: from the AI model, or from the built-in rules when the model is unavailable. */
 export interface AiAnalysis {
+  id: string;
+  mode: AiMode;
+  createdAt: string;
+  subjectId: string;
+  requestedById: string;
+  requestedByName?: string;
   summary: string;
   recommendations: string[];
-  source: 'CLAUDE' | 'RULES';
+  source: 'AI' | 'RULES';
   model?: string;
   fallbackReason?: string;
 }
