@@ -24,7 +24,7 @@
 
 The reporter's own read omits the log; they wrote it, and it isn't useful to them.
 
-## Data: migration `013_feedback_reports.sql`
+## Data: migration `014_feedback_reports.sql`
 
 `feedback_reports`:
 - **Identity and source:** `id`, `company_id`, `user_id`, `department_id`, `kind` (`PROBLEM|COMPLAINT|IDEA`), `message` (text of 10–5,000 characters), `page`, `app_version`, `user_agent`, `viewport`.
@@ -64,7 +64,7 @@ Recorded in `docs/external/README.md` (names only):
 - `routes/integrations.ts`: reports `feedback: { openai, github }` as enabled or disabled.
 - `package.json`: nothing new for OpenAI; `use-openai-for-ai-analysis` already adds `openai`.
 
-**Database:** `database/013_feedback_reports.sql`.
+**Database:** `database/014_feedback_reports.sql`.
 
 **Web (`apps/web/src`):**
 - `lib/diagnostics.ts`: new. A ring buffer and `snapshot()`.

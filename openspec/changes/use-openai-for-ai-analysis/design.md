@@ -9,7 +9,18 @@
 
 Access rules don't change: analysis of oneself, or of people the requester manages (`manageableUser`). Pipeline figures cover only funnels the requester may open. Presence is used only with monitoring consent.
 
-No migrations. No new audit events; the `source` value in `AI_ANALYSIS_REQUESTED` becomes `AI` or `RULES`, and a `model` field is added.
+**Migration `013_ai_analyses.sql`:** table `ai_analyses` with:
+- `id`, `company_id`, `requested_by`, `subject_id`, `subject_department_id`;
+- `mode` (`ADVICE|EVALUATION|FORECAST`);
+- `summary`, `recommendations` (jsonb array), `source` (`AI|RULES`), `model`, `fallback_reason`;
+- `metrics` (jsonb, the aggregated figures sent to the model; never names or client data);
+- `created_at`.
+
+Indexes are on `(subject_id, created_at DESC)` and `(company_id, created_at DESC)`. The table is append-only: no update or delete endpoints. The feedback change's migration becomes `014`.
+
+**History visibility** follows `manageableUser`, the same rule as running an analysis: the subject themselves, managers of the subject's department, and directors of the company. Anyone else gets 404.
+
+**Audit:** no new events. `AI_ANALYSIS_REQUESTED` gets `analysisId` and `model`, and its `source` becomes `AI` or `RULES`. Opening history is not audited, because the requester can see those people anyway.
 
 ## External services and environment variables
 
@@ -30,10 +41,16 @@ Recorded in `docs/external/README.md`:
   - return `{ source: "AI", model }`;
   - remove `stripCodeFence`.
 - `apps/api/src/config.ts`: add `OPENAI_API_KEY` and `AI_ANALYSIS_MODEL`, and remove `ANTHROPIC_*`. Keep the startup check that rejects demo seeding in production.
+- `apps/api/src/routes/ai.ts`:
+  - store each result in `ai_analyses` and return its `id` and `createdAt`;
+  - `GET /ai/analyses?targetUserId=&mode=&limit=&offset=` (paged, newest first) and `GET /ai/analyses/:id`, both through `manageableUser`;
+  - `/ai/status` reports the OpenAI configuration instead of Anthropic.
+- `database/013_ai_analyses.sql`.
 - `apps/api/src/routes/integrations.ts`: report `ai: { provider: "openai", model, enabled }`.
 - `apps/api/package.json`: add `openai`.
 - `apps/web/src/types.ts`: `AiAnalysis.source` becomes `'AI' | 'RULES'`, and `model?: string` is added.
-- `apps/web/src/components/AiAnalysisDialog.tsx`: the badge reads "AI · gpt-6-luna" (info tone) or "Правила" (neutral). The fallback note becomes "Модель недоступна, использованы встроенные правила."
+- `apps/web/src/context/AppContext.tsx`: `analyze` returns the stored analysis; `loadAnalyses(targetUserId)` added, with demo branches that keep history in memory.
+- `apps/web/src/components/AiAnalysisDialog.tsx`: a `Segmented` control switches between "Новый анализ" and "История". The history list shows date, mode, requester and source, and opens a stored analysis. The badge reads "AI · gpt-6-luna" (info tone) or "Правила" (neutral). The fallback note becomes "Модель недоступна, использованы встроенные правила."
 - `apps/web/src/data/demo.ts` and the demo branch of `analyze`: return `source: 'RULES'`.
 - `.env.example`, `docs/external/README.md`, `docs/OPERATIONS.md`: the new variables.
 - `openspec/specs`: `alerts-ai` deltas. "Work analysis" is replaced by "AI work analysis", because its Claude scenarios are retired; "Metadata-only AI input" is modified.
@@ -64,7 +81,10 @@ type AiResult = { summary: string; recommendations: string[]; source: "AI" | "RU
    - `structuredResponse({ model: AI_ANALYSIS_MODEL, schemaName: "work_analysis", schema: analysisSchema, system: BASE_RULES + analysisInstructions(mode), user: JSON.stringify({ mode, viewerRole, metrics, baseline }) })`;
    - on success, return `{ ...parsed, source: "AI", model }`.
 4. On an `LlmError`, return the rules with `fallbackReason = reason`.
-5. Write `AI_ANALYSIS_REQUESTED { mode, source, model }`, then respond.
+5. `INSERT ai_analyses` with the result and the metrics.
+6. Write `AI_ANALYSIS_REQUESTED { analysisId, mode, source, model }`, then respond with the stored analysis.
+
+**History:** `GET /ai/analyses?targetUserId` → `manageableUser` (404 out of scope) → `SELECT … WHERE subject_id = $1 AND company_id = $2 ORDER BY created_at DESC LIMIT/OFFSET`, joined with the requester's name.
 
 ## Test plan
 
@@ -75,9 +95,16 @@ type AiResult = { summary: string; recommendations: string[]; source: "AI" | "RU
 - `omits presence from the metrics and forbids mentioning it when consent is missing`
 - `gives each mode its own instructions and the ₴ rule`
 
-**API integration:** `audits AI_ANALYSIS_REQUESTED with source and model`.
+**API integration:**
+- `audits AI_ANALYSIS_REQUESTED with source, model and analysisId`
+- `stores every analysis, including rule fallbacks`
+- `lets the subject, their department's manager and a director read the history`
+- `answers 404 to a colleague and to a manager of another department`
 
-**Web:** `shows the model badge for AI results and "Правила" for the fallback`.
+**Web:**
+- `shows the model badge for AI results and "Правила" for the fallback`
+- `a new analysis appears at the top of the history`
+- `opening a stored analysis shows its summary, recommendations and figures`
 
 **Live on the Coolify test app, with `OPENAI_API_KEY` set:** all three modes return distinct Russian results using "₴" and give no attendance without consent; the audit shows `source: AI`.
 
@@ -85,4 +112,6 @@ type AiResult = { summary: string; recommendations: string[]; source: "AI" | "RU
 
 1. **One small model for both features.** `gpt-6-luna` is cheap, about $0.00016 per analysis, but its reasoning on forecasts was shallow in the test. The per-mode instructions should help; if not, `AI_ANALYSIS_MODEL` switches models without code changes.
 2. **Removing Claude entirely.** This removes the Anthropic integration rather than keeping both providers behind a switch. It means less code and one data processor; switching back later is a contained change.
-3. **The `source` value.** It changes from `CLAUDE` to `AI` in API responses and the audit. Old audit rows keep `CLAUDE`, so a report on the success metric must count both.
+3. **Employees see analyses about themselves,** including evaluations their manager ran. This is the same transparency rule Atlas uses for alerts. The alternative is hiding manager-requested analyses from the subject.
+4. **No retention limit.** Analyses are kept indefinitely. If that's too long for HR data, add a retention period, for example 24 months, in a later change.
+5. **The `source` value.** It changes from `CLAUDE` to `AI` in API responses and the audit. Old audit rows keep `CLAUDE`, so a report on the success metric must count both.

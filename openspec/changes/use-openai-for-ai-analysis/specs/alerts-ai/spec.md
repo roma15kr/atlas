@@ -2,6 +2,47 @@
 
 ## ADDED Requirements
 
+### Requirement: Stored AI analyses
+The system SHALL store every analysis it returns, whether from the model or the rules, inside Atlas. Each stored analysis SHALL keep:
+- who requested it and whom it is about;
+- the mode;
+- the summary and the recommendations;
+- the source, the model and any fallback reason;
+- the figures it was based on;
+- the time.
+
+Stored analyses SHALL NOT be sent outside Atlas, and SHALL NOT be edited.
+
+A stored analysis SHALL be visible to the people who may analyse that person:
+- the person it is about;
+- the managers of their department;
+- the directors of the company.
+
+Anyone else SHALL get 404.
+
+#### Scenario: Analysis is kept
+- **WHEN** a manager runs a FORECAST for an employee of their department
+- **THEN** the result is stored with the manager as requester, the employee as subject, mode FORECAST, the source and the model, and it appears in that employee's analysis history
+
+#### Scenario: Employee sees analyses about themselves
+- **WHEN** an employee opens the history in their profile
+- **THEN** they see every stored analysis about them, including ones their manager requested
+
+#### Scenario: Colleague's history is hidden
+- **WHEN** an employee requests the analysis history of a colleague
+- **THEN** the response is 404
+
+### Requirement: AI analysis history screen
+The "AI-анализ" dialog SHALL have two views:
+- "Новый анализ", which runs an analysis;
+- "История", which lists that person's stored analyses, newest first, with the date, mode, requester and source, and opens one to show it in full.
+
+A newly run analysis SHALL appear at the top of the history.
+
+#### Scenario: Comparing forecasts
+- **WHEN** a director opens "История" for an employee with three stored forecasts
+- **THEN** all three are listed with their dates, and opening one shows its summary, recommendations and the figures it was based on
+
 ### Requirement: AI work analysis
 The system SHALL produce an ADVICE, EVALUATION or FORECAST analysis for the caller or a user they can manage. It SHALL use KPI progress, task totals and overdue count, open and weighted pipeline in UAH, and 30-day presence activity. Pipeline figures SHALL include only deals in `OPEN` stages of funnels the requester can access. The request SHALL be audited as `AI_ANALYSIS_REQUESTED` with mode, source and model.
 

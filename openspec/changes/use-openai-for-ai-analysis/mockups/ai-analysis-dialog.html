@@ -9,13 +9,27 @@ header{padding:18px 20px;border-bottom:1px solid var(--line)}h2{margin:0;font-si
 .result{border:1px solid var(--line);border-radius:8px;padding:12px}.result header{padding:0 0 8px;border:0;display:flex;gap:8px;align-items:center}
 .badge{font-size:11px;font-weight:650;border-radius:5px;padding:2px 7px}.ai{background:var(--blue-soft);color:var(--blue)}.rules{background:#eef1f0;color:var(--muted)}
 ul{margin:6px 0 0;padding-left:18px}small{color:var(--muted)}
+.hist{border:1px solid var(--line);border-radius:8px}.hist div{display:grid;grid-template-columns:110px 1fr auto;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);align-items:center}.hist div:last-child{border-bottom:0}.hist .on{background:var(--primary-soft);box-shadow:inset 3px 0 var(--primary)}
+h3{font-size:13px;margin:18px auto 8px;max-width:560px}
 </style></head><body>
 <section class="dialog" role="dialog" aria-label="AI-анализ">
 <header><h2>AI-анализ</h2><p>Анна Петрова · по KPI, задачам и воронке. Переписка не анализируется.</p></header>
 <div class="body">
+<div class="seg" aria-label="Вид"><span class="on">Новый анализ</span><span>История · 4</span></div>
 <div class="seg"><span>Совет</span><span>Оценка</span><span class="on">Прогноз</span></div>
 <div class="result"><header><strong>Прогноз</strong><span class="badge ai">AI · gpt-6-luna</span></header>
 <p>По 7 открытым сделкам на 840 000 ₴ взвешенный ожидаемый результат — около 210 000 ₴. Прогноз опирается на текущие вероятности сделок; истории прошлых периодов для уточнения нет.</p>
 <ul><li>Обновите вероятности по трём крупнейшим сделкам после ближайших встреч.</li><li>Назначьте следующий шаг каждой сделке без активности дольше недели.</li></ul></div>
 <div class="result"><header><strong>Если модель недоступна</strong><span class="badge rules">Правила</span></header><small>Модель недоступна, использованы встроенные правила.</small></div>
+</div></section>
+<h3>Вид «История»</h3>
+<section class="dialog" aria-label="История анализов"><div class="body">
+<div class="seg" aria-label="Вид"><span>Новый анализ</span><span class="on">История · 4</span></div>
+<div class="hist">
+<div class="on"><span>06.10.2026 11:20</span><span><strong>Прогноз</strong> · запросил Михаил Волков</span><span class="badge ai">AI · gpt-6-luna</span></div>
+<div><span>01.10.2026 09:05</span><span><strong>Оценка</strong> · запросила Анна Петрова</span><span class="badge ai">AI · gpt-6-luna</span></div>
+<div><span>15.09.2026 16:42</span><span><strong>Прогноз</strong> · запросил Михаил Волков</span><span class="badge rules">Правила</span></div>
+<div><span>02.09.2026 10:11</span><span><strong>Совет</strong> · запросила Анна Петрова</span><span class="badge rules">Правила</span></div>
+</div>
+<small>Анализы хранятся только в Atlas. Их видят сам сотрудник, руководитель отдела и директора.</small>
 </div></section></body></html>
