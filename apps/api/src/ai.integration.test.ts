@@ -93,3 +93,59 @@ describe("analysis modes", () => {
     expect(new Set([advice, evaluation, forecast]).size).toBe(3);
   });
 });
+
+describe("stored analyses", () => {
+  let boss: TestUser, opsHead: TestUser, olga: TestUser;
+  const history = (who: TestUser, targetUserId?: string) =>
+    request(app).get(`/api/v1/ai/analyses${targetUserId ? `?targetUserId=${targetUserId}` : ""}`).set("Authorization", `Bearer ${who.token}`);
+  const byId = (who: TestUser, id: string) => request(app).get(`/api/v1/ai/analyses/${id}`).set("Authorization", `Bearer ${who.token}`);
+
+  beforeAll(async () => {
+    boss = await harness.user("boss", "DIRECTOR", null);
+    opsHead = await harness.user("opshead", "MANAGER", "Ops");
+    olga = await harness.user("olga", "EMPLOYEE", "Ops");
+    await harness.query("DELETE FROM ai_analyses");
+  });
+
+  it("stores every analysis, from the model or the rules, with requester, subject and figures", async () => {
+    fakeModel(async () => ({ output_parsed: { summary: "Прогноз модели", recommendations: ["Шаг"] }, output: [] }));
+    const fromModel = await analyze(head, anna.id, "FORECAST");
+    setLlmClient(null);
+    const fromRules = await analyze(anna, anna.id, "ADVICE");
+    expect(fromModel.body.data).toMatchObject({ id: expect.any(String), mode: "FORECAST", source: "AI" });
+    const rows = await harness.query<{ requested_by: string; subject_id: string; source: string; model: string | null; metrics: { kpiProgress: number } }>(
+      "SELECT requested_by, subject_id, source, model, metrics FROM ai_analyses ORDER BY created_at");
+    expect(rows.rows).toEqual([
+      expect.objectContaining({ requested_by: head.id, subject_id: anna.id, source: "AI", model: "gpt-6-luna" }),
+      expect.objectContaining({ requested_by: anna.id, subject_id: anna.id, source: "RULES", model: null })
+    ]);
+    expect(typeof rows.rows[0]!.metrics.kpiProgress).toBe("number");
+    const audit = await harness.query<{ metadata: { analysisId: string } }>("SELECT metadata FROM audit_logs WHERE action = 'AI_ANALYSIS_REQUESTED' ORDER BY created_at DESC LIMIT 1");
+    expect(audit.rows[0]?.metadata.analysisId).toBe(fromRules.body.data.id);
+  });
+
+  it("shows an employee only the analyses they ran themselves", async () => {
+    const own = await history(anna);
+    expect(own.status).toBe(200);
+    expect(own.body.data.map((row: { mode: string }) => row.mode)).toEqual(["ADVICE"]);
+    const managers = (await harness.query<{ id: string }>("SELECT id FROM ai_analyses WHERE requested_by = $1", [head.id])).rows[0]!.id;
+    expect((await byId(anna, managers)).status).toBe(404);
+  });
+
+  it("shows the department head and the director everything about the employee, newest first", async () => {
+    for (const viewer of [head, boss]) {
+      const list = await history(viewer, anna.id);
+      expect(list.body.data.map((row: { mode: string }) => row.mode)).toEqual(["ADVICE", "FORECAST"]);
+      expect(list.body.data[1]).toMatchObject({ requestedByName: expect.any(String), source: "AI", recommendations: ["Шаг"] });
+    }
+  });
+
+  it("answers 404 to a colleague and to the head of another department", async () => {
+    expect((await history(boris, anna.id)).status).toBe(404);
+    expect((await history(olga, anna.id)).status).toBe(404);
+    expect((await history(opsHead, anna.id)).status).toBe(404);
+    const any = (await harness.query<{ id: string }>("SELECT id FROM ai_analyses LIMIT 1")).rows[0]!.id;
+    expect((await byId(opsHead, any)).status).toBe(404);
+    expect((await byId(boss, any)).status).toBe(200);
+  });
+});
