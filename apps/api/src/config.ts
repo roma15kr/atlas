@@ -42,7 +42,8 @@ const envSchema = z.object({
   AI_ANALYSIS_MODEL: z.string().default("gpt-6-luna"),
   FEEDBACK_MODEL: z.string().default("gpt-6-luna"),
   GITHUB_TOKEN: z.string().optional(),
-  GITHUB_REPOSITORY: z.string().regex(/^[\w.-]+\/[\w.-]+$/).optional(),
+  // Compose passes unset values as "", which means "not configured" here.
+  GITHUB_REPOSITORY: z.preprocess((value) => value === "" ? undefined : value, z.string().regex(/^[\w.-]+\/[\w.-]+$/).optional()),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   MICROSOFT_CLIENT_ID: z.string().optional(),

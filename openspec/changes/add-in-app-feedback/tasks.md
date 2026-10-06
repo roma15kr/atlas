@@ -41,7 +41,7 @@ Each slice ends with `make check && npm run build` passing, and a commit. A test
 
 ## 7. Release
 
-- [ ] 7.1 Documentation:
+- [x] 7.1 Documentation:
   - `docs/external/README.md`: the variable names;
   - `docs/OPERATIONS.md`: creating the GitHub token, and finding a request id in the logs;
   - `docs/ARCHITECTURE.md`: the code map entry.

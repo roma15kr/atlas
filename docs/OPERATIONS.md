@@ -196,6 +196,38 @@ client data. Every analysis is kept in `ai_analyses` (migration 013). Set a
 monthly spending limit on the OpenAI project. To rotate the key, create a new key,
 set it in Coolify, redeploy, then delete the old key in OpenAI.
 
+## Problem reports (GitHub issues)
+
+Every signed-in screen has «Сообщить о проблеме». A report keeps the person's
+text, an automatic screenshot (password fields blanked) and a diagnostic log of
+the last 15 minutes in Atlas (`feedback_reports`, migration 014; screenshots on
+the documents volume). The automation step, also run right after each report,
+translates and anonymises it with `FEEDBACK_MODEL` (OpenAI) and files one issue
+in `GITHUB_REPOSITORY`, labelled `feedback`, the category, `severity:<level>` and
+`area:<area>`. The repository is public, so the issue holds only the anonymised
+English text and technical context; the original, screenshot, log and reporter
+stay in Atlas for directors («Обращения» → «Все обращения»). There is no
+moderation in Atlas: moderate on GitHub.
+
+**GitHub token:** GitHub → Settings → Developer settings → Fine-grained tokens →
+Generate new token. Set "Only select repositories" to the Atlas repository, and
+the repository permission "Issues" to Read and write; nothing else. Set it as
+`GITHUB_TOKEN` in Coolify with `GITHUB_REPOSITORY=owner/name`, then redeploy.
+Waiting reports are filed at the next run. Rotate it before it expires.
+
+Without OpenAI or GitHub configured, reports wait («Ожидает обработки») and the
+director inbox says what is missing. Failures are retried after 1, 2, 4 and 8
+minutes and stop after 5 attempts; «Обработать заново» starts again.
+
+**Matching a report to the server log:** the diagnostic log lists each request
+with its id. Every API response carries the same id in `X-Request-Id`, and the
+API log entry has it as `req.id`; search the API container logs in Coolify for it.
+
+## Deploying migrations 013 and 014 (AI analyses, problem reports)
+
+Both only add tables (`ai_analyses`, `feedback_reports`); no backfill. Existing
+AI analyses were never stored, so history starts with the release.
+
 ## Email
 
 Users connect their own mailboxes under Почта → Настройки. Mail is private to its

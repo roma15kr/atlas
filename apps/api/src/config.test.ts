@@ -38,3 +38,17 @@ describe("telegram configuration", () => {
     expect((await load({ TELEGRAM_BOT_TOKEN: "", TELEGRAM_WEBHOOK_SECRET: "" })).TELEGRAM_WEBHOOK_SECRET).toBeUndefined();
   });
 });
+
+describe("AI and GitHub configuration", () => {
+  it("starts with the empty values Compose passes for unset settings", async () => {
+    const config = await load({ OPENAI_API_KEY: "", GITHUB_TOKEN: "", GITHUB_REPOSITORY: "", APP_VERSION: "abc123" });
+    expect(config.GITHUB_REPOSITORY).toBeUndefined();
+    expect(config.AI_ANALYSIS_MODEL).toBe("gpt-6-luna");
+    expect(config.FEEDBACK_MODEL).toBe("gpt-6-luna");
+    expect(config.APP_VERSION).toBe("abc123");
+  });
+  it("accepts owner/name and refuses anything else", async () => {
+    expect((await load({ GITHUB_REPOSITORY: "roma15kr/atlas" })).GITHUB_REPOSITORY).toBe("roma15kr/atlas");
+    await expect(load({ GITHUB_REPOSITORY: "https://github.com/roma15kr/atlas" })).rejects.toThrow(/GITHUB_REPOSITORY/);
+  });
+});
