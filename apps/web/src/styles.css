@@ -1147,3 +1147,7 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 .feedback-attach small { color: var(--muted); font-size: 11px; line-height: 1.4; }
 .feedback-shot { width: 150px; height: 94px; flex: 0 0 auto; object-fit: cover; object-position: top left; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
 @media (max-width: 640px) { .feedback-attach { flex-direction: column; } .feedback-shot { width: 100%; height: auto; max-height: 180px; } }
+.feedback-log { display: grid; gap: 6px; }
+.feedback-log details { margin-left: 25px; color: var(--muted); font-size: 12px; }
+.feedback-log details ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 3px; }
+.feedback-log summary { cursor: pointer; }

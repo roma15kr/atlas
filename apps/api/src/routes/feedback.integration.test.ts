@@ -103,3 +103,44 @@ describe("screenshot", () => {
     expect(viewed.map((row) => row.entity_id)).toContain(sent.body.data.id);
   });
 });
+
+describe("request correlation", () => {
+  it("puts an X-Request-Id on every response, reusing a valid incoming one", async () => {
+    const fresh = await mine(anna);
+    expect(fresh.headers["x-request-id"]).toMatch(/^[0-9a-f-]{36}$/);
+    const given = "6f1c2b9e-1a2b-4c3d-8e9f-0a1b2c3d4e5f";
+    expect((await request(app).get("/api/v1/feedback/mine").set("Authorization", `Bearer ${anna.token}`).set("X-Request-Id", given)).headers["x-request-id"]).toBe(given);
+    const forged = await request(app).get("/api/v1/feedback/mine").set("Authorization", `Bearer ${anna.token}`).set("X-Request-Id", "<script>");
+    expect(forged.headers["x-request-id"]).not.toBe("<script>");
+    expect((await request(app).post("/api/v1/auth/login").send({ username: "nobody", password: "wrong-password" })).headers["x-request-id"]).toBeTruthy();
+  });
+});
+
+describe("diagnostic log", () => {
+  const now = new Date().toISOString();
+  const log = (events: unknown[] = []) => ({ version: "abc1234", page: "/sales", userAgent: "Chrome 141", viewport: "1440×900", language: "uk-UA", timeZone: "Europe/Kyiv", online: true, events });
+  const failed = { at: now, type: "request", method: "PATCH", path: "/api/v1/deals/7f3c", status: 500, ms: 412, requestId: "9c1e2f00-0000-4000-8000-000000000000" };
+
+  it("stores the log with a failed request and its request id, and audits that it was attached", async () => {
+    const sent = await submit(anna, report({ userAgent: "Chrome 141", viewport: "1440×900", diagnostics: log([{ at: now, type: "route", path: "/sales" }, failed]) }));
+    expect(sent.status).toBe(201);
+    const row = (await harness.query<{ diagnostics: { events: Array<{ status?: number; requestId?: string }> } }>("SELECT diagnostics FROM feedback_reports WHERE id = $1", [sent.body.data.id])).rows[0]!;
+    expect(row.diagnostics.events[1]).toMatchObject({ status: 500, requestId: failed.requestId });
+    const audit = (await harness.query<{ metadata: Record<string, unknown> }>("SELECT metadata FROM audit_logs WHERE action = 'FEEDBACK_SUBMITTED' ORDER BY created_at DESC LIMIT 1")).rows[0];
+    expect(audit?.metadata).toMatchObject({ log: true });
+  });
+
+  it("refuses events carrying anything beyond the allowed fields, and a log over 64 KB", async () => {
+    expect((await submit(anna, report({ diagnostics: log([{ ...failed, body: "{\"password\":\"x\"}" }]) }))).status).toBe(400);
+    expect((await submit(anna, report({ diagnostics: log([{ at: now, type: "keystrokes", text: "secret" }]) }))).status).toBe(400);
+    const big = Array.from({ length: 100 }, () => ({ at: now, type: "error", message: "x".repeat(300), source: "/assets/".padEnd(300, "y") }));
+    expect((await submit(anna, report({ diagnostics: log(big) }))).status).toBe(413);
+  });
+
+  it("keeps only the version and page when the log is left out", async () => {
+    const sent = await submit(anna, report());
+    const row = (await harness.query<{ diagnostics: unknown; user_agent: string | null; app_version: string; page: string }>(
+      "SELECT diagnostics, user_agent, app_version, page FROM feedback_reports WHERE id = $1", [sent.body.data.id])).rows[0];
+    expect(row).toEqual({ diagnostics: null, user_agent: null, app_version: "abc1234", page: "/sales" });
+  });
+});

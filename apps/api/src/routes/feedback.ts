@@ -12,13 +12,36 @@ import { detectImageType } from "./avatars";
 /** A report arrives as multipart: a `report` JSON field and an optional `screenshot` image (3 MB at most). */
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 3 * 1024 * 1024, files: 1, fieldSize: 128 * 1024 } });
 
+const text = (max: number) => z.string().max(max);
+const at = z.string().datetime();
+
+/** The diagnostic log: only these shapes and fields are accepted, so bodies or form values can't slip in. */
+export const diagnosticsSchema = z.object({
+  version: text(80),
+  page: text(300),
+  userAgent: text(500),
+  viewport: text(40),
+  language: text(40),
+  timeZone: text(80),
+  online: z.boolean(),
+  events: z.array(z.discriminatedUnion("type", [
+    z.object({ at, type: z.literal("error"), message: text(300), source: text(300).optional() }).strict(),
+    z.object({ at, type: z.literal("request"), method: text(10), path: text(300), status: z.number().int().min(0).max(999), ms: z.number().int().min(0).max(600_000), requestId: text(64).optional() }).strict(),
+    z.object({ at, type: z.literal("route"), path: text(300) }).strict(),
+    z.object({ at, type: z.literal("socket"), state: z.enum(["connect", "disconnect", "error"]) }).strict()
+  ])).max(100)
+}).strict();
+
+export const DIAGNOSTICS_MAX_BYTES = 64 * 1024;
+
 export const reportInputSchema = z.object({
   kind: z.enum(["PROBLEM", "COMPLAINT", "IDEA"]).default("PROBLEM"),
   message: z.string().trim().min(10).max(5000),
   page: z.string().trim().min(1).max(300),
   appVersion: z.string().trim().max(80).optional(),
   userAgent: z.string().trim().max(500).optional(),
-  viewport: z.string().trim().max(40).optional()
+  viewport: z.string().trim().max(40).optional(),
+  diagnostics: diagnosticsSchema.optional()
 });
 
 const ownColumns = `f.id, f.kind, f.message, f.page, f.status, f.issue_number AS "issueNumber", f.issue_url AS "issueUrl",
@@ -31,6 +54,10 @@ feedbackRouter.post("/", upload.single("screenshot"), asyncHandler(async (req, r
   let raw: unknown;
   try { raw = JSON.parse(String(req.body?.report ?? "")); } catch { throw new ApiError(400, "VALIDATION_ERROR", "The report must be JSON"); }
   const input = reportInputSchema.parse(raw);
+  const diagnostics = input.diagnostics ? JSON.stringify(input.diagnostics) : null;
+  if (diagnostics && Buffer.byteLength(diagnostics) > DIAGNOSTICS_MAX_BYTES) {
+    throw new ApiError(413, "DIAGNOSTICS_TOO_LARGE", "The diagnostic log is larger than 64 KB");
+  }
   let screenshot: { key: string; mime: string } | null = null;
   if (req.file) {
     const mime = detectImageType(req.file.buffer);
@@ -41,10 +68,10 @@ feedbackRouter.post("/", upload.single("screenshot"), asyncHandler(async (req, r
   let report: { id: string; createdAt: Date };
   try {
     report = (await query<{ id: string; createdAt: Date }>(
-      `INSERT INTO feedback_reports (company_id, user_id, department_id, kind, message, page, app_version, user_agent, viewport, screenshot_key, screenshot_mime)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id, created_at AS "createdAt"`,
+      `INSERT INTO feedback_reports (company_id, user_id, department_id, kind, message, page, app_version, user_agent, viewport, screenshot_key, screenshot_mime, diagnostics)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb) RETURNING id, created_at AS "createdAt"`,
       [auth.companyId, auth.userId, auth.departmentId, input.kind, input.message, input.page,
-        input.appVersion ?? null, input.userAgent ?? null, input.viewport ?? null, screenshot?.key ?? null, screenshot?.mime ?? null]
+        input.appVersion ?? null, input.userAgent ?? null, input.viewport ?? null, screenshot?.key ?? null, screenshot?.mime ?? null, diagnostics]
     )).rows[0]!;
   } catch (error) {
     if (screenshot) await objectStorage.delete(screenshot.key).catch(() => undefined);
@@ -52,7 +79,7 @@ feedbackRouter.post("/", upload.single("screenshot"), asyncHandler(async (req, r
   }
   await writeAudit(req, {
     auth, action: "FEEDBACK_SUBMITTED", entityType: "feedback_report", entityId: report.id, departmentId: auth.departmentId,
-    metadata: { kind: input.kind, screenshot: Boolean(screenshot), log: false }
+    metadata: { kind: input.kind, screenshot: Boolean(screenshot), log: Boolean(diagnostics) }
   });
   res.status(201).json({ data: { id: report.id, status: "PENDING", createdAt: report.createdAt } });
 }));

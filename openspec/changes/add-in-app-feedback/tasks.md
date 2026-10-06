@@ -17,10 +17,10 @@ Each slice ends with `make check && npm run build` passing, and a commit. A test
 
 ## 3. Diagnostic log and request ids
 
-- [ ] 3.1 API: `X-Request-Id` on every response, the same id in the pino log, and an incoming UUID is reused. Test.
-- [ ] 3.2 Build version: `APP_VERSION` and `VITE_APP_VERSION` from Coolify's `SOURCE_COMMIT`, passed through Compose and the Dockerfiles.
-- [ ] 3.3 `lib/diagnostics.ts` buffer, fed by `apiRequest`, errors, routes and the socket; the snapshot goes with the report (64 KB cap). Tests: a failed request is logged with its id; no bodies, query strings or typed text.
-- [ ] 3.4 The log summary in the dialog with "Приложить технический журнал". Test.
+- [x] 3.1 API: `X-Request-Id` on every response, the same id in the pino log, and an incoming UUID is reused. Test.
+- [x] 3.2 Build version: `APP_VERSION` and `VITE_APP_VERSION` from Coolify's `SOURCE_COMMIT`, passed through Compose and the Dockerfiles.
+- [x] 3.3 `lib/diagnostics.ts` buffer, fed by `apiRequest`, errors, routes and the socket; the snapshot goes with the report (64 KB cap). Tests: a failed request is logged with its id; no bodies, query strings or typed text.
+- [x] 3.4 The log summary in the dialog with "Приложить технический журнал". Test.
 
 ## 4. Director inbox and rate limit
 

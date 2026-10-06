@@ -37,6 +37,7 @@ const envSchema = z.object({
   S3_BUCKET: z.string().default("atlas-documents"),
   S3_ACCESS_KEY: z.string().optional(),
   S3_SECRET_KEY: z.string().optional(),
+  APP_VERSION: z.string().default("dev"),
   OPENAI_API_KEY: z.string().optional(),
   AI_ANALYSIS_MODEL: z.string().default("gpt-6-luna"),
   GOOGLE_CLIENT_ID: z.string().optional(),

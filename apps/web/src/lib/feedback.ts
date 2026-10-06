@@ -1,10 +1,14 @@
 import { apiRequest, sessionStore } from './api';
+import { diagnosticsSnapshot } from './diagnostics';
+import { APP_VERSION } from './version';
 import type { FeedbackKind, FeedbackReport } from '../types';
 
 export interface FeedbackDraft {
   kind: FeedbackKind;
   message: string;
   page: string;
+  /** Attach the diagnostic log (and with it the browser and screen size). */
+  includeLog?: boolean;
 }
 
 export const FEEDBACK_MIN_LENGTH = 10;
@@ -23,12 +27,14 @@ export function feedbackError(message: string): string | null {
 
 /** Sends a report; the page, browser, screen size and (if kept) the screenshot go with it. */
 export async function submitFeedback(draft: FeedbackDraft, screenshot: Blob | null = null): Promise<{ id: string }> {
+  const snapshot = draft.includeLog === false ? null : diagnosticsSnapshot();
+  // Without the log only the app version and the page are sent.
   const report = {
     kind: draft.kind,
     message: draft.message.trim(),
     page: draft.page,
-    userAgent: navigator.userAgent.slice(0, 500),
-    viewport: `${window.innerWidth}×${window.innerHeight}`,
+    appVersion: APP_VERSION,
+    ...(snapshot ? { userAgent: snapshot.userAgent, viewport: snapshot.viewport, diagnostics: snapshot } : {}),
   };
   if (isDemo()) {
     const stored: FeedbackReport = { id: crypto.randomUUID(), kind: report.kind, message: report.message, page: report.page, status: 'PENDING', issueNumber: null, issueUrl: null, hasScreenshot: Boolean(screenshot), createdAt: new Date().toISOString() };

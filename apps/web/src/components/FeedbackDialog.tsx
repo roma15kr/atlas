@@ -1,6 +1,7 @@
 import { CheckCircle2, ImageOff, ImagePlus, LoaderCircle, MessageSquareWarning, Send } from 'lucide-react';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { diagnosticsSnapshot, summarizeDiagnostics } from '../lib/diagnostics';
 import { FEEDBACK_MAX_LENGTH, feedbackError, submitFeedback } from '../lib/feedback';
 import { captureScreen } from '../lib/screenshot';
 import type { FeedbackKind } from '../types';
@@ -20,6 +21,8 @@ export function FeedbackDialog({ page, screenshot, onClose }: { page: string; sc
   const [sent, setSent] = useState(false);
   const [attachShot, setAttachShot] = useState(Boolean(screenshot));
   const [preview, setPreview] = useState<string | null>(null);
+  const [includeLog, setIncludeLog] = useState(true);
+  const [logSummary] = useState(() => summarizeDiagnostics(diagnosticsSnapshot()));
   useEffect(() => {
     if (!screenshot) return undefined;
     const url = URL.createObjectURL(screenshot);
@@ -32,7 +35,7 @@ export function FeedbackDialog({ page, screenshot, onClose }: { page: string; sc
     const invalid = feedbackError(message);
     if (invalid) { setError(invalid); return; }
     setSending(true); setError('');
-    try { await submitFeedback({ kind, message, page }, attachShot ? screenshot : null); setSent(true); }
+    try { await submitFeedback({ kind, message, page, includeLog }, attachShot ? screenshot : null); setSent(true); }
     catch (reason) {
       const status = (reason as { status?: number }).status;
       setError(status === 429 ? 'Слишком много обращений, попробуйте позже' : 'Обращение не отправлено. Попробуйте ещё раз.');
@@ -58,6 +61,10 @@ export function FeedbackDialog({ page, screenshot, onClose }: { page: string; sc
           : screenshot
             ? <span><strong>Снимок экрана не приложен</strong><Button type="button" variant="ghost" icon={ImagePlus} onClick={() => setAttachShot(true)}>Приложить снимок</Button></span>
             : <span><strong>Снимок экрана не удалось сделать</strong><small>Опишите, что было на экране, — обращение всё равно можно отправить.</small></span>}
+      </div>
+      <div className="feedback-log">
+        <label className="check-field"><input type="checkbox" checked={includeLog} onChange={(event) => setIncludeLog(event.target.checked)} /><span><strong>Приложить технический журнал</strong><small>Ошибки и запросы к серверу за последние 15 минут — без введённого текста и данных записей.</small></span></label>
+        {includeLog && <details><summary>Что входит в журнал</summary><ul>{logSummary.map((line) => <li key={line}>{line}</li>)}</ul></details>}
       </div>
       <p className="dialog-note">Обращение видят только директора компании. В GitHub попадёт обезличенный перевод.</p>
     </form>

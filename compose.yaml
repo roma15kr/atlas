@@ -60,6 +60,7 @@ services:
       BOOTSTRAP_COMPANY_NAME: ${BOOTSTRAP_COMPANY_NAME:-Atlas}
       TRUST_PROXY: ${TRUST_PROXY:-2}
       STORAGE_DIR: /data/documents
+      APP_VERSION: ${SOURCE_COMMIT:-dev}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       AI_ANALYSIS_MODEL: ${AI_ANALYSIS_MODEL:-gpt-6-luna}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
@@ -91,6 +92,8 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        VITE_APP_VERSION: ${SOURCE_COMMIT:-dev}
     restart: unless-stopped
     depends_on:
       api:

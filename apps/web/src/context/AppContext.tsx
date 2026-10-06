@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { trackActivity } from '../lib/activity';
+import { recordDiagnostic } from '../lib/diagnostics';
 import { api, ApiError, apiRequest, listAll, listPage, renewAccessToken, restoreSession, sessionStore } from '../lib/api';
 import {
   demoAchievements,
@@ -526,11 +527,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     let socket: Socket | null = io({ path: '/socket.io', auth: (callback) => callback({ token: sessionStore.get()?.accessToken }), transports: ['websocket', 'polling'] });
     let renewed = false;
     socket.on('connect_error', (error: Error) => {
+      recordDiagnostic({ type: 'socket', state: 'error' });
       if (error.message !== 'unauthorized' || renewed) return;
       renewed = true;
       void renewAccessToken().then((token) => { if (token) socket?.connect(); });
     });
-    socket.on('connect', () => { renewed = false; });
+    socket.on('connect', () => { renewed = false; recordDiagnostic({ type: 'socket', state: 'connect' }); });
+    socket.on('disconnect', () => recordDiagnostic({ type: 'socket', state: 'disconnect' }));
     const updatePresence = (payload: { userId: string; online?: boolean; lastSeen?: string; status?: string; lastSeenAt?: string }) => {
       const online = payload.online ?? payload.status === 'ONLINE';
       setUsers((current) => current.map((user) => user.id === payload.userId ? { ...user, online, lastSeen: payload.lastSeen ?? payload.lastSeenAt } : user));

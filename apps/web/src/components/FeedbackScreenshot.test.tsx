@@ -33,6 +33,27 @@ const describeAndSend = async (user: ReturnType<typeof userEvent.setup>, dialog:
   await screen.findByRole('dialog', { name: 'Обращение отправлено' });
 };
 
+describe('report log', () => {
+  it('sends the diagnostic log by default', async () => {
+    const { user, dialog } = await open();
+    expect(within(dialog).getByRole('checkbox', { name: /Приложить технический журнал/ })).toBeChecked();
+    await describeAndSend(user, dialog);
+    const report = JSON.parse(String(sent[0]!.get('report')));
+    expect(report.diagnostics).toMatchObject({ page: expect.any(String), events: expect.any(Array) });
+    expect(report.userAgent).toBeTruthy();
+  });
+
+  it('sends only the version and page when the log is unticked', async () => {
+    const { user, dialog } = await open();
+    await user.click(within(dialog).getByRole('checkbox', { name: /Приложить технический журнал/ }));
+    await describeAndSend(user, dialog);
+    const report = JSON.parse(String(sent[0]!.get('report')));
+    expect(report.diagnostics).toBeUndefined();
+    expect(report.userAgent).toBeUndefined();
+    expect(report).toMatchObject({ page: '/crm', appVersion: 'dev' });
+  });
+});
+
 describe('report screenshot', () => {
   it('shows a preview and sends the picture with the report', async () => {
     const { user, dialog } = await open();

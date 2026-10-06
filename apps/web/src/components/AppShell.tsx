@@ -9,6 +9,7 @@ import { useAuth, useWorkspace } from '../context/AppContext';
 import { useChat } from '../context/ChatContext';
 import { useMail } from '../context/MailContext';
 import { useTelegram } from '../context/TelegramContext';
+import { recordDiagnostic } from '../lib/diagnostics';
 import { relativeTime, roleLabel } from '../lib/format';
 import type { Role } from '../types';
 import { FeedbackButton } from './FeedbackDialog';
@@ -58,6 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const user = session!.user;
   const openAlerts = alerts.filter((alert) => !alert.acknowledged).length;
+  useEffect(() => { recordDiagnostic({ type: 'route', path: location.pathname }); }, [location.pathname]);
   const pageName = useMemo(() => location.pathname.startsWith('/crm/') ? 'Карточка клиента' : /^\/boards\/[^/]+\/settings$/.test(location.pathname) ? 'Настройка досок' : location.pathname.startsWith('/mail/oauth') ? 'Почта' : routeNames[location.pathname] ?? 'Atlas', [location.pathname]);
 
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
