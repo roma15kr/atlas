@@ -312,3 +312,19 @@ export interface DashboardMetrics {
   online: number;
   teamSize: number;
 }
+
+export type FeedbackKind = 'PROBLEM' | 'COMPLAINT' | 'IDEA';
+export type FeedbackStatus = 'PENDING' | 'PROCESSING' | 'ISSUE_CREATED' | 'FAILED';
+
+/** A problem report, complaint or idea sent from any screen; it becomes one GitHub issue. */
+export interface FeedbackReport {
+  id: string;
+  kind: FeedbackKind;
+  message: string;
+  page: string;
+  status: FeedbackStatus;
+  issueNumber: number | null;
+  issueUrl: string | null;
+  hasScreenshot: boolean;
+  createdAt: string;
+}

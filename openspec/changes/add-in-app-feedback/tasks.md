@@ -4,10 +4,10 @@ Each slice ends with `make check && npm run build` passing, and a commit. A test
 
 ## 1. Tracer bullet: text report end to end
 
-- [ ] 1.1 Migration `014_feedback_reports.sql`, with only the columns needed to submit and list.
-- [ ] 1.2 `POST /feedback` (text and page only), `GET /feedback/mine`, and `FEEDBACK_SUBMITTED` audit. Tests: stores, validates, audits without the text.
-- [ ] 1.3 The top-bar button opens `FeedbackDialog` (kind and description), and `submitFeedback` (with demo branch) shows a confirmation. Tests: opens from any page, short-description error.
-- [ ] 1.4 The "Мои обращения" page lists the user's reports with the status "Ожидает обработки". Test.
+- [x] 1.1 Migration `014_feedback_reports.sql`, with only the columns needed to submit and list.
+- [x] 1.2 `POST /feedback` (text and page only), `GET /feedback/mine`, and `FEEDBACK_SUBMITTED` audit. Tests: stores, validates, audits without the text.
+- [x] 1.3 The top-bar button opens `FeedbackDialog` (kind and description), and `submitFeedback` (with demo branch) shows a confirmation. Tests: opens from any page, short-description error.
+- [x] 1.4 The "Мои обращения" page lists the user's reports with the status "Ожидает обработки". Test.
 
 ## 2. Screenshot
 

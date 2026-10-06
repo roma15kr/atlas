@@ -21,6 +21,7 @@ import { clientsRouter } from "./routes/clients";
 import { communicationsRouter } from "./routes/communications";
 import { dashboardRouter } from "./routes/dashboard";
 import { dealsRouter } from "./routes/deals";
+import { feedbackRouter } from "./routes/feedback";
 import { documentsRouter } from "./routes/documents";
 import { funnelsRouter } from "./routes/funnels";
 import { integrationsRouter } from "./routes/integrations";
@@ -97,6 +98,7 @@ app.use("/api/v1/mail", mailRouter);
 app.use("/api/v1/chat", chatRouter);
 app.use("/api/v1/audit", auditRouter);
 app.use("/api/v1/ai", aiRouter);
+app.use("/api/v1/feedback", feedbackRouter);
 
 app.use(notFound);
 app.use(errorHandler);
