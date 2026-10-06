@@ -10,7 +10,7 @@ Each slice ends with `make check && npm run build` passing, and a commit. A test
 
 ## 2. Distinct modes
 
-- [ ] 2.1 `analysisInstructions(mode)` and the ₴ rule. Tests for each mode's instructions, and that presence is forbidden without consent.
+- [x] 2.1 `analysisInstructions(mode)` and the ₴ rule. Tests for each mode's instructions, and that presence is forbidden without consent.
 
 ## 3. Stored analyses and history
 

@@ -71,3 +71,25 @@ describe("AI analysis", () => {
     expect(response.body.data.fallbackReason).toBeUndefined();
   });
 });
+
+describe("analysis modes", () => {
+  const instructionsFor = async (mode: string) => {
+    const spy = fakeModel(async () => ({ output_parsed: { summary: "ok", recommendations: [] }, output: [] }));
+    await analyze(head, anna.id, mode);
+    return (spy.mock.calls.at(-1)![0] as { instructions: string }).instructions;
+  };
+
+  it("gives each mode its own purpose with the shared rules", async () => {
+    const [advice, evaluation, forecast] = [await instructionsFor("ADVICE"), await instructionsFor("EVALUATION"), await instructionsFor("FORECAST")];
+    expect(advice).toContain("Mode ADVICE");
+    expect(evaluation).toContain("Mode EVALUATION");
+    expect(forecast).toContain("Mode FORECAST");
+    expect(forecast).toContain("weighted pipeline");
+    for (const text of [advice, evaluation, forecast]) {
+      expect(text).toContain("Answer in Russian");
+      expect(text).toContain("₴");
+      expect(text).toContain("presence.consent is false");
+    }
+    expect(new Set([advice, evaluation, forecast]).size).toBe(3);
+  });
+});

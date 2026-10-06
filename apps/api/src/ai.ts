@@ -28,8 +28,26 @@ const BASE_RULES = [
   "Do not infer protected traits, intent, sabotage, or misconduct.",
   "Answer in Russian. Use only the figures given; never invent numbers.",
   "If presence.consent is false, do not mention activity, attendance or presence at all.",
-  "Give at most 8 concrete operational recommendations."
+  "Give at most 8 concrete operational recommendations.",
+  "Write money amounts in Ukrainian hryvnia with the sign ₴ and spaces between thousands, for example 210 000 ₴; never write UAH."
 ].join("\n");
+
+/** What each mode is for, so advice, evaluation and forecast read differently. */
+export function analysisInstructions(mode: AiMode): string {
+  switch (mode) {
+    case "ADVICE":
+      return "Mode ADVICE: say what to do in the coming days. The summary names the two or three most important priorities and why; recommendations are concrete next actions, most urgent first.";
+    case "EVALUATION":
+      return "Mode EVALUATION: assess progress against targets. The summary states KPI progress as a percentage, task completion and overdue tasks, and whether the person is on track; recommendations address the weakest area first.";
+    case "FORECAST":
+      return "Mode FORECAST: estimate the expected outcome of the open deals. The summary gives the weighted pipeline value as the expected result, the total open value as the upper bound, and states that the forecast rests on the current deal probabilities. If there are no open deals, say there is nothing to forecast. Recommendations are about moving deals forward and keeping probabilities current.";
+  }
+}
+
+/** The full system prompt for a mode: shared rules plus the mode's purpose. */
+export function analysisSystemPrompt(mode: AiMode): string {
+  return `${BASE_RULES}\n${analysisInstructions(mode)}`;
+}
 
 export interface AiResult {
   summary: string;
@@ -49,7 +67,7 @@ export async function analyzeWork(auth: AuthContext, targetId: string, mode: AiM
       model: config.AI_ANALYSIS_MODEL,
       schemaName: "work_analysis",
       schema: analysisSchema,
-      system: BASE_RULES,
+      system: analysisSystemPrompt(mode),
       user: JSON.stringify({ mode, viewerRole: auth.role, metrics, baseline: rules })
     });
     return { ...result, source: "AI", model: config.AI_ANALYSIS_MODEL, metrics };
