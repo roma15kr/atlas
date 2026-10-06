@@ -24,13 +24,13 @@ Each slice ends with `make check && npm run build` passing, and a commit. A test
 
 ## 4. Director inbox and rate limit
 
-- [ ] 4.1 `GET /feedback`, `GET /feedback/:id` (with `FEEDBACK_VIEWED`), the director screenshot read, dismiss and retry; 404 or 403 for other roles. Tests for each role.
+- [ ] 4.1 `GET /feedback`, `GET /feedback/:id` (with `FEEDBACK_VIEWED`), the director screenshot read and retry; 404 or 403 for other roles. Tests for each role.
 - [ ] 4.2 `feedbackLimiter`, 10 per hour per user. Test.
-- [ ] 4.3 The director view on `FeedbackPage`: filters, a detail dialog with the original, the screenshot, the log and the translation, plus dismiss and retry. Tests.
+- [ ] 4.3 The director view on `FeedbackPage`: filters, a detail dialog with the original, the screenshot, the log and the translation, plus retry. Tests.
 
 ## 5. Translation and summary
 
-- [ ] 5.1 Add `openai`. `triageReport` uses `responses.parse` with `zodTextFormat` and `FEEDBACK_MODEL` (default `gpt-6-luna`), handles refusals and unparsable output, and runs `scrubPersonalData`. Unit tests with a stubbed client, plus a fixture for the source-language code and the placeholders.
+- [ ] 5.1 Requires `use-openai-for-ai-analysis` slice 1, which provides `llm/openai.ts`. `triageReport` uses `structuredResponse` with `FEEDBACK_MODEL` (default `gpt-6-luna`), handles refusals and unparsable output, and runs `scrubPersonalData`. Unit tests with a stubbed client, plus a fixture for the source-language code and the placeholders.
 - [ ] 5.2 The `processFeedback` automation step (claim, triage, store), without GitHub yet; it runs after submit and every 10 minutes. Tests: waits without credentials, backoff, the attempt limit.
 
 ## 6. GitHub issues

@@ -20,7 +20,7 @@
 | Send a report | yes | yes | yes |
 | List and read own reports, own screenshot | yes | yes | yes |
 | Read other people's reports, screenshots, logs | whole company | no (404) | no (404) |
-| Dismiss or retry a report | yes | no (403) | no (403) |
+| Retry a failed report | yes | no (403) | no (403) |
 
 The reporter's own read omits the log; they wrote it, and it isn't useful to them.
 
@@ -29,13 +29,13 @@ The reporter's own read omits the log; they wrote it, and it isn't useful to the
 `feedback_reports`:
 - **Identity and source:** `id`, `company_id`, `user_id`, `department_id`, `kind` (`PROBLEM|COMPLAINT|IDEA`), `message` (text of 10–5,000 characters), `page`, `app_version`, `user_agent`, `viewport`.
 - **Attachments:** `diagnostics` (jsonb; the API caps it at 64 KB), and `screenshot_key` / `screenshot_mime` (nullable, with a check that both are set or neither is).
-- **State:** `status` (`PENDING|PROCESSING|ISSUE_CREATED|FAILED|DISMISSED`), `attempts`, `next_attempt_at`, `last_error`.
+- **State:** `status` (`PENDING|PROCESSING|ISSUE_CREATED|FAILED`), `attempts`, `next_attempt_at`, `last_error`.
 - **Triage result:** `language`, `title_en`, `summary_en`, `translation_en`, `steps_en` (jsonb), `category` (`BUG|COMPLAINT|IDEA|QUESTION`), `severity` (`LOW|MEDIUM|HIGH|CRITICAL`), `area`.
 - **Issue:** `issue_number`, `issue_url`, `triaged_at`, `created_at`, `updated_at`.
 - **Indexes:** `(company_id, created_at DESC)`, `(user_id, created_at DESC)`, and a partial index on `(status, next_attempt_at)` where the status is `PENDING` or `FAILED`.
 - **Single issue:** "no report produces two issues" is enforced by claiming a row with `UPDATE … SET status='PROCESSING' WHERE status IN (...) RETURNING`, and by never creating an issue for a row that already has `issue_number`.
 
-New audit events: `FEEDBACK_SUBMITTED`, `FEEDBACK_ISSUE_CREATED`, `FEEDBACK_DISMISSED`, `FEEDBACK_RETRIED` and `FEEDBACK_VIEWED`.
+New audit events: `FEEDBACK_SUBMITTED`, `FEEDBACK_ISSUE_CREATED`, `FEEDBACK_RETRIED` and `FEEDBACK_VIEWED`.
 
 ## External services and environment variables
 
@@ -53,8 +53,8 @@ Recorded in `docs/external/README.md` (names only):
 ## Files
 
 **API (`apps/api/src`):**
-- `routes/feedback.ts`: new. `POST /feedback` (multipart: `report` JSON plus an optional `screenshot`), `GET /feedback/mine`, `GET /feedback` (director), `GET /feedback/:id`, `GET /feedback/:id/screenshot`, `POST /feedback/:id/dismiss`, `POST /feedback/:id/retry`.
-- `feedback/triage.ts`: new. The OpenAI call through the `openai` package's `responses.parse`, with `text.format = zodTextFormat(triageSchema, "feedback_triage")` (strict JSON schema), plus the personal-data scrub.
+- `routes/feedback.ts`: new. `POST /feedback` (multipart: `report` JSON plus an optional `screenshot`), `GET /feedback/mine`, `GET /feedback` (director), `GET /feedback/:id`, `GET /feedback/:id/screenshot`, `POST /feedback/:id/retry`.
+- `feedback/triage.ts`: new. Calls `structuredResponse` from `llm/openai.ts`, which `use-openai-for-ai-analysis` introduces, with `triageSchema`, `FEEDBACK_MODEL` and the triage instructions validated on 2026-10-06. Also runs the personal-data scrub.
 - `feedback/github.ts`: new. Issue creation through the GitHub REST API with `fetch`; labels are created on first use.
 - `feedback/scrub.ts`: new. A regex pass that replaces email addresses, phone numbers and URLs with query strings.
 - `automation/feedback.ts`: new. The step `processFeedback(now)`, registered after alerts.
@@ -62,7 +62,7 @@ Recorded in `docs/external/README.md` (names only):
 - `config.ts`: adds `FEEDBACK_MODEL`, `GITHUB_TOKEN`, `GITHUB_REPOSITORY` and `APP_VERSION`.
 - `middleware.ts`: `feedbackLimiter`, 10 per user per hour.
 - `routes/integrations.ts`: reports `feedback: { openai, github }` as enabled or disabled.
-- `package.json`: adds `openai`.
+- `package.json`: nothing new for OpenAI; `use-openai-for-ai-analysis` already adds `openai`.
 
 **Database:** `database/013_feedback_reports.sql`.
 
@@ -73,7 +73,7 @@ Recorded in `docs/external/README.md` (names only):
 - `components/FeedbackDialog.tsx`: new. The form, the screenshot preview and the log summary.
 - `components/AppShell.tsx`: the top-bar button, and Ctrl+Shift+F.
 - `pages/ChangePasswordPage.tsx`: the same button.
-- `pages/FeedbackPage.tsx`: new. "Мои обращения" for everyone; for directors, also the inbox with filters, a detail dialog, dismiss and retry.
+- `pages/FeedbackPage.tsx`: new. "Мои обращения" for everyone; for directors, also the inbox with filters, a detail dialog and retry.
 - `context/AppContext.tsx`: `submitFeedback`, with a demo branch that stores the report locally.
 - `App.tsx` gets the route `/feedback`; `AppShell` gets the navigation entry "Обращения".
 - `main.tsx`: installs the diagnostics hooks for errors, unhandled rejections, route changes and socket events.
@@ -146,8 +146,7 @@ export function processFeedback(now?: Date, deps?: { triage?: typeof triageRepor
 **Director review**
 1. `FeedbackPage` → `GET /feedback` (list).
 2. Opening a report → `GET /feedback/:id` (with `FEEDBACK_VIEWED`), then `<img>` loaded from `GET /feedback/:id/screenshot` through `api.download` as a Blob URL, because the token can't go on an `<img>`.
-3. Dismiss → `POST /feedback/:id/dismiss`.
-4. Retry → `POST /feedback/:id/retry` (resets the attempts).
+3. Retry → `POST /feedback/:id/retry` (resets the attempts).
 
 ## Test plan
 
@@ -157,7 +156,7 @@ export function processFeedback(now?: Date, deps?: { triage?: typeof triageRepor
 - `limits a user to 10 reports per hour`
 - `lets the reporter list their own reports but not read a colleague's (404)`
 - `lets a director read any report and its screenshot, and audits the view`
-- `refuses dismiss and retry for managers and employees`
+- `refuses retry for managers and employees`
 
 **API unit (`feedback/*.test.ts`):**
 - `scrubPersonalData replaces emails, phones and query strings`
@@ -170,7 +169,6 @@ export function processFeedback(now?: Date, deps?: { triage?: typeof triageRepor
 - `creates exactly one issue per report even when two runs overlap`
 - `waits while credentials are missing and processes afterwards`
 - `retries with backoff and stops after 5 attempts`
-- `skips dismissed reports`
 
 **Platform:** `every response carries X-Request-Id and an incoming UUID is reused`.
 
@@ -189,15 +187,22 @@ export function processFeedback(now?: Date, deps?: { triage?: typeof triageRepor
 
 ## Least confident decisions
 
-1. **Automatic publishing to a public repository.** Every non-dismissed report becomes a public issue within minutes. That includes complaints, which may be about colleagues. Anonymisation lowers the risk but can't guarantee it. The alternatives are:
-   - issues only after a director approves;
-   - complaints held for approval while bugs and ideas go out automatically, which I'd recommend if automatic is too risky;
-   - making the repository private.
+1. **Automatic publishing to a public repository.** Decided by the product owner on 2026-10-06: no moderation in Atlas; every report becomes a public issue, and moderation happens on GitHub. The remaining risk is a personal value the model misses. Three things limit it:
+   - the issue never contains the original text, the screenshot or the log;
+   - the regex scrub catches emails and phone numbers;
+   - the triage instructions were tested live, with no leaks across three reports including a hard case.
 2. **New libraries.**
    - `modern-screenshot` in the web app captures the page by redrawing the DOM, with no permission prompt. It can miss some cross-origin images and canvas content.
    - The alternative is the browser's screen-capture API. That needs no library, but asks the user's permission every time and opens a picker, so it isn't automatic.
    - The `openai` package in the API gives the `responses.parse` and `zodTextFormat` helpers for strict structured output and typed errors.
-3. **Model quality.** `gpt-6-luna` was chosen for cost: about $0.0002 per report, so 50 reports a month cost under one cent. A live test on 2026-10-06 used a Ukrainian complaint containing two names, a company, a phone number, an email and an amount:
+3. **Model quality.** Triage instructions, final version, tested on 2026-10-06 on three reports:
+   - a Ukrainian complaint full of personal data;
+   - a Ukrainian bug;
+   - a Russian idea.
+
+   Languages were detected correctly; translations were faithful with placeholders in place; no leaks; categories, severities and areas were right. The cost was $0.0009 for all three. The exact system prompt is kept as a fixture in `feedback/triage.test.ts`.
+
+   History: `gpt-6-luna` was chosen for cost: about $0.0002 per report, so 50 reports a month cost under one cent. A live test on 2026-10-06 used a Ukrainian complaint containing two names, a company, a phone number, an email and an amount:
    - **Good:** no personal value leaked; the category, severity and area were right; the steps to reproduce were useful.
    - **Weak:** it reported the language as "English" and paraphrased the text instead of keeping `[person]`/`[client]` placeholders.
 

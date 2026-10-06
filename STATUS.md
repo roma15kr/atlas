@@ -2,7 +2,11 @@
 _Last updated: 2026-10-06 by Claude_
 
 ## Current focus
-- **Awaiting review:** OpenSpec proposal `add-in-app-feedback`. It adds problem reports from every screen with a screenshot and a diagnostic log, and turns each into an anonymised English GitHub issue. Decide its "Least confident decisions" first, especially automatic publishing to the public repository.
+- **Awaiting approval to build**, in this order:
+  1. `use-openai-for-ai-analysis`: the AI analysis moves to OpenAI `gpt-6-luna` with distinct modes, and Claude is removed.
+  2. `add-in-app-feedback`: problem reports with a screenshot and a log become anonymised English GitHub issues automatically, with no moderation in Atlas.
+
+  Both were tested live with `gpt-6-luna` on 2026-10-06.
 - AI project setup added with `ai-init`: `AGENTS.md`, `make check`, agent commands, product docs.
 - `make check` now includes ESLint (ADR 0004), and `ci.yml` runs it.
 - Active OpenSpec changes, all implemented. Each waits only for a live check before archiving:
@@ -22,7 +26,8 @@ _Last updated: 2026-10-06 by Claude_
 3. Feed job descriptions into the AI analysis.
 
 ## Open questions
-- Feedback: publish every report automatically to the public GitHub repository, or hold complaints for approval? May we add `modern-screenshot` and `openai`? (Triage model decided: OpenAI `gpt-6-luna`.)
+- May we add the libraries `openai` and `modern-screenshot`? (Decided: OpenAI `gpt-6-luna` for triage and analysis; automatic publishing with moderation on GitHub.)
+- A fine-grained GitHub token for `roma15kr/atlas`, with Issues read/write, is still needed.
 - Should employees see colleagues in the Team directory? Today they see only themselves.
 - Should a director see colleagues' full birth dates, not just day and month?
 - Should employees be able to write or suggest their own job description?

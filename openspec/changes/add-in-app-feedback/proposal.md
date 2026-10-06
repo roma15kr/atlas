@@ -20,7 +20,7 @@ The development team works in English on GitHub. Users write in Ukrainian. Someo
 
 **At least 90% of submitted reports appear as a GitHub issue within 10 minutes,** measured monthly from each report's submission time to its issue's creation time.
 
-Reports the director dismisses on purpose are excluded. Reports still waiting because GitHub or the translation service isn't configured count as misses.
+Reports still waiting because GitHub or the translation service isn't configured count as misses.
 
 ## Announcement
 
@@ -38,7 +38,7 @@ Reports the director dismisses on purpose are excluded. Reports still waiting be
   - The user can see a summary of what is included and leave it out.
 - **Matching server events.** Each report can be matched to the server's own records of the same requests.
 - **Status for the reporter.** "Мои обращения" shows each report and whether it has become a ticket.
-- **Director inbox.** Directors see every report, with its screenshot and log, its translation, and the linked GitHub issue. They can dismiss a report or retry it.
+- **Director inbox.** Directors see every report, with its screenshot and log, its translation, and the linked GitHub issue. They can retry a report that failed to process. There is no moderation in Atlas: every report goes to GitHub, and the product owner moderates there, closing, editing or labelling issues.
 - **Translation and tickets.** Each report is automatically:
   1. translated to English, summarised and classified (bug, complaint, idea, question), with a severity and the product area;
   2. stripped of personal data;
@@ -53,4 +53,5 @@ Reports the director dismisses on purpose are excluded. Reports still waiting be
 - **Automatic duplicate merging** of similar reports.
 - **Video or session replay,** recording of typing, or continuous monitoring. Data is collected only at the moment someone reports.
 - **Mobile apps or browser extensions.**
+- **Moderation in Atlas.** No approval or dismissal step; moderation happens on GitHub.
 - **Heads seeing reports.** Department heads don't see their staff's reports, because complaints can be about them.

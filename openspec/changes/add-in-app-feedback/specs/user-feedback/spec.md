@@ -90,7 +90,7 @@ Names of people and companies, email addresses, phone numbers, amounts and recor
 - **THEN** the language is Ukrainian; the translation reads "[person] cannot see a deal of client [client], phone [phone]"; no name, company or phone number appears in the title, summary or translation; and the original text is unchanged
 
 ### Requirement: GitHub issue creation
-For each translated report not dismissed by a director, the system SHALL create one GitHub issue in the configured repository. The issue SHALL have:
+For each translated report, the system SHALL create one GitHub issue, without any approval step in Atlas; moderation happens on GitHub, in the configured repository. The issue SHALL have:
 - a title prefixed with the category;
 - a body with the summary, the anonymised translation, the steps to reproduce, the page, the app version, the browser and an Atlas report reference;
 - the labels `feedback`, the category, `severity:<level>` and `area:<area>`.
@@ -114,13 +114,12 @@ Before it is created, the issue text SHALL be checked once more for email addres
 - Without the GitHub and translation-service credentials configured, reports SHALL be stored with the status "Ожидает обработки", and the director inbox SHALL say what is missing.
 - Once both are configured, waiting reports SHALL be processed automatically.
 - A failure SHALL be retried at most 5 times with growing delays. After that the report SHALL be marked failed with the reason, and a director SHALL be able to retry it.
-- A director SHALL be able to dismiss a report so that no issue is created.
 - No report SHALL produce more than one issue.
 
 #### Scenario: Credentials added later
 - **WHEN** reports were sent while GitHub wasn't configured, and the credentials are then added
 - **THEN** each waiting report gets one issue at the next processing run
 
-#### Scenario: Director dismisses a duplicate
-- **WHEN** a director dismisses a report before it is processed
-- **THEN** it gets the status "Отклонено" and no issue is created
+#### Scenario: Director retries a failed report
+- **WHEN** a report failed 5 times because GitHub was unreachable, and a director clicks "Обработать заново"
+- **THEN** it is processed again and gets exactly one issue
