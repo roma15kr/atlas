@@ -1142,3 +1142,8 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 .feedback-rows a { text-decoration: none; }
 .password-gate__help { margin-top: 12px; display: flex; justify-content: center; }
 @media (max-width: 760px) { .feedback-button span { display: none; } .feedback-button { width: 34px; padding: 0; justify-content: center; } }
+.feedback-attach { display: flex; gap: 12px; align-items: flex-start; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-soft); }
+.feedback-attach > span { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+.feedback-attach small { color: var(--muted); font-size: 11px; line-height: 1.4; }
+.feedback-shot { width: 150px; height: 94px; flex: 0 0 auto; object-fit: cover; object-position: top left; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+@media (max-width: 640px) { .feedback-attach { flex-direction: column; } .feedback-shot { width: 100%; height: auto; max-height: 180px; } }

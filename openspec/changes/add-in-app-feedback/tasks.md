@@ -11,9 +11,9 @@ Each slice ends with `make check && npm run build` passing, and a commit. A test
 
 ## 2. Screenshot
 
-- [ ] 2.1 Add `modern-screenshot`; `captureScreen()` runs before the dialog opens, blanks password fields, and falls back to null. Tests for the filter and the fallback message.
-- [ ] 2.2 Multipart upload with `detectImageType` and a 3 MB limit, plus `GET /feedback/:id/screenshot` for the reporter. Tests: disguised file and size refused.
-- [ ] 2.3 A preview in the dialog with "Не прикладывать снимок". Test.
+- [x] 2.1 Add `modern-screenshot`; `captureScreen()` runs before the dialog opens, blanks password fields, and falls back to null. Tests for the filter and the fallback message.
+- [x] 2.2 Multipart upload with `detectImageType` and a 3 MB limit, plus `GET /feedback/:id/screenshot` for the reporter. Tests: disguised file and size refused.
+- [x] 2.3 A preview in the dialog with "Не прикладывать снимок". Test.
 
 ## 3. Diagnostic log and request ids
 

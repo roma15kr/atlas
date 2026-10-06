@@ -21,8 +21,8 @@ export function feedbackError(message: string): string | null {
   return null;
 }
 
-/** Sends a report; the page, browser and screen size go with it. */
-export async function submitFeedback(draft: FeedbackDraft): Promise<{ id: string }> {
+/** Sends a report; the page, browser, screen size and (if kept) the screenshot go with it. */
+export async function submitFeedback(draft: FeedbackDraft, screenshot: Blob | null = null): Promise<{ id: string }> {
   const report = {
     kind: draft.kind,
     message: draft.message.trim(),
@@ -31,12 +31,13 @@ export async function submitFeedback(draft: FeedbackDraft): Promise<{ id: string
     viewport: `${window.innerWidth}×${window.innerHeight}`,
   };
   if (isDemo()) {
-    const stored: FeedbackReport = { id: crypto.randomUUID(), kind: report.kind, message: report.message, page: report.page, status: 'PENDING', issueNumber: null, issueUrl: null, hasScreenshot: false, createdAt: new Date().toISOString() };
+    const stored: FeedbackReport = { id: crypto.randomUUID(), kind: report.kind, message: report.message, page: report.page, status: 'PENDING', issueNumber: null, issueUrl: null, hasScreenshot: Boolean(screenshot), createdAt: new Date().toISOString() };
     demoReports = [stored, ...demoReports];
     return { id: stored.id };
   }
   const form = new FormData();
   form.append('report', JSON.stringify(report));
+  if (screenshot) form.append('screenshot', screenshot, 'screen.jpg');
   return apiRequest<{ id: string }>('/feedback', { method: 'POST', body: form });
 }
 

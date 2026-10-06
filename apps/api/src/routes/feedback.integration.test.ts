@@ -6,7 +6,7 @@ import { startDbHarness, type TestUser } from "../test/dbHarness";
 
 let harness: Awaited<ReturnType<typeof startDbHarness>>;
 let app: Express;
-let anna: TestUser, boris: TestUser;
+let anna: TestUser, boris: TestUser, boss: TestUser;
 
 const report = (overrides: Record<string, unknown> = {}) => ({ kind: "PROBLEM", message: "Кнопка «Зберегти» нічого не робить", page: "/sales", appVersion: "abc1234", ...overrides });
 const submit = (who: TestUser, body: Record<string, unknown> = report()) =>
@@ -18,6 +18,7 @@ beforeAll(async () => {
   app = (await import("../app")).app;
   anna = await harness.user("anna", "EMPLOYEE", "Sales");
   boris = await harness.user("boris", "EMPLOYEE", "Sales");
+  boss = await harness.user("boss", "DIRECTOR", null);
 }, 60_000);
 
 afterAll(async () => harness?.stop());
@@ -64,5 +65,41 @@ describe("forced password change", () => {
     expect((await submit(boris, report({ message: "Не можу змінити пароль, форма не приймає" }))).status).toBe(201);
     expect((await mine(boris)).status).toBe(403);
     await harness.query("UPDATE users SET must_change_password = false WHERE id = $1", [boris.id]);
+  });
+});
+
+describe("screenshot", () => {
+  const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  const withShot = (who: TestUser, body: Buffer, name = "screen.png", type = "image/png") =>
+    request(app).post("/api/v1/feedback").set("Authorization", `Bearer ${who.token}`).field("report", JSON.stringify(report())).attach("screenshot", body, { filename: name, contentType: type });
+  const shot = (who: TestUser, id: string) => request(app).get(`/api/v1/feedback/${id}/screenshot`).set("Authorization", `Bearer ${who.token}`)
+    .buffer(true).parse((res, done) => { const chunks: Buffer[] = []; res.on("data", (c: Buffer) => chunks.push(c)); res.on("end", () => done(null, Buffer.concat(chunks))); });
+
+  it("stores a screenshot, recognised by its content, and serves it to the reporter", async () => {
+    const sent = await withShot(anna, PNG, "screen.bin", "application/octet-stream");
+    expect(sent.status).toBe(201);
+    const served = await shot(anna, sent.body.data.id);
+    expect(served.status).toBe(200);
+    expect(served.headers["content-type"]).toBe("image/png");
+    expect(Buffer.compare(served.body as Buffer, PNG)).toBe(0);
+    const audit = (await harness.query<{ metadata: Record<string, unknown> }>("SELECT metadata FROM audit_logs WHERE action = 'FEEDBACK_SUBMITTED' ORDER BY created_at DESC LIMIT 1")).rows[0];
+    expect(audit?.metadata).toMatchObject({ screenshot: true });
+    expect((await request(app).get("/api/v1/feedback/mine").set("Authorization", `Bearer ${anna.token}`)).body.data[0].hasScreenshot).toBe(true);
+  });
+
+  it("refuses a disguised file and one over 3 MB", async () => {
+    const disguised = await withShot(anna, Buffer.from("<svg onload=alert(1)>"), "x.png");
+    expect(disguised.status).toBe(400);
+    expect(disguised.body.error.code).toBe("UNSUPPORTED_IMAGE");
+    const huge = await withShot(anna, Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(3 * 1024 * 1024 + 10)]), "big.jpg", "image/jpeg");
+    expect(huge.status).toBe(413);
+  });
+
+  it("hides it from colleagues, shows it to a director and audits the director's view", async () => {
+    const sent = await withShot(anna, PNG);
+    expect((await shot(boris, sent.body.data.id)).status).toBe(404);
+    expect((await shot(boss, sent.body.data.id)).status).toBe(200);
+    const viewed = (await harness.query<{ entity_id: string }>("SELECT entity_id FROM audit_logs WHERE action = 'FEEDBACK_VIEWED'")).rows;
+    expect(viewed.map((row) => row.entity_id)).toContain(sent.body.data.id);
   });
 });
