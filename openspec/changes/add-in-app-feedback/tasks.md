@@ -35,9 +35,9 @@ Each slice ends with `make check && npm run build` passing, and a commit. A test
 
 ## 6. GitHub issues
 
-- [ ] 6.1 `createIssue` and `feedbackIssueBody` (labels created on first use), plus the scrub again before sending. Tests: no original text, reporter or log in the body.
-- [ ] 6.2 The step creates exactly one issue per report, stores the number and link, and audits `FEEDBACK_ISSUE_CREATED`. Tests include overlapping runs.
-- [ ] 6.3 Integration status in `/integrations` and in the director inbox, showing what's missing.
+- [x] 6.1 `createIssue` and `feedbackIssueBody` (labels created on first use), plus the scrub again before sending. Tests: no original text, reporter or log in the body.
+- [x] 6.2 The step creates exactly one issue per report, stores the number and link, and audits `FEEDBACK_ISSUE_CREATED`. Tests include overlapping runs.
+- [x] 6.3 Integration status in `/integrations` and in the director inbox, showing what's missing.
 
 ## 7. Release
 

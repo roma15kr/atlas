@@ -5,7 +5,10 @@ import { writeAudit } from "../audit";
 import { requireAuth } from "../auth";
 import { query } from "../db";
 import { ApiError, asyncHandler } from "../errors";
+import { config } from "../config";
+import { githubConfigured } from "../feedback/github";
 import { pagination } from "../http";
+import { llmConfigured } from "../llm/openai";
 import { feedbackLimiter } from "../middleware";
 import { objectStorage } from "../storage";
 import { detectImageType } from "./avatars";
@@ -117,6 +120,13 @@ feedbackRouter.get("/:id/screenshot", asyncHandler(async (req, res) => {
   res.setHeader("Content-Disposition", "inline");
   stream.on("error", (error) => res.destroy(error));
   stream.pipe(res);
+}));
+
+/** Whether reports can be translated (OpenAI) and filed (GitHub); directors only. */
+feedbackRouter.get("/status", asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  if (auth.role !== "DIRECTOR") throw new ApiError(403, "FORBIDDEN", "Only directors can see the processing status");
+  res.json({ data: { openai: llmConfigured(), github: githubConfigured(), repository: config.GITHUB_REPOSITORY ?? null } });
 }));
 
 const directorColumns = `${ownColumns}, f.user_id AS "userId", u.full_name AS "reporterName", d.name AS "departmentName",

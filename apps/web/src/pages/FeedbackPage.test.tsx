@@ -19,6 +19,7 @@ beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input); calls.push(`${init?.method ?? 'GET'} ${url}`);
     const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    if (url === '/api/v1/feedback/status') return json({ data: { openai: true, github: false, repository: null } });
     if (url.startsWith('/api/v1/feedback?')) return json({ data: [done, failed], meta: { total: 2 } });
     if (url === '/api/v1/feedback/f-1') return json({ data: { ...done, diagnostics: { events: [{ at: '2026-10-06T10:13:58Z', type: 'request', method: 'PATCH', path: '/api/v1/deals/7f3', status: 500, ms: 412, requestId: 'req-9c1e' }] } } });
     if (url === '/api/v1/feedback/f-2') return json({ data: { ...failed, diagnostics: { events: [] } } });
@@ -43,6 +44,7 @@ describe('director inbox', () => {
     expect(await within(list).findByText('Deal changes disappear after saving')).toBeInTheDocument();
     expect(within(list).getByText('Задача #42')).toBeInTheDocument();
     expect(within(list).getByText('Ошибка · попытка 5')).toBeInTheDocument();
+    expect(await within(list).findByRole('note')).toHaveTextContent('задачи в GitHub не создаются: не задано GITHUB_TOKEN и GITHUB_REPOSITORY');
     await user.click(within(list).getByRole('button', { name: /Deal changes disappear/ }));
     const dialog = await screen.findByRole('dialog', { name: 'Deal changes disappear after saving' });
     expect(await within(dialog).findByText('Після «Зберегти» зміни зникають')).toBeInTheDocument();

@@ -75,3 +75,42 @@ describe("processFeedback", () => {
     expect((await row(id)).title_en).toBe("Deal changes disappear");
   });
 });
+
+describe("filing GitHub issues", () => {
+  it("creates exactly one issue per report even when two runs overlap, and audits it", async () => {
+    const ids = [await addReport("Перша проблема з угодами"), await addReport("Друга проблема з задачами")];
+    let next = 100;
+    const fileIssue = vi.fn(async () => { await new Promise((resolve) => setTimeout(resolve, 30)); next += 1; return { number: next, url: `https://github.com/roma15kr/atlas/issues/${next}` }; });
+    const deps = { canTriage: () => true, canFile: () => true, triage: async () => triaged, fileIssue };
+    await Promise.all([processFeedback(new Date(), deps), processFeedback(new Date(), deps)]);
+    expect(fileIssue).toHaveBeenCalledTimes(2);
+    const rows = (await harness.query<{ status: string; issue_number: number }>("SELECT status, issue_number FROM feedback_reports ORDER BY created_at")).rows;
+    expect(rows.map((row) => row.status)).toEqual(["ISSUE_CREATED", "ISSUE_CREATED"]);
+    expect(new Set(rows.map((row) => row.issue_number)).size).toBe(2);
+    await processFeedback(new Date(), deps);
+    expect(fileIssue).toHaveBeenCalledTimes(2);
+    const audits = (await harness.query<{ entity_id: string; actor_id: string | null }>("SELECT entity_id, actor_id FROM audit_logs WHERE action = 'FEEDBACK_ISSUE_CREATED'")).rows;
+    expect(audits.map((row) => row.entity_id).sort()).toEqual([...ids].sort());
+    expect(audits.every((row) => row.actor_id === null)).toBe(true);
+  });
+
+  it("files a report triaged earlier once GitHub is configured, without translating it again", async () => {
+    const id = await addReport();
+    const triage = vi.fn(async () => triaged);
+    await processFeedback(new Date(), { canTriage: () => true, canFile: () => false, triage });
+    const fileIssue = vi.fn(async () => ({ number: 7, url: "https://github.com/roma15kr/atlas/issues/7" }));
+    await processFeedback(new Date(), { canTriage: () => true, canFile: () => true, triage, fileIssue });
+    expect(triage).toHaveBeenCalledTimes(1);
+    expect((await row(id)).status).toBe("ISSUE_CREATED");
+    const source = (fileIssue.mock.calls[0] as unknown as [Record<string, unknown>])[0];
+    expect(source).toMatchObject({ id, title_en: "Deal changes disappear", area: "sales-pipeline" });
+    expect(source).not.toHaveProperty("message");
+    expect(JSON.stringify(source)).not.toContain("Зберегти");
+  });
+
+  it("keeps a report failed with the reason when GitHub refuses", async () => {
+    const id = await addReport();
+    await processFeedback(new Date(), { canTriage: () => true, canFile: () => true, triage: async () => triaged, fileIssue: async () => { throw new Error("GitHub returned 502"); } });
+    expect(await row(id)).toMatchObject({ status: "FAILED", attempts: 1, last_error: "GitHub returned 502", title_en: "Deal changes disappear" });
+  });
+});

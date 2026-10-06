@@ -85,6 +85,14 @@ export async function retryFeedback(id: string): Promise<void> {
   await apiRequest(`/feedback/${id}/retry`, { method: 'POST' });
 }
 
+export interface FeedbackProcessing { openai: boolean; github: boolean; repository: string | null }
+
+/** Whether reports can be translated and filed; directors only. */
+export async function loadFeedbackStatus(): Promise<FeedbackProcessing> {
+  if (isDemo()) return { openai: false, github: false, repository: null };
+  return apiRequest<FeedbackProcessing>('/feedback/status');
+}
+
 /** Test helper: forget demo reports between tests. */
 export function resetDemoFeedback(): void {
   demoReports = [];

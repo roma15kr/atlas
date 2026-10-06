@@ -1,6 +1,6 @@
 import { writeAutomationAudit } from "../audit";
 import { query } from "../db";
-import { githubConfigured } from "../feedback/github";
+import { createIssue, githubConfigured, type IssueSource } from "../feedback/github";
 import { triageReport, type Triage, type TriageInput } from "../feedback/triage";
 import { LlmError, llmConfigured } from "../llm/openai";
 
@@ -25,8 +25,7 @@ export interface FeedbackDeps {
   triage?: (input: TriageInput) => Promise<Triage>;
   canTriage?: () => boolean;
   canFile?: () => boolean;
-  /** Creates the GitHub issue; added in the next slice. */
-  fileIssue?: (report: QueuedReport) => Promise<{ number: number; url: string }>;
+  fileIssue?: (source: IssueSource) => Promise<{ number: number; url: string }>;
 }
 
 /** Error lines from the log for the model: failed requests and app errors, no request ids. */
@@ -45,9 +44,10 @@ function errorLines(report: QueuedReport): string[] {
  */
 export async function processFeedback(now = new Date(), deps: FeedbackDeps = {}): Promise<{ processed: number; failed: number }> {
   const canTriage = (deps.canTriage ?? llmConfigured)();
-  const canFile = Boolean(deps.fileIssue) && (deps.canFile ?? githubConfigured)();
+  const canFile = (deps.canFile ?? githubConfigured)();
   if (!canTriage && !canFile) return { processed: 0, failed: 0 };
   const triage = deps.triage ?? triageReport;
+  const fileIssue = deps.fileIssue ?? createIssue;
 
   await query(`UPDATE feedback_reports SET status = 'PENDING' WHERE status = 'PROCESSING' AND updated_at < $1::timestamptz - make_interval(mins => $2)`, [now, STALE_MINUTES]);
   const claimed = await query<QueuedReport>(
@@ -74,8 +74,11 @@ export async function processFeedback(now = new Date(), deps: FeedbackDeps = {})
             result.category, result.severity, result.area, now]
         );
       }
-      if (canFile && deps.fileIssue) {
-        const issue = await deps.fileIssue(report);
+      if (canFile) {
+        const source = (await query<IssueSource>(
+          `SELECT id, page, app_version, user_agent, language, title_en, summary_en, translation_en, steps_en, category, severity, area
+           FROM feedback_reports WHERE id = $1`, [report.id])).rows[0]!;
+        const issue = await fileIssue(source);
         await query(`UPDATE feedback_reports SET status = 'ISSUE_CREATED', issue_number = $2, issue_url = $3, last_error = NULL WHERE id = $1`, [report.id, issue.number, issue.url]);
         await writeAutomationAudit(report.company_id, { action: "FEEDBACK_ISSUE_CREATED", entityType: "feedback_report", entityId: report.id, metadata: { issueNumber: issue.number } });
       } else {

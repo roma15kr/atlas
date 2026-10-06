@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Badge, Button, Dialog, EmptyState, LoadingState, PageHeader, Segmented, Surface } from '../components/ui';
 import { FeedbackButton } from '../components/FeedbackDialog';
 import { useAuth } from '../context/AppContext';
-import { loadAllFeedback, loadFeedback, loadFeedbackScreenshot, loadMyFeedback, retryFeedback } from '../lib/feedback';
+import { loadAllFeedback, loadFeedback, loadFeedbackScreenshot, loadFeedbackStatus, loadMyFeedback, retryFeedback, type FeedbackProcessing } from '../lib/feedback';
 import { formatDateTime } from '../lib/format';
 import type { FeedbackDetail, FeedbackKind, FeedbackReport, FeedbackStatus } from '../types';
 
@@ -90,6 +90,9 @@ function AllReports() {
   const [reports, setReports] = useState<FeedbackDetail[] | null>(null);
   const [error, setError] = useState('');
   const [opened, setOpened] = useState<string | null>(null);
+  const [processing, setProcessing] = useState<FeedbackProcessing | null>(null);
+  useEffect(() => { loadFeedbackStatus().then(setProcessing).catch(() => setProcessing(null)); }, []);
+  const missing = processing ? [!processing.openai && 'OPENAI_API_KEY', !processing.github && 'GITHUB_TOKEN и GITHUB_REPOSITORY'].filter(Boolean) : [];
   const load = useCallback(() => {
     setReports(null); setError('');
     loadAllFeedback(filter === 'ALL' ? undefined : filter).then(setReports).catch(() => setError('Обращения не загружены'));
@@ -97,6 +100,7 @@ function AllReports() {
   useEffect(() => { load(); }, [load]);
   return <Surface className="feedback-list" aria-label="Все обращения">
     <div className="table-toolbar"><strong>Все обращения</strong><Segmented label="Статус обращений" value={filter} onChange={setFilter} options={[{ value: 'ALL', label: 'Все' }, { value: 'PENDING', label: 'Ожидают' }, { value: 'FAILED', label: 'Ошибки обработки' }, { value: 'ISSUE_CREATED', label: 'В GitHub' }]} /></div>
+    {missing.length > 0 && <div className="notice notice--info feedback-notice" role="note">{`Обращения сохраняются, но ${processing!.openai ? 'задачи в GitHub не создаются' : 'перевод и задачи в GitHub не выполняются'}: не задано ${missing.join(' и ')}. После настройки ожидающие обращения обработаются автоматически.`}</div>}
     {error ? <div className="form-error" role="alert">{error}</div>
       : !reports ? <LoadingState label="Загружаем обращения" />
         : reports.length ? <ul className="feedback-rows">{reports.map((report) => <li key={report.id}><button type="button" onClick={() => setOpened(report.id)}>

@@ -207,3 +207,11 @@ describe("rate limit", () => {
     expect((await submit(boris, report({ message: "Інший співробітник теж має проблему" }))).status).toBe(201);
   });
 });
+
+describe("processing status", () => {
+  it("tells a director what is configured, and nobody else", async () => {
+    const status = await request(app).get("/api/v1/feedback/status").set("Authorization", `Bearer ${boss.token}`);
+    expect(status.body.data).toEqual({ openai: false, github: false, repository: null });
+    expect((await request(app).get("/api/v1/feedback/status").set("Authorization", `Bearer ${anna.token}`)).status).toBe(403);
+  });
+});
