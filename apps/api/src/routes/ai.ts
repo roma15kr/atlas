@@ -6,11 +6,13 @@ import { writeAudit } from "../audit";
 import { requireAuth } from "../auth";
 import { config } from "../config";
 import { asyncHandler } from "../errors";
+import { llmConfigured } from "../llm/openai";
 
 export const aiRouter = Router();
 
 aiRouter.get("/status", (_req, res) => {
-  res.json({ data: { configured: Boolean(config.ANTHROPIC_API_KEY), mode: config.ANTHROPIC_API_KEY ? "CLAUDE_WITH_RULE_FALLBACK" : "RULES" } });
+  const configured = llmConfigured();
+  res.json({ data: { configured, provider: "openai", model: config.AI_ANALYSIS_MODEL, mode: configured ? "AI_WITH_RULE_FALLBACK" : "RULES" } });
 });
 
 aiRouter.post("/analyze", asyncHandler(async (req, res) => {
@@ -27,7 +29,7 @@ aiRouter.post("/analyze", asyncHandler(async (req, res) => {
     entityType: "user",
     entityId: target.id,
     departmentId: target.department_id,
-    metadata: { mode: input.mode, source: result.source }
+    metadata: { mode: input.mode, source: result.source, model: result.model ?? null }
   });
   res.json({ data: result });
 }));

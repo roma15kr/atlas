@@ -69,7 +69,7 @@ const healthHandler = asyncHandler(async (_req, res) => {
   res.status(healthy ? 200 : 503).json({
     status: healthy ? "ok" : "degraded",
     checks,
-    features: { ai: config.ANTHROPIC_API_KEY ? "claude" : "rules", storage: config.S3_ENDPOINT ? "s3" : "local" }
+    features: { ai: config.OPENAI_API_KEY ? "openai" : "rules", storage: config.S3_ENDPOINT ? "s3" : "local" }
   });
 });
 app.get("/health", healthHandler);

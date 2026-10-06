@@ -4,9 +4,9 @@ Each slice ends with `make check && npm run build` passing, and a commit. A test
 
 ## 1. Tracer bullet: analysis through OpenAI
 
-- [ ] 1.1 Add `openai` and `llm/openai.ts` `structuredResponse`, with `LlmError` for timeouts, refusals and unparsable output. Unit tests with a stubbed client.
-- [ ] 1.2 `analyzeWork` uses it with `AI_ANALYSIS_MODEL`, returns `source: AI` and `model`, and falls back to the rules. Tests for each fallback reason, and for the payload holding metrics only.
-- [ ] 1.3 The audit includes the model. Integration test.
+- [x] 1.1 Add `openai` and `llm/openai.ts` `structuredResponse`, with `LlmError` for timeouts, refusals and unparsable output. Unit tests with a stubbed client.
+- [x] 1.2 `analyzeWork` uses it with `AI_ANALYSIS_MODEL`, returns `source: AI` and `model`, and falls back to the rules. Tests for each fallback reason, and for the payload holding metrics only.
+- [x] 1.3 The audit includes the model. Integration test.
 
 ## 2. Distinct modes
 

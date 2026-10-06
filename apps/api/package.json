@@ -28,6 +28,7 @@
     "mailparser": "^3.9.32",
     "multer": "^2.0.1",
     "nodemailer": "^10.0.13",
+    "openai": "^7.28.0",
     "pg": "^8.16.0",
     "pino": "^9.7.0",
     "pino-http": "^10.4.0",
