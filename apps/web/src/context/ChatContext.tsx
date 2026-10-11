@@ -19,6 +19,8 @@ interface ChatValue {
   totals: ChatTotals;
   loaded: boolean;
   refresh: () => Promise<void>;
+  /** Reloads colleagues, so people added since the page opened can be picked. Keeps the current list on failure. */
+  reloadPeople: () => Promise<void>;
   /** The conversation on screen: its new messages don't count as unread. */
   setActive: (id: string | null) => void;
   subscribe: (listener: (event: ChatEvent) => void) => () => void;
@@ -74,10 +76,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     } catch { setLoaded(true); }
   }, [backend]);
 
+  const reloadPeople = useCallback(async () => {
+    try { setPeople(await backend.people()); } catch { /* keep the list we have */ }
+  }, [backend]);
+
   useEffect(() => {
     void refresh();
-    backend.people().then(setPeople).catch(() => setPeople([]));
-  }, [backend, refresh]);
+    void reloadPeople();
+  }, [refresh, reloadPeople]);
 
   const emit = useCallback((event: ChatEvent) => listeners.current.forEach((listener) => listener(event)), []);
 
@@ -116,11 +122,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const subscribe = useCallback((listener: (event: ChatEvent) => void) => { listeners.current.add(listener); return () => { listeners.current.delete(listener); }; }, []);
 
   const value = useMemo<ChatValue>(() => ({
-    backend, people, conversations, mentions, loaded, refresh, totals: chatTotals(conversations, mentions),
+    backend, people, conversations, mentions, loaded, refresh, reloadPeople, totals: chatTotals(conversations, mentions),
     setActive: (id) => { activeRef.current = id; },
     subscribe,
     notify: emit,
-  }), [backend, people, conversations, mentions, loaded, refresh, subscribe, emit]);
+  }), [backend, people, conversations, mentions, loaded, refresh, reloadPeople, subscribe, emit]);
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }

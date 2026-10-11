@@ -12,6 +12,8 @@ const MEMBERS: [string, string, string] = ['участник', 'участник
 /** Searchable checklist of colleagues. */
 function PeoplePicker({ people, selected, onChange, exclude = [], legend }: { people: ChatPerson[]; selected: string[]; onChange: (ids: string[]) => void; exclude?: string[]; legend: string }) {
   const [query, setQuery] = useState('');
+  const { reloadPeople } = useChat();
+  useEffect(() => { void reloadPeople(); }, [reloadPeople]);
   const visible = people.filter((person) => !exclude.includes(person.id) && `${person.fullName} ${person.username} ${person.departmentName ?? ''}`.toLowerCase().includes(query.toLowerCase()));
   const toggle = (id: string) => onChange(selected.includes(id) ? selected.filter((item) => item !== id) : [...selected, id]);
   return <div className="field--wide people-picker">
