@@ -64,7 +64,7 @@ describe('my tasks', () => {
     expect(within(dialog).getByRole('checkbox', { name: 'Выполнено' })).toBeChecked();
     await user.click(within(dialog).getByRole('button', { name: 'Изменить описание' }));
     expect(await within(dialog).findByRole('textbox', { name: 'Описание' })).toHaveTextContent('отправить КП');
-  });
+  }, 15_000);
 
   it('adds a formatted comment to a task', async () => {
     const user = userEvent.setup();

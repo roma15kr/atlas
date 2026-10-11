@@ -16,3 +16,6 @@ const emptyRect = { x: 0, y: 0, top: 0, left: 0, right: 0, bottom: 0, width: 0, 
 Range.prototype.getBoundingClientRect = () => emptyRect as DOMRect;
 Range.prototype.getClientRects = () => Object.assign([], { item: () => null }) as unknown as DOMRectList;
 if (!document.elementFromPoint) document.elementFromPoint = () => null;
+
+// The editor is a lazy chunk in the app; load it once here so tests don't race its first download.
+await import('../components/richtext/RichTextEditorImpl');
