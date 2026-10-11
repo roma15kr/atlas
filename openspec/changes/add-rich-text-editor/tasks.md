@@ -41,13 +41,13 @@
 
 ## 8. Pasted images
 
-- [ ] 8.1 Add `database/017_rich_text_images.sql` and `routes/images.ts`:
+- [x] 8.1 Add `database/017_rich_text_images.sql` and `routes/images.ts`:
   - `POST /api/v1/images`: PNG, JPEG, GIF or WebP, 5 MB, 60 per hour per user, `RICH_TEXT_IMAGE_UPLOADED` audit;
   - `GET /api/v1/images/:id`: authenticated, same company, otherwise 404;
   - GIF support in `detectImageType`.
 
   Verify `routes/images.integration.test.ts` passes.
-- [ ] 8.2 Add `uploadImage` to `lib/api.ts`, plus `AuthImage` (blob URL) and paste/drop in the editor (placeholder while uploading, message for other files), with a demo branch using object URLs. Verify the `RichTextEditor.test.tsx` case "refuses a PDF drop" and a `RichTextView` case "shows Atlas images through AuthImage" pass; commit.
+- [x] 8.2 Add `uploadImage` to `lib/api.ts`, plus `AuthImage` (blob URL) and paste/drop in the editor (placeholder while uploading, message for other files), with a demo branch using object URLs. Verify the `RichTextEditor.test.tsx` case "refuses a PDF drop" and a `RichTextView` case "shows Atlas images through AuthImage" pass; commit.
 
 ## 9. Integration checks
 

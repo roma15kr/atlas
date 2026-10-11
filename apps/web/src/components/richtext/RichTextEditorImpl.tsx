@@ -1,16 +1,25 @@
+import { Image } from '@tiptap/extension-image';
 import { Markdown } from '@tiptap/markdown';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { TableKit } from '@tiptap/extension-table';
 import { Placeholder } from '@tiptap/extensions';
-import { EditorContent, useEditor, useEditorState, type Editor } from '@tiptap/react';
+import { EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor, useEditorState, type Editor, type ReactNodeViewProps } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { Bold, Code, Heading2, Italic, Link2, List, ListChecks, ListOrdered, Quote, Strikethrough, Table2 } from 'lucide-react';
+import { Bold, Code, Heading2, ImagePlus, Italic, Link2, List, ListChecks, ListOrdered, Quote, Strikethrough, Table2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { mentionQuery, type ChatPerson } from '../../lib/chat';
+import { acceptableImage, IMAGE_RULES_MESSAGE, uploadImage } from '../../lib/images';
+import { AuthImage } from './AuthImage';
 import { Avatar } from '../ui';
 import type { RichTextEditorProps } from './RichTextEditor';
 
 const SAFE_LINK = /^(https?:\/\/|mailto:)/i;
+
+/** Images in the editor are fetched with the session token too. */
+function ImageView({ node }: ReactNodeViewProps) {
+  return <NodeViewWrapper as="span" className="rich-editor__image" data-drag-handle><AuthImage src={String(node.attrs.src ?? '')} alt={String(node.attrs.alt ?? '')} /></NodeViewWrapper>;
+}
+const AtlasImage = Image.extend({ addNodeView() { return ReactNodeViewRenderer(ImageView); } }).configure({ inline: false, allowBase64: false });
 
 /** Text of the current block up to the cursor, for `@` suggestions. */
 function textBeforeCursor(editor: Editor): string {
@@ -25,9 +34,12 @@ export default function RichTextEditorImpl({ value, onChange, maxLength, label, 
   // Values this editor emitted that the parent may still pass back (possibly an older one while typing fast).
   const pending = useRef<string[]>([value]);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [uploads, setUploads] = useState(0);
+  const [imageError, setImageError] = useState('');
+  const fileInput = useRef<HTMLInputElement>(null);
   const [mention, setMention] = useState<{ query: string; highlight: number; dismissed: boolean } | null>(null);
-  const live = useRef({ onSubmit, onChange, people, mention, setLinkOpen });
-  live.current = { onSubmit, onChange, people, mention, setLinkOpen };
+  const live = useRef({ onSubmit, onChange, people, mention, setLinkOpen, addImages: (_files: File[], _at?: number) => {} });
+  live.current = { onSubmit, onChange, people, mention, setLinkOpen, addImages: (files, at) => void addImages(files, at) };
 
   const suggestions = useMemo(() => {
     if (!mention || mention.dismissed || !people) return [];
@@ -49,6 +61,7 @@ export default function RichTextEditorImpl({ value, onChange, maxLength, label, 
       }),
       TaskList, TaskItem.configure({ nested: true }),
       TableKit.configure({ table: { resizable: false } }),
+      AtlasImage,
       Placeholder.configure({ placeholder: placeholder ?? '' }),
       Markdown
     ],
@@ -56,6 +69,18 @@ export default function RichTextEditorImpl({ value, onChange, maxLength, label, 
     contentType: 'markdown',
     editorProps: {
       attributes: { 'aria-label': label, 'aria-multiline': 'true', role: 'textbox', class: 'rich-editor__content', style: `min-height: ${minRows * 1.5}em` },
+      handlePaste: (_view, event) => {
+        const files = [...(event.clipboardData?.files ?? [])];
+        if (!files.length) return false;
+        live.current.addImages(files);
+        return true;
+      },
+      handleDrop: (view, event, _slice, moved) => {
+        const files = [...(event.dataTransfer?.files ?? [])];
+        if (moved || !files.length) return false;
+        live.current.addImages(files, view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos);
+        return true;
+      },
       handleKeyDown: (_view, event) => {
         const { onSubmit: submit, setLinkOpen: openLink } = live.current;
         const list = suggestionsRef.current;
@@ -104,6 +129,21 @@ export default function RichTextEditorImpl({ value, onChange, maxLength, label, 
     setMention(null);
   }
 
+  /** Uploads images and inserts each where the cursor (or the drop) was; anything else gets a message. */
+  async function addImages(files: File[], at?: number) {
+    const images = files.filter(acceptableImage);
+    setImageError(images.length === files.length ? '' : IMAGE_RULES_MESSAGE);
+    for (const file of images) {
+      setUploads((count) => count + 1);
+      try {
+        const src = await uploadImage(file);
+        const current = editorRef.current;
+        if (current) current.chain().focus().insertContentAt(at ?? current.state.selection.to, { type: 'image', attrs: { src, alt: file.name.replace(/\.[^.]+$/, '') } }).run();
+      } catch { setImageError('Изображение не загрузилось, попробуйте ещё раз'); }
+      finally { setUploads((count) => count - 1); }
+    }
+  }
+
   // Outside changes (a sent message clears the composer) replace the content.
   useEffect(() => {
     if (!editor) return;
@@ -136,7 +176,8 @@ export default function RichTextEditorImpl({ value, onChange, maxLength, label, 
     { label: 'Цитата', icon: Quote, active: state.quote, run: () => editor.chain().focus().toggleBlockquote().run() },
     { label: 'Код', icon: Code, active: state.code, run: () => editor.chain().focus().toggleCode().run() },
     { label: 'Ссылка', icon: Link2, active: state.link, run: () => setLinkOpen(true) },
-    { label: 'Таблица', icon: Table2, active: state.table, run: () => editor.chain().focus().insertTable({ rows: 3, cols: 2, withHeaderRow: true }).run() }
+    { label: 'Таблица', icon: Table2, active: state.table, run: () => editor.chain().focus().insertTable({ rows: 3, cols: 2, withHeaderRow: true }).run() },
+    { label: 'Изображение', icon: ImagePlus, active: false, run: () => fileInput.current?.click() }
   ];
 
   return <div className={`rich-editor${over > 0 ? ' is-invalid' : ''}${disabled ? ' is-disabled' : ''}`}>
@@ -149,7 +190,11 @@ export default function RichTextEditorImpl({ value, onChange, maxLength, label, 
     {suggestions.length > 0 && <ul className="mention-suggestions" role="listbox" aria-label="Упомянуть">{suggestions.map((person, index) => <li key={person.id} role="option" aria-selected={index === (mention?.highlight ?? 0)}>
       <button type="button" onMouseDown={(event) => { event.preventDefault(); insertMention(person); }}><Avatar name={person.fullName} size="sm" /><span><strong>{person.fullName}</strong><small>@{person.username}{person.departmentName ? ` · ${person.departmentName}` : ''}</small></span></button>
     </li>)}</ul>}
+    <input ref={fileInput} type="file" hidden accept="image/png,image/jpeg,image/gif,image/webp" multiple aria-label={`Изображение: ${label}`}
+      onChange={(event) => { const files = [...(event.target.files ?? [])]; event.target.value = ''; if (files.length) void addImages(files); }} />
     <EditorContent editor={editor} />
+    {uploads > 0 && <div className="rich-editor__status" role="status">Загружаем изображение…</div>}
+    {imageError && <div className="rich-editor__error" role="alert">{imageError}</div>}
     {(over > 0 || length > maxLength * 0.8) && <div className={`rich-editor__counter${over > 0 ? ' is-over' : ''}`} role={over > 0 ? 'alert' : undefined}>
       {over > 0 ? `Текст длиннее допустимого на ${over} ${over === 1 ? 'символ' : 'символов'}` : `${length} / ${maxLength}`}
     </div>}

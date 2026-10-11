@@ -1,10 +1,12 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { demoSessions } from '../../data/demo';
+import { sessionStore } from '../../lib/api';
 import { RichTextEditor } from './RichTextEditor';
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 function Harness({ initial = '', maxLength = 200, onChange, onSubmit }: { initial?: string; maxLength?: number; onChange?: (md: string) => void; onSubmit?: () => void }) {
   const [value, setValue] = useState(initial);
@@ -58,5 +60,28 @@ describe('RichTextEditor', () => {
     expect(onSubmit).not.toHaveBeenCalled();
     await user.keyboard('{Enter}');
     expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  // Drop, paste and the image button share one upload path; jsdom can't position a drop, so the button is used here.
+  it('refuses a PDF with a message and inserts nothing', async () => {
+    const onChange = vi.fn();
+    render(<Harness onChange={onChange} />);
+    await screen.findByRole('textbox', { name: 'Описание' });
+    const pdf = new File(['%PDF-1.7'], 'price.pdf', { type: 'application/pdf' });
+    fireEvent.change(screen.getByLabelText('Изображение: Описание'), { target: { files: [pdf] } });
+    expect(await screen.findByRole('alert')).toHaveTextContent('Можно добавить только изображение PNG, JPEG, GIF или WebP до 5 МБ');
+    expect(onChange.mock.calls.every(([markdown]) => markdown === '')).toBe(true);
+  });
+
+  it('uploads a pasted screenshot and inserts it as an Atlas image', async () => {
+    sessionStore.set(demoSessions.employee!);
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: () => 'blob:screenshot' }));
+    const onChange = vi.fn();
+    render(<Harness onChange={onChange} />);
+    const box = await screen.findByRole('textbox', { name: 'Описание' });
+    const png = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'screen.png', { type: 'image/png' });
+    fireEvent.paste(box, { clipboardData: { files: [png], types: ['Files'], getData: () => '' } });
+    await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(expect.stringMatching(/^!\[screen\]\(\/api\/v1\/images\/[0-9a-f-]{36}\)$/)));
+    expect(await screen.findByRole('img', { name: 'screen' })).toHaveAttribute('src', 'blob:screenshot');
   });
 });

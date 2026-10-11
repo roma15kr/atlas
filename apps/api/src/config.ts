@@ -38,6 +38,8 @@ const envSchema = z.object({
   S3_ACCESS_KEY: z.string().optional(),
   S3_SECRET_KEY: z.string().optional(),
   APP_VERSION: z.string().default("dev"),
+  /** Images pasted into formatted text, per user per hour. */
+  IMAGE_UPLOADS_PER_HOUR: z.coerce.number().int().min(1).max(10_000).default(60),
   OPENAI_API_KEY: z.string().optional(),
   AI_ANALYSIS_MODEL: z.string().default("gpt-6-luna"),
   FEEDBACK_MODEL: z.string().default("gpt-6-luna"),

@@ -2,11 +2,14 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ChatPerson } from '../../lib/chat';
+import { demoSessions } from '../../data/demo';
+import { sessionStore } from '../../lib/api';
+import { uploadImage } from '../../lib/images';
 import { RichTextView } from './RichTextView';
 
 const people = new Map<string, ChatPerson>([['semenets', { id: 'u9', username: 'semenets', fullName: 'Семенець Максим', jobTitle: null, departmentName: 'Отдел DIY' }]]);
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe('RichTextView', () => {
   it('wraps mentions outside code only', () => {
@@ -40,5 +43,15 @@ describe('RichTextView', () => {
     expect(screen.getByRole('link', { name: 'сайт' })).toHaveAttribute('rel', 'noopener noreferrer');
     expect(container.querySelector('b, [onclick]')).toBeNull();
     expect(container).toHaveTextContent('<b onclick="x()">жирный</b>');
+  });
+
+  it('shows Atlas images through AuthImage and other images as text', async () => {
+    sessionStore.set(demoSessions.employee!);
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: () => 'blob:price' }));
+    const url = await uploadImage(new File([new Uint8Array([0x89, 0x50])], 'price.png', { type: 'image/png' }));
+    const { container } = render(<RichTextView markdown={`![прайс](${url})\n\n![чужое](https://evil.example/x.png)`} />);
+    expect(await screen.findByRole('img', { name: 'прайс' })).toHaveAttribute('src', 'blob:price');
+    expect(container.querySelectorAll('img')).toHaveLength(1);
+    expect(container).toHaveTextContent('чужое');
   });
 });

@@ -53,7 +53,7 @@ See proposal.md (Why) and the specs for the requirements. Current state, from th
    - `RichTextView` takes an optional `onChange(markdown)`. Clicking a checkbox calls `toggleTask(markdown, index)`, which flips the Nth task marker outside code fences, and then saves through the field's existing update call (PATCH task, client, deal or member).
    - Without `onChange`, the checkboxes are disabled.
 6. **Images.**
-   - **Upload:** `POST /api/v1/images` (multer, 5 MB limit, PNG, JPEG, GIF or WebP by magic bytes) stores the file through `objectStorage.put` and inserts a row in `rich_text_images`. It returns `{ id, url: "/api/v1/images/<id>" }`.
+   - **Upload:** `POST /api/v1/images` (multer, 5 MB limit, PNG, JPEG, GIF or WebP by magic bytes; GIF is recognised in `routes/images.ts` so avatar and problem-report uploads keep their JPEG/PNG/WebP rule) stores the file through `objectStorage.put` and inserts a row in `rich_text_images`. It returns `{ id, url: "/api/v1/images/<id>" }`.
    - **Read:** `GET /api/v1/images/:id` requires auth, answers 404 for another company, and sends `Cache-Control: private, max-age=31536000, immutable`.
    - **Display:** the web `AuthImage` component fetches the image through `lib/api.ts` with the bearer token and shows it via `URL.createObjectURL`, cached per id for the session.
    - **Rate limit:** an `express-rate-limit` limiter keyed by user id, 60 per hour.
@@ -94,7 +94,7 @@ See proposal.md (Why) and the specs for the requirements. Current state, from th
 | `apps/web/src/components/richtext/RichTextView.tsx` | new: sanitized display, mention chips, checkbox handling, `AuthImage` swap |
 | `apps/web/src/components/richtext/RichTextEditor.tsx` | new, lazy: TipTap editor, toolbar, shortcuts, image paste/drop, mention suggestions, counter |
 | `apps/web/src/components/richtext/AuthImage.tsx` | new: fetches `/api/v1/images/:id` with the token |
-| `apps/web/src/lib/api.ts` | `uploadImage`, `fetchImageBlob` |
+| `apps/web/src/lib/api.ts`, `lib/images.ts` | `apiBlob` (token-aware download); `uploadImage`, `loadImage` and the demo image store |
 | `apps/web/src/components/chat/ChatParts.tsx` | `MessageText` and `Composer` use the view and editor |
 | `apps/web/src/components/chat/ChatDialogs.tsx` | edit-message dialog uses the editor |
 | `apps/web/src/components/TaskDialog.tsx`, `TaskCard.tsx` | editor, view, comments panel, plain preview |
@@ -109,7 +109,6 @@ See proposal.md (Why) and the specs for the requirements. Current state, from th
 | `apps/api/src/routes/tasks.ts` | comments endpoints |
 | `apps/api/src/routes/deals.ts` | `notes` in schemas and selects |
 | `apps/api/src/routes/chat.ts` | mention extraction skips code |
-| `apps/api/src/routes/avatars.ts` (`detectImageType`) | add GIF |
 
 ### Types and signatures
 

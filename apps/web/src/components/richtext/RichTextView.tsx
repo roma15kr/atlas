@@ -1,6 +1,7 @@
 import { createElement, Fragment, useMemo, useState, type ReactNode } from 'react';
 import type { ChatPerson } from '../../lib/chat';
 import { renderMarkdown, toggleTask } from '../../lib/markdown';
+import { AuthImage } from './AuthImage';
 
 /** Same rule as chat mentions: `@username` not inside a word or an email address. */
 const MENTION = /(^|[^\p{L}\p{N}._@-])@([a-z0-9._-]{2,50})/giu;
@@ -48,7 +49,7 @@ function toReact(node: Node, key: number, context: Context, inCode: boolean): Re
       aria-label={element.hasAttribute('checked') ? 'Выполнено' : 'Не выполнено'} onChange={() => context.onToggle(index)} />;
   }
   if (tag === 'a') return <a key={key} href={element.getAttribute('href') ?? undefined} target="_blank" rel="noopener noreferrer">{children}</a>;
-  if (tag === 'img') return <img key={key} src={element.getAttribute('src') ?? undefined} alt={element.getAttribute('alt') ?? ''} />;
+  if (tag === 'img') return <AuthImage key={key} src={element.getAttribute('src') ?? ''} alt={element.getAttribute('alt') ?? ''} />;
   const props: Record<string, unknown> = { key };
   if (tag === 'ol' && element.getAttribute('start')) props.start = Number(element.getAttribute('start'));
   if ((tag === 'th' || tag === 'td') && element.getAttribute('align')) props.style = { textAlign: element.getAttribute('align') };

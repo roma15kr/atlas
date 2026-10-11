@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { rateLimit } from "express-rate-limit";
 import { verifyAccessToken } from "./auth";
+import { config } from "./config";
 import { ApiError } from "./errors";
 
 export const USER_REQUEST_LIMIT = 1500;
@@ -49,6 +50,17 @@ export const crmReadLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: (req) => req.auth?.userId ?? req.ip ?? "unknown",
   message: { error: { code: "CRM_RATE_LIMITED", message: "CRM access rate exceeded" } }
+});
+
+/** Images pasted into formatted text: `IMAGE_UPLOADS_PER_HOUR` (60) uploads an hour per user. */
+export const imageUploadLimiter = rateLimit({
+  windowMs: 60 * 60_000,
+  limit: config.IMAGE_UPLOADS_PER_HOUR,
+  skipFailedRequests: true,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  keyGenerator: (req) => req.auth?.userId ?? req.ip ?? "unknown",
+  message: { error: { code: "IMAGE_RATE_LIMITED", message: "Too many images uploaded, try again later" } }
 });
 
 export function requireJson(req: Request, _res: Response, next: NextFunction): void {

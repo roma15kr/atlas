@@ -143,7 +143,7 @@ describe("password reset and change", () => {
     const fresh = changed.body.data.accessToken as string;
     expect((await request(app).get("/api/v1/clients").set("Authorization", `Bearer ${fresh}`)).status).toBe(200);
     expect(await audits("PASSWORD_CHANGED")).toHaveLength(1);
-  });
+  }, 20_000); // Several bcrypt (cost 12) hashes; slow when the suite runs in parallel.
 
   it("ends other sessions when the password changes", async () => {
     const other = await login("anna", CHOSEN);
