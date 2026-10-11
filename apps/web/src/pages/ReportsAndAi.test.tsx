@@ -49,8 +49,30 @@ describe('AI analysis', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Прогноз' }));
     await user.click(within(dialog).getByRole('button', { name: 'Сформировать' }));
     const result = await within(dialog).findByRole('region', { name: 'Результат анализа' });
-    expect(within(result).getByText(/Прогноз/)).toBeInTheDocument();
+    expect(within(result).getByText(/Прогноз: при текущем темпе/)).toBeInTheDocument();
     expect(within(result).getByText('Правила')).toBeInTheDocument();
+  });
+
+  it('keeps every analysis in the history, newest first, and opens a stored one', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.manager));
+    renderAt('/team?user=u4');
+    await user.click(await screen.findByRole('button', { name: 'AI-анализ' }));
+    const dialog = screen.getByRole('dialog', { name: 'AI-анализ' });
+    await user.click(within(dialog).getByRole('button', { name: 'Сформировать' }));
+    await within(dialog).findByRole('region', { name: 'Результат анализа' });
+    await user.click(within(dialog).getByRole('button', { name: 'Оценка' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Сформировать' }));
+    await within(dialog).findByRole('region', { name: 'Результат анализа' });
+    await user.click(within(dialog).getByRole('button', { name: /История · 2/ }));
+    const list = within(dialog).getByRole('list', { name: 'История анализов' });
+    const entries = within(list).getAllByRole('button');
+    expect(entries.map((entry) => within(entry).getByText(/Совет|Оценка|Прогноз/).textContent)).toEqual(['Оценка', 'Совет']);
+    await user.click(entries[1]!);
+    const opened = within(dialog).getByRole('region', { name: 'Результат анализа' });
+    expect(within(opened).getByText(/Совет: сфокусируйтесь/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'К истории' }));
+    expect(within(dialog).getByRole('list', { name: 'История анализов' })).toBeInTheDocument();
   });
 
   it('offers employees analysis of themselves only', async () => {

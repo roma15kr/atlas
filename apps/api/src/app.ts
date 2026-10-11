@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -21,6 +22,7 @@ import { clientsRouter } from "./routes/clients";
 import { communicationsRouter } from "./routes/communications";
 import { dashboardRouter } from "./routes/dashboard";
 import { dealsRouter } from "./routes/deals";
+import { feedbackRouter } from "./routes/feedback";
 import { documentsRouter } from "./routes/documents";
 import { funnelsRouter } from "./routes/funnels";
 import { integrationsRouter } from "./routes/integrations";
@@ -37,7 +39,18 @@ import { teamAdminRouter } from "./routes/teamAdmin";
 export const app = express();
 app.set("trust proxy", config.TRUST_PROXY);
 app.disable("x-powered-by");
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Every response carries the id its log entry has, so a problem report can be matched to the server log. */
+export function requestId(req: express.Request, res: express.Response): string {
+  const incoming = req.get("x-request-id");
+  const id = incoming && UUID.test(incoming) ? incoming : randomUUID();
+  res.setHeader("X-Request-Id", id);
+  return id;
+}
+
 app.use(pinoHttp({
+  genReqId: requestId,
   enabled: process.env.NODE_ENV !== "test",
   quietReqLogger: true,
   redact: {
@@ -68,8 +81,9 @@ const healthHandler = asyncHandler(async (_req, res) => {
   const healthy = Object.values(checks).every((status) => status === "ok");
   res.status(healthy ? 200 : 503).json({
     status: healthy ? "ok" : "degraded",
+    version: config.APP_VERSION.slice(0, 12),
     checks,
-    features: { ai: config.ANTHROPIC_API_KEY ? "claude" : "rules", storage: config.S3_ENDPOINT ? "s3" : "local" }
+    features: { ai: config.OPENAI_API_KEY ? "openai" : "rules", storage: config.S3_ENDPOINT ? "s3" : "local" }
   });
 });
 app.get("/health", healthHandler);
@@ -97,6 +111,7 @@ app.use("/api/v1/mail", mailRouter);
 app.use("/api/v1/chat", chatRouter);
 app.use("/api/v1/audit", auditRouter);
 app.use("/api/v1/ai", aiRouter);
+app.use("/api/v1/feedback", feedbackRouter);
 
 app.use(notFound);
 app.use(errorHandler);

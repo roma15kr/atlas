@@ -6,8 +6,9 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type { Role } from "../types";
+import { testDatabasePort } from "./ports";
 
-const port = 50000 + Math.floor(Math.random() * 12000);
+const port = testDatabasePort();
 Object.assign(process.env, {
   POSTGRES_HOST: "127.0.0.1", POSTGRES_PORT: String(port), POSTGRES_USER: "postgres", POSTGRES_PASSWORD: "postgres", POSTGRES_DB: "postgres",
   MAIL_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString("base64"), MAIL_SCHEDULER: "off", AUTOMATION_INTERVAL_MS: "0", SEED_DEMO_DATA: "false",

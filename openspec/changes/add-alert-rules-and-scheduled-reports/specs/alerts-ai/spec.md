@@ -58,7 +58,7 @@ The web app SHALL let users request an ADVICE, EVALUATION or FORECAST analysis:
 - directors and managers, from the team screen, for themselves and the people they manage;
 - everyone, from the profile screen, for themselves.
 
-The result SHALL show the summary, the recommendations, and whether Claude or the built-in rules produced it.
+The result SHALL show the summary, the recommendations, and whether the AI model or the built-in rules produced it.
 
 #### Scenario: Manager requests a forecast
 - **WHEN** a MANAGER opens "AI-анализ" for an employee of their department and chooses "Прогноз"

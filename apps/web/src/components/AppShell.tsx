@@ -1,6 +1,6 @@
 import {
   BarChart3, Bell, BookOpenCheck, BriefcaseBusiness, ChevronLeft, ChevronRight,
-  ClipboardList, FileText, Mail, Gauge, SquareKanban, LayoutDashboard, LogOut, Menu, MessageSquare,
+  ClipboardList, FileText, Mail, MessageSquareWarning, Gauge, SquareKanban, LayoutDashboard, LogOut, Menu, MessageSquare,
   PanelLeftClose, Search, Send, Settings, ShieldCheck, Trophy, Users, X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -9,8 +9,10 @@ import { useAuth, useWorkspace } from '../context/AppContext';
 import { useChat } from '../context/ChatContext';
 import { useMail } from '../context/MailContext';
 import { useTelegram } from '../context/TelegramContext';
+import { recordDiagnostic } from '../lib/diagnostics';
 import { relativeTime, roleLabel } from '../lib/format';
 import type { Role } from '../types';
+import { FeedbackButton } from './FeedbackDialog';
 import { Avatar, Badge, IconButton } from './ui';
 
 interface NavItem { label: string; to: string; icon: typeof Gauge; roles?: Role[]; }
@@ -32,6 +34,7 @@ const nav: Array<{ title?: string; items: NavItem[] }> = [
     { label: 'Сообщения', to: '/messages', icon: MessageSquare },
     { label: 'Почта', to: '/mail', icon: Mail },
     { label: 'Telegram', to: '/telegram', icon: Send },
+    { label: 'Обращения', to: '/feedback', icon: MessageSquareWarning },
     { label: 'Аудит', to: '/audit', icon: ShieldCheck, roles: ['DIRECTOR'] },
     { label: 'Профиль', to: '/profile', icon: Settings },
   ] },
@@ -40,7 +43,7 @@ const nav: Array<{ title?: string; items: NavItem[] }> = [
 const routeNames: Record<string, string> = {
   '/': 'Дашборд', '/crm': 'CRM', '/sales': 'Воронка продаж', '/sales/settings': 'Настройка воронок', '/tasks': 'Мои задачи', '/boards': 'Доски задач', '/boards/settings': 'Настройка досок',
   '/documents': 'Документы', '/team': 'Команда', '/reports': 'Отчёты',
-  '/achievements': 'Достижения', '/messages': 'Сообщения', '/mail': 'Почта', '/mail/settings': 'Настройки почты', '/telegram': 'Telegram', '/telegram/settings': 'Настройки Telegram', '/audit': 'Журнал аудита', '/profile': 'Профиль',
+  '/achievements': 'Достижения', '/messages': 'Сообщения', '/mail': 'Почта', '/mail/settings': 'Настройки почты', '/telegram': 'Telegram', '/telegram/settings': 'Настройки Telegram', '/audit': 'Журнал аудита', '/feedback': 'Обращения', '/profile': 'Профиль',
 };
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -56,6 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const user = session!.user;
   const openAlerts = alerts.filter((alert) => !alert.acknowledged).length;
+  useEffect(() => { recordDiagnostic({ type: 'route', path: location.pathname }); }, [location.pathname]);
   const pageName = useMemo(() => location.pathname.startsWith('/crm/') ? 'Карточка клиента' : /^\/boards\/[^/]+\/settings$/.test(location.pathname) ? 'Настройка досок' : location.pathname.startsWith('/mail/oauth') ? 'Почта' : routeNames[location.pathname] ?? 'Atlas', [location.pathname]);
 
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
@@ -72,7 +76,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="sidebar__user"><Avatar name={user.fullName} src={user.avatarUrl} online size="sm" /><div><strong>{user.fullName}</strong><span>{roleLabel[user.role]}</span></div><IconButton label="Выйти" icon={LogOut} onClick={() => void logout()} /></div>
     </aside>
     <div className="app-main">
-      <header className="topbar"><div className="topbar__left"><IconButton label="Открыть меню" icon={Menu} className="topbar__menu" onClick={() => setMobileOpen(true)} /><div><span>Рабочее пространство</span><strong>{pageName}</strong></div></div><div className="topbar__right"><label className="global-search"><Search size={16} /><input aria-label="Поиск" placeholder="Поиск" /></label>{dataStatus === 'offline' && <Badge tone="warning">Офлайн-данные</Badge>}<button className="topbar__alerts" aria-label={`Уведомления: ${openAlerts}`} onClick={() => navigate('/')}><Bell size={18} />{openAlerts > 0 && <i>{openAlerts}</i>}</button><div className="topbar__presence"><span className="presence presence--online" />В сети · {relativeTime(new Date().toISOString())}</div></div></header>
+      <header className="topbar"><div className="topbar__left"><IconButton label="Открыть меню" icon={Menu} className="topbar__menu" onClick={() => setMobileOpen(true)} /><div><span>Рабочее пространство</span><strong>{pageName}</strong></div></div><div className="topbar__right"><label className="global-search"><Search size={16} /><input aria-label="Поиск" placeholder="Поиск" /></label>{dataStatus === 'offline' && <Badge tone="warning">Офлайн-данные</Badge>}<FeedbackButton /><button className="topbar__alerts" aria-label={`Уведомления: ${openAlerts}`} onClick={() => navigate('/')}><Bell size={18} />{openAlerts > 0 && <i>{openAlerts}</i>}</button><div className="topbar__presence"><span className="presence presence--online" />В сети · {relativeTime(new Date().toISOString())}</div></div></header>
       <main className="page-content">{children}</main>
     </div>
   </div>;

@@ -4,6 +4,9 @@ COPY package.json package-lock.json* ./
 COPY apps/web/package.json apps/web/package.json
 RUN npm ci --workspace @atlas/web --include-workspace-root=false
 COPY apps/web apps/web
+# The source revision, shown in problem reports; Coolify passes SOURCE_COMMIT.
+ARG VITE_APP_VERSION=dev
+ENV VITE_APP_VERSION=$VITE_APP_VERSION
 RUN npm run build --workspace @atlas/web
 
 FROM nginx:1.27-alpine

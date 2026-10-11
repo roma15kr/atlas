@@ -2,12 +2,13 @@ import { z } from "zod";
 import { config } from "./config";
 import { query } from "./db";
 import { MONITORING_POLICY_VERSION } from "./presence";
+import { LlmError, llmConfigured, structuredResponse, type LlmFailure } from "./llm/openai";
 import { funnelAccessSql } from "./scope";
 import type { AuthContext } from "./types";
 
 export type AiMode = "ADVICE" | "EVALUATION" | "FORECAST";
 
-interface SystemMetrics {
+export interface SystemMetrics {
   target: { id: string; role: string; jobTitle: string | null };
   kpiProgress: number;
   tasks: { total: number; done: number; overdue: number };
@@ -16,38 +17,62 @@ interface SystemMetrics {
   presence: { consent: true; activeDays30: number; lastEventAt: string | null } | { consent: false };
 }
 
-export async function analyzeWork(auth: AuthContext, targetId: string, mode: AiMode): Promise<Record<string, unknown>> {
+export const analysisSchema = z.object({
+  summary: z.string(),
+  recommendations: z.array(z.string()).max(8)
+});
+
+/** Rules that hold for every mode; `analysisInstructions` adds the mode's purpose. */
+const BASE_RULES = [
+  "You summarize workplace system metrics for a manager or the employee themselves.",
+  "Do not infer protected traits, intent, sabotage, or misconduct.",
+  "Answer in Russian. Use only the figures given; never invent numbers.",
+  "If presence.consent is false, do not mention activity, attendance or presence at all.",
+  "Give at most 8 concrete operational recommendations.",
+  "Write money amounts in Ukrainian hryvnia with the sign ₴ and spaces between thousands, for example 210 000 ₴; never write UAH."
+].join("\n");
+
+/** What each mode is for, so advice, evaluation and forecast read differently. */
+export function analysisInstructions(mode: AiMode): string {
+  switch (mode) {
+    case "ADVICE":
+      return "Mode ADVICE: say what to do in the coming days. The summary names the two or three most important priorities and why; recommendations are concrete next actions, most urgent first.";
+    case "EVALUATION":
+      return "Mode EVALUATION: assess progress against targets. The summary states KPI progress as a percentage, task completion and overdue tasks, and whether the person is on track; recommendations address the weakest area first.";
+    case "FORECAST":
+      return "Mode FORECAST: estimate the expected outcome of the open deals. The summary gives the weighted pipeline value as the expected result, the total open value as the upper bound, and states that the forecast rests on the current deal probabilities. If there are no open deals, say there is nothing to forecast. Recommendations are about moving deals forward and keeping probabilities current.";
+  }
+}
+
+/** The full system prompt for a mode: shared rules plus the mode's purpose. */
+export function analysisSystemPrompt(mode: AiMode): string {
+  return `${BASE_RULES}\n${analysisInstructions(mode)}`;
+}
+
+export interface AiResult {
+  summary: string;
+  recommendations: string[];
+  source: "AI" | "RULES";
+  model?: string;
+  fallbackReason?: LlmFailure;
+  metrics: SystemMetrics;
+}
+
+export async function analyzeWork(auth: AuthContext, targetId: string, mode: AiMode): Promise<AiResult> {
   const metrics = await systemMetrics(auth, targetId);
   const rules = ruleBased(metrics, mode);
-  if (!config.ANTHROPIC_API_KEY) return { ...rules, source: "RULES", metrics };
-
+  if (!llmConfigured()) return { ...rules, source: "RULES", metrics };
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15_000);
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": config.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01"
-      },
-      body: JSON.stringify({
-        model: config.ANTHROPIC_MODEL,
-        max_tokens: 550,
-        temperature: 0.2,
-        system: "You summarize workplace system metrics. Do not infer protected traits, intent, sabotage, or misconduct. Give concrete operational recommendations in Russian. If presence.consent is false, do not mention activity or attendance. Return JSON only with summary (string) and recommendations (string array).",
-        messages: [{ role: "user", content: JSON.stringify({ mode, viewerRole: auth.role, metrics, baseline: rules }) }]
-      })
-    }).finally(() => clearTimeout(timeout));
-    if (!response.ok) throw new Error(`Anthropic returned ${response.status}`);
-    const body = await response.json() as { content?: Array<{ type: string; text?: string }> };
-    const text = body.content?.find((item) => item.type === "text")?.text;
-    if (!text) throw new Error("Anthropic returned no text");
-    const parsed = z.object({ summary: z.string(), recommendations: z.array(z.string()).max(8) }).parse(JSON.parse(stripCodeFence(text)));
-    return { ...rules, ...parsed, source: "CLAUDE", model: config.ANTHROPIC_MODEL, metrics };
+    const result = await structuredResponse({
+      model: config.AI_ANALYSIS_MODEL,
+      schemaName: "work_analysis",
+      schema: analysisSchema,
+      system: analysisSystemPrompt(mode),
+      user: JSON.stringify({ mode, viewerRole: auth.role, metrics, baseline: rules })
+    });
+    return { ...result, source: "AI", model: config.AI_ANALYSIS_MODEL, metrics };
   } catch (error) {
-    return { ...rules, source: "RULES", fallbackReason: error instanceof Error ? error.message : "AI unavailable", metrics };
+    return { ...rules, source: "RULES", fallbackReason: error instanceof LlmError ? error.reason : "api_error", metrics };
   }
 }
 
@@ -111,6 +136,3 @@ function ruleBased(metrics: SystemMetrics, mode: AiMode): { summary: string; rec
   return { summary: `Приоритеты составлены по ${metrics.tasks.total} задачам и ${metrics.pipeline.openDeals} открытым сделкам.`, recommendations };
 }
 
-function stripCodeFence(value: string): string {
-  return value.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-}

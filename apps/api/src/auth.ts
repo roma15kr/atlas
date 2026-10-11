@@ -73,8 +73,10 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
     if (!user || (user.role === "MANAGER" && !user.department_id)) {
       throw new ApiError(401, "ACCOUNT_UNAVAILABLE", "Account is no longer available");
     }
-    // After an administrative reset only the /auth routes (me, password) stay usable.
-    if (user.must_change_password && !req.originalUrl.startsWith("/api/v1/auth/")) {
+    // After an administrative reset only the /auth routes (me, password) stay usable, plus sending
+    // a problem report, so someone stuck on the change screen can still ask for help.
+    const reportingProblem = req.method === "POST" && req.originalUrl.split("?")[0] === "/api/v1/feedback";
+    if (user.must_change_password && !req.originalUrl.startsWith("/api/v1/auth/") && !reportingProblem) {
       throw new ApiError(403, "PASSWORD_CHANGE_REQUIRED", "Change your password to continue");
     }
     req.auth = {

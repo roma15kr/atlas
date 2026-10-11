@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import App from '../App';
 import { AuthProvider, WorkspaceProvider } from '../context/AppContext';
-import { demoSessions } from '../data/demo';
+import { demoSessions, demoUsers } from '../data/demo';
 import { resetDemoChat } from '../lib/chat';
 
 const renderAs = (username: keyof typeof demoSessions, path = '/messages') => {
@@ -19,6 +19,20 @@ beforeEach(() => { localStorage.clear(); resetDemoChat(); });
 afterEach(() => { cleanup(); localStorage.clear(); });
 
 describe('team chat', () => {
+  it('finds a colleague added after the page loaded when starting a new message', async () => {
+    const user = userEvent.setup();
+    renderAs('director');
+    await within(list()).findByRole('button', { name: /Общий/ });
+    demoUsers.push({ ...demoUsers[2]!, id: 'u-new', username: 'semenets', fullName: 'Семенець Максим', department: 'Отдел DIY', jobTitle: 'Руководитель отдела' });
+    try {
+      await user.click(screen.getByRole('button', { name: 'Новое сообщение' }));
+      await user.type(screen.getByLabelText('Найти сотрудника'), 'семе');
+      expect(await screen.findByText('Семенець Максим')).toBeInTheDocument();
+    } finally {
+      demoUsers.pop();
+    }
+  });
+
   it('lists channels, groups and DMs with unread and mention counts', async () => {
     renderAs('employee');
     expect(await within(list()).findByRole('button', { name: /Продажи/ })).toBeInTheDocument();

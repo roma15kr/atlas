@@ -23,8 +23,10 @@ storage, which the API supports through optional `S3_*` settings.
 External integrations are adapter boundaries. An adapter reports `disabled`
 until its server-side credentials are configured; secrets never enter the web
 bundle. The AI boundary (`/api/v1/ai/analyze`, shown on the team and profile
-screens) combines deterministic rules with optional Claude summarization and
-never reads private message content.
+screens) sends aggregated figures to an OpenAI model (`AI_ANALYSIS_MODEL`, default
+`gpt-6-luna`) through `llm/openai.ts`, falls back to deterministic rules, and
+never reads private message content. Every analysis is stored in `ai_analyses`;
+nobody sees analyses someone else ran about them.
 
 ## Access model
 
@@ -309,6 +311,9 @@ Where to look when a task spans several files.
   - `socket.ts`: one authenticated socket per tab. It refuses connections that still need a password change, and attaches its handlers before any await.
   - `presence.ts`: the presence store, Redis or in memory.
   - `realtime.ts`: `disconnectUser`.
+- **AI:** `llm/openai.ts` `structuredResponse` (strict JSON schema, typed failures) serves both `ai.ts` (analysis, stored in `ai_analyses`) and `feedback/triage.ts`.
+- **Problem reports:** `routes/feedback.ts` (submit, mine, director inbox, screenshot, retry, status) → `automation/feedback.ts` claims the queue with `FOR UPDATE SKIP LOCKED`, triages (`feedback/triage.ts`, then `feedback/scrub.ts`) and files issues (`feedback/github.ts`). The web side is `components/FeedbackDialog.tsx`, `lib/feedback.ts`, `lib/screenshot.ts` (modern-screenshot) and `lib/diagnostics.ts`, which `lib/api.ts` feeds with every request.
+- **Request ids:** `app.ts` `requestId` sets `X-Request-Id` and the pino `req.id`.
 - **Files:** `storage.ts` `objectStorage` stores files on the local volume, or on S3 when fully configured. `routes/avatars.ts` serves profile photos by a random id.
 - **Web:**
   - `context/AppContext.tsx` has two providers:

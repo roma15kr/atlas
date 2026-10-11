@@ -42,7 +42,7 @@ Production: [atlas.141.94.30.173.sslip.io](https://atlas.141.94.30.173.sslip.io)
 - Director/manager team onboarding with strong initial-password policy and
   department-safe role assignment.
 - Explicit monitoring consent and metadata-only risk signals.
-- Server-side configuration gates for Claude, Google and Microsoft mail sign-in, Telegram, WhatsApp,
+- Server-side configuration gates for OpenAI, Google and Microsoft mail sign-in, Telegram, WhatsApp,
   and Viber. No integration is presented as connected without credentials.
 - Daily PostgreSQL dumps, health checks, CI, and a Coolify-oriented runbook.
 

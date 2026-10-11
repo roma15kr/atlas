@@ -25,10 +25,10 @@ export const demoClients: Client[] = [
 ];
 
 const mainStages: DealStage[] = [
-  { id: 's1', funnelId: 'f-main', name: 'Заявка', color: '#398078', sortOrder: 10, outcome: 'OPEN' },
-  { id: 's2', funnelId: 'f-main', name: 'Переговоры', color: '#3974a8', sortOrder: 20, outcome: 'OPEN' },
-  { id: 's3', funnelId: 'f-main', name: 'Счёт выставлен', color: '#b07627', sortOrder: 30, outcome: 'OPEN' },
-  { id: 's4', funnelId: 'f-main', name: 'Оплата', color: '#765ca8', sortOrder: 40, outcome: 'OPEN' },
+  { id: 's1', funnelId: 'f-main', name: 'Квалификация', color: '#398078', sortOrder: 10, outcome: 'OPEN' },
+  { id: 's2', funnelId: 'f-main', name: 'Коммерческое предложение', color: '#3974a8', sortOrder: 20, outcome: 'OPEN' },
+  { id: 's3', funnelId: 'f-main', name: 'Согласование условий', color: '#b07627', sortOrder: 30, outcome: 'OPEN' },
+  { id: 's4', funnelId: 'f-main', name: 'Заказ и поставка', color: '#765ca8', sortOrder: 40, outcome: 'OPEN' },
   { id: 's5', funnelId: 'f-main', name: 'Отгрузка', color: '#3f7d52', sortOrder: 50, outcome: 'WON' },
   { id: 's6', funnelId: 'f-main', name: 'Проиграна', color: '#b4473f', sortOrder: 60, outcome: 'LOST' },
 ];

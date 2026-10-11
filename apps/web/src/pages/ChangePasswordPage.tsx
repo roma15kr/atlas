@@ -1,5 +1,6 @@
 import { KeyRound, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { FeedbackButton } from '../components/FeedbackDialog';
 import { ChangePasswordForm } from '../components/team/MemberDialogs';
 import { Button, Surface } from '../components/ui';
 import { useAuth } from '../context/AppContext';
@@ -16,5 +17,6 @@ export function ChangePasswordPage() {
       <ChangePasswordForm id="forced-password-form" change={changePassword} onDone={() => navigate('/', { replace: true })} />
       <footer><Button variant="ghost" icon={LogOut} onClick={() => void logout()}>Выйти</Button><Button type="submit" form="forced-password-form">Сохранить пароль</Button></footer>
     </Surface>
+    <div className="password-gate__help"><FeedbackButton compact /></div>
   </main>;
 }

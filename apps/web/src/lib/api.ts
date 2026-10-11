@@ -1,4 +1,5 @@
 import type { Session } from '../types';
+import { recordRequest } from './diagnostics';
 
 type ApiErrorBody = { message?: string; error?: string | { code?: string; message?: string; details?: unknown } };
 export class ApiError extends Error {
@@ -65,10 +66,23 @@ export const sessionStore = {
 
 type RefreshPayload = { accessToken: string; user?: Record<string, unknown> };
 
+/** fetch that also records the request (method, path, status, timing, request id) for problem reports. */
+async function trackedFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const startedAt = performance.now();
+  try {
+    const response = await fetch(url, init);
+    recordRequest(init.method ?? 'GET', url, response, startedAt);
+    return response;
+  } catch (error) {
+    recordRequest(init.method ?? 'GET', url, null, startedAt);
+    throw error;
+  }
+}
+
 /** Calls /auth/refresh; serialized across tabs so a rotated cookie is never presented twice. */
 async function refreshCall(): Promise<RefreshPayload | null> {
   const run = async () => {
-    const response = await fetch(`${API_BASE}/auth/refresh`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' } });
+    const response = await trackedFetch(`${API_BASE}/auth/refresh`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' } });
     if (!response.ok) return null;
     const raw = (await response.json()) as { data?: RefreshPayload } & Partial<RefreshPayload>;
     const payload = (raw.data ?? raw) as RefreshPayload;
@@ -126,7 +140,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   if (!isForm && options.body !== undefined) headers.set('Content-Type', 'application/json');
   if (session?.accessToken) headers.set('Authorization', `Bearer ${session.accessToken}`);
 
-  const response = await fetch(path.startsWith('/api') ? path : `${API_BASE}${path}`, {
+  const response = await trackedFetch(path.startsWith('/api') ? path : `${API_BASE}${path}`, {
     ...options,
     credentials: 'include',
     headers,
@@ -186,7 +200,7 @@ export const api = {
     return apiRequest('/documents', { method: 'POST', body: form });
   },
   download: async (path: string): Promise<Blob> => {
-    const execute = (token?: string) => fetch(`${API_BASE}${path}`, { credentials: 'include', headers: token ? { Authorization: `Bearer ${token}` } : undefined });
+    const execute = (token?: string) => trackedFetch(`${API_BASE}${path}`, { credentials: 'include', headers: token ? { Authorization: `Bearer ${token}` } : undefined });
     let response = await execute(sessionStore.get()?.accessToken);
     if (response.status === 401) {
       const token = await refreshAccessToken();

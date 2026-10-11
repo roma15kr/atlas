@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { trackActivity } from '../lib/activity';
+import { recordDiagnostic } from '../lib/diagnostics';
 import { api, ApiError, apiRequest, listAll, listPage, renewAccessToken, restoreSession, sessionStore } from '../lib/api';
 import {
   demoAchievements,
@@ -411,6 +412,8 @@ interface WorkspaceValue {
   loadReportRuns: (id: string) => Promise<ReportRun[]>;
   /** AI advice, evaluation or forecast for the caller or someone they manage. */
   analyze: (targetUserId: string, mode: AiMode) => Promise<AiAnalysis>;
+  /** Stored analyses of a person, newest first; analyses others ran about the viewer are not included. */
+  loadAnalyses: (targetUserId: string) => Promise<AiAnalysis[]>;
 }
 
 const WorkspaceContext = createContext<WorkspaceValue | null>(null);
@@ -524,11 +527,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     let socket: Socket | null = io({ path: '/socket.io', auth: (callback) => callback({ token: sessionStore.get()?.accessToken }), transports: ['websocket', 'polling'] });
     let renewed = false;
     socket.on('connect_error', (error: Error) => {
+      recordDiagnostic({ type: 'socket', state: 'error' });
       if (error.message !== 'unauthorized' || renewed) return;
       renewed = true;
       void renewAccessToken().then((token) => { if (token) socket?.connect(); });
     });
-    socket.on('connect', () => { renewed = false; });
+    socket.on('connect', () => { renewed = false; recordDiagnostic({ type: 'socket', state: 'connect' }); });
+    socket.on('disconnect', () => recordDiagnostic({ type: 'socket', state: 'disconnect' }));
     const updatePresence = (payload: { userId: string; online?: boolean; lastSeen?: string; status?: string; lastSeenAt?: string }) => {
       const online = payload.online ?? payload.status === 'ONLINE';
       setUsers((current) => current.map((user) => user.id === payload.userId ? { ...user, online, lastSeen: payload.lastSeen ?? payload.lastSeenAt } : user));
@@ -885,6 +890,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     return api.list<ReportRun>(`reports/${id}/runs`);
   }, [isDemo, reports]);
 
+  // Demo sessions keep their analyses in memory, with the same visibility rule as the API.
+  const demoAnalyses = useRef<AiAnalysis[]>([]);
+
   const analyze = useCallback(async (targetUserId: string, mode: AiMode): Promise<AiAnalysis> => {
     if (!isDemo) return apiRequest<AiAnalysis>('/ai/analyze', { method: 'POST', body: { targetUserId, mode } });
     const target = users.find((user) => user.id === targetUserId);
@@ -892,8 +900,20 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const summary = mode === 'FORECAST'
       ? `Прогноз: при текущем темпе рейтинг ${target?.fullName ?? 'сотрудника'} останется около ${rating} из 100.`
       : mode === 'EVALUATION' ? `Оценка: рейтинг ${rating} из 100 по взвешенным KPI.` : `Совет: сфокусируйтесь на KPI с наименьшим выполнением.`;
-    return { summary, recommendations: ['Проверьте задачи с ближайшим сроком', 'Обновите следующий шаг по открытым сделкам'], source: 'RULES' };
-  }, [isDemo, users]);
+    const analysis: AiAnalysis = {
+      id: crypto.randomUUID(), mode, createdAt: new Date().toISOString(), subjectId: targetUserId,
+      requestedById: session?.user.id ?? '', requestedByName: session?.user.fullName,
+      summary, recommendations: ['Проверьте задачи с ближайшим сроком', 'Обновите следующий шаг по открытым сделкам'], source: 'RULES',
+    };
+    demoAnalyses.current = [analysis, ...demoAnalyses.current];
+    return analysis;
+  }, [isDemo, users, session]);
+
+  const loadAnalyses = useCallback(async (targetUserId: string): Promise<AiAnalysis[]> => {
+    if (!isDemo) return (await apiRequest<AiAnalysis[]>(`/ai/analyses?targetUserId=${targetUserId}&limit=50`));
+    const me = session?.user.id;
+    return demoAnalyses.current.filter((item) => item.subjectId === targetUserId && (item.subjectId !== me || item.requestedById === me));
+  }, [isDemo, session]);
 
   const acknowledgeAlert = useCallback(async (id: string) => {
     await remote(() => api.update<Alert>('alerts', `${id}/acknowledge`, {}));
@@ -956,10 +976,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     users: visibleUsers,
     clients: scopedClients, deals: scopedDeals, funnels: visibleFunnels, taskBoards: visibleBoards, tasks: visibleTasks, documents, reports, alerts: visibleAlerts,
     achievements, audit, dashboardMetrics: metrics, refresh,
-    dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze,
+    dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, loadAnalyses,
   // scoped is intentionally derived from current session and collections.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, session]);
+  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, loadAnalyses, session]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

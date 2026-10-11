@@ -85,10 +85,10 @@ describe('role-aware routing', () => {
     const user = userEvent.setup();
     localStorage.setItem('atlas.session', JSON.stringify(demoSessions.director));
     renderAt('/sales');
-    expect(await screen.findByRole('region', { name: 'Переговоры' })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Коммерческое предложение' })).toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText('Воронка'), 'Опт');
     expect(await screen.findByRole('region', { name: 'Согласование объёма' })).toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'Переговоры' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Коммерческое предложение' })).not.toBeInTheDocument();
     expect(screen.getByText('Оптовая партия')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Настроить воронки' }));
     expect(await screen.findByRole('heading', { name: 'Настройка воронок' })).toBeInTheDocument();
@@ -97,7 +97,7 @@ describe('role-aware routing', () => {
   it('gives managers no funnel configuration controls', async () => {
     localStorage.setItem('atlas.session', JSON.stringify(demoSessions.manager));
     renderAt('/sales');
-    expect(await screen.findByRole('region', { name: 'Переговоры' })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Коммерческое предложение' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Настроить воронки' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Настроить этапы' })).not.toBeInTheDocument();
   });
