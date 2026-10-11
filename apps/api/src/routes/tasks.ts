@@ -272,6 +272,41 @@ async function assertDealVisible(auth: AuthContext, id: string): Promise<void> {
   if (!result.rowCount) throw new ApiError(404, "DEAL_NOT_FOUND", "Deal not found");
 }
 
+const COMMENT_COLUMNS = `c.id, c.body, c.created_at AS "createdAt",
+  json_build_object('id', u.id, 'fullName', u.full_name, 'avatarUrl', u.avatar_url) AS author`;
+
+/** `GET /api/v1/tasks/:id/comments`: oldest first, for everyone who can open the task's board. */
+tasksRouter.get("/:id/comments", asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const id = z.string().uuid().parse(req.params.id);
+  await scopedTask(auth, id);
+  const comments = await query(
+    `SELECT ${COMMENT_COLUMNS} FROM task_comments c JOIN users u ON u.id = c.author_id
+     WHERE c.task_id = $1 AND c.company_id = $2 ORDER BY c.created_at, c.id`,
+    [id, auth.companyId]
+  );
+  res.json({ data: comments.rows });
+}));
+
+/** `POST /api/v1/tasks/:id/comments`: 1–5000 characters of Markdown. The audit holds ids only, never the text. */
+tasksRouter.post("/:id/comments", asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const id = z.string().uuid().parse(req.params.id);
+  await scopedTask(auth, id);
+  const input = z.object({ body: z.string().trim().min(1).max(5000) }).strict().parse(req.body);
+  const created = await query<{ id: string; department_id: string | null }>(
+    `WITH inserted AS (
+       INSERT INTO task_comments (company_id, task_id, author_id, body) VALUES ($1, $2, $3, $4) RETURNING id, task_id
+     )
+     SELECT inserted.id, b.department_id FROM inserted JOIN tasks t ON t.id = inserted.task_id JOIN task_boards b ON b.id = t.board_id`,
+    [auth.companyId, id, auth.userId, input.body]
+  );
+  const comment = created.rows[0]!;
+  await writeAudit(req, { auth, action: "TASK_COMMENT_CREATED", entityType: "task", entityId: id, departmentId: comment.department_id, metadata: { commentId: comment.id } });
+  const row = await query(`SELECT ${COMMENT_COLUMNS} FROM task_comments c JOIN users u ON u.id = c.author_id WHERE c.id = $1`, [comment.id]);
+  res.status(201).json({ data: row.rows[0] });
+}));
+
 async function scopedTask(auth: AuthContext, id: string): Promise<Record<string, unknown>> {
   const access = boardAccessSql(auth, "t.board_id", 2);
   const dealAccess = funnelAccessSql(auth, "d.funnel_id", 2 + access.values.length);

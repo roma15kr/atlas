@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import App from '../App';
 import { AuthProvider, WorkspaceProvider } from '../context/AppContext';
 import { demoSessions } from '../data/demo';
+import { resetDemoTaskComments } from '../lib/taskComments';
 
 const renderAs = (username: keyof typeof demoSessions, path: string) => {
   localStorage.setItem('atlas.session', JSON.stringify(demoSessions[username]));
@@ -14,7 +15,7 @@ const card = (title: string) => screen.getByRole('button', { name: title }).clos
 const column = (name: string) => screen.getByRole('region', { name });
 const columnNames = () => screen.getAllByRole('region').map((region) => region.getAttribute('aria-label'));
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => { localStorage.clear(); resetDemoTaskComments(); });
 afterEach(() => { cleanup(); localStorage.clear(); });
 
 describe('my tasks', () => {
@@ -38,6 +39,47 @@ describe('my tasks', () => {
     fireEvent.drop(column('Готово'));
     await waitFor(() => expect(within(column('Готово')).getAllByText('Задачи отдела · Готово')).toHaveLength(2));
     expect(within(card('Обновить недельный прогноз')).getByText('Задачи отдела · Готово')).toBeInTheDocument();
+  });
+
+  it('shows a formatted description whose checklist items save on a tick', async () => {
+    const user = userEvent.setup();
+    renderAs('employee', '/tasks');
+    await user.click(await screen.findByRole('button', { name: 'Новая задача' }));
+    let dialog = screen.getByRole('dialog', { name: 'Новая задача' });
+    await within(dialog).findByRole('checkbox', { name: /Анна Петрова \(вы\)/ });
+    await user.type(within(dialog).getByLabelText('Название'), 'КП для «Олді»');
+    await user.click(await within(dialog).findByRole('textbox', { name: 'Описание' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Чек-лист' }));
+    await user.keyboard('отправить КП');
+    await user.click(within(dialog).getByRole('button', { name: 'Создать задачу' }));
+    await user.click(await screen.findByRole('button', { name: 'КП для «Олді»' }));
+    dialog = await screen.findByRole('dialog', { name: 'Задача' });
+    expect(within(dialog).queryByRole('textbox', { name: 'Описание' })).not.toBeInTheDocument();
+    expect(within(card('КП для «Олді»')).getByText('отправить КП')).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('checkbox', { name: 'Не выполнено' }));
+    expect(await within(dialog).findByRole('checkbox', { name: 'Выполнено' })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Отмена' }));
+    await user.click(screen.getByRole('button', { name: 'КП для «Олді»' }));
+    dialog = await screen.findByRole('dialog', { name: 'Задача' });
+    expect(within(dialog).getByRole('checkbox', { name: 'Выполнено' })).toBeChecked();
+    await user.click(within(dialog).getByRole('button', { name: 'Изменить описание' }));
+    expect(await within(dialog).findByRole('textbox', { name: 'Описание' })).toHaveTextContent('отправить КП');
+  }, 15_000);
+
+  it('adds a formatted comment to a task', async () => {
+    const user = userEvent.setup();
+    renderAs('employee', '/tasks');
+    await user.click(await screen.findByRole('button', { name: 'Прайс для партнёров' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Задача' });
+    const comments = within(dialog).getByRole('region', { name: 'Комментарии' });
+    expect(await within(comments).findByText('Комментариев пока нет')).toBeInTheDocument();
+    expect(within(comments).getByRole('button', { name: 'Добавить комментарий' })).toBeDisabled();
+    await user.click(await within(comments).findByRole('textbox', { name: 'Новый комментарий' }));
+    await user.keyboard('КП отправлено, {Control>}b{/Control}ждём ответа{Control>}b{/Control}');
+    await user.click(within(comments).getByRole('button', { name: 'Добавить комментарий' }));
+    expect(await within(comments).findByText('ждём ответа', { selector: 'strong' })).toBeInTheDocument();
+    expect(within(comments).getByText('Анна Петрова')).toBeInTheDocument();
+    await waitFor(() => expect(within(comments).getByRole('textbox', { name: 'Новый комментарий' })).toHaveTextContent(''));
   });
 
   it('preselects the current user in a new task and limits assignees to board users', async () => {

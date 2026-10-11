@@ -1,13 +1,14 @@
 import { AtSign, Bell, BellOff, Hash, MessageSquare, Plus, Search, Settings2, Users, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BrowseChannelsDialog, ChannelFormDialog, ConfirmDialog, ConversationSettingsDialog, EditMessageDialog, NewMessageDialog, usePeopleByUsername } from '../components/chat/ChatDialogs';
-import { Composer, ConversationIcon, MessageItem, MessageText } from '../components/chat/ChatParts';
+import { Composer, ConversationIcon, MessageItem } from '../components/chat/ChatParts';
 import { Badge, Button, EmptyState, IconButton, LoadingState, PageHeader, SectionHeader, Surface } from '../components/ui';
 import { useAuth } from '../context/AppContext';
 import { useChat } from '../context/ChatContext';
 import { conversationTitle, type ChatConversation, type ChatMessage } from '../lib/chat';
 import { chatErrorMessage } from '../lib/chatErrors';
 import { plural, relativeTime } from '../lib/format';
+import { markdownToPlain } from '../lib/markdown';
 
 type Selection = { kind: 'conversation'; id: string } | { kind: 'mentions' };
 type Dialogs = { type: 'new' } | { type: 'browse' } | { type: 'channel' } | { type: 'settings' } | { type: 'edit'; message: ChatMessage } | { type: 'delete'; message: ChatMessage } | null;
@@ -58,7 +59,7 @@ export function MessagesPage() {
 
   const row = (item: ChatConversation) => <button key={item.id} type="button" className={`${selectedId === item.id ? 'is-active' : ''} ${item.unread ? 'is-unread' : ''}`} onClick={() => open(item.id)} aria-current={selectedId === item.id ? 'true' : undefined}>
     <ConversationIcon conversation={item} myId={me.id} />
-    <span><strong>{conversationTitle(item, me.id)}</strong><small>{item.lastMessage ? `${item.lastMessage.authorId === me.id ? 'Вы' : item.lastMessage.authorName.split(' ')[0]}: ${item.lastMessage.body ?? 'сообщение удалено'}` : item.kind === 'CHANNEL' ? item.description ?? 'Нет сообщений' : 'Нет сообщений'}</small></span>
+    <span><strong>{conversationTitle(item, me.id)}</strong><small>{item.lastMessage ? `${item.lastMessage.authorId === me.id ? 'Вы' : item.lastMessage.authorName.split(' ')[0]}: ${item.lastMessage.body === null ? 'сообщение удалено' : markdownToPlain(item.lastMessage.body)}` : item.kind === 'CHANNEL' ? item.description ?? 'Нет сообщений' : 'Нет сообщений'}</small></span>
     {item.mentions > 0 ? <Badge tone="danger">@{item.mentions}</Badge> : item.unread > 0 ? <Badge tone={item.muted ? 'neutral' : 'info'}>{item.unread}</Badge> : item.muted ? <BellOff size={13} className="chat-row__muted" aria-label="Без уведомлений" /> : null}
   </button>;
 
@@ -211,10 +212,7 @@ function ThreadPanel({ conversation, rootId, onClose, onEdit, onDelete }: { conv
 }
 
 function MentionsView({ onOpen }: { onOpen: (conversationId: string) => void }) {
-  const { session } = useAuth();
-  const me = session!.user;
   const chat = useChat();
-  const people = usePeopleByUsername(chat.people);
   useEffect(() => { void chat.refresh(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return <Surface className="chat-main" aria-label="Упоминания">
     <header className="chat-main__header"><span className="chat-icon"><AtSign size={15} /></span><div><h2>Упоминания</h2><span>Последние 50 сообщений, где упомянули вас</span></div></header>
@@ -222,7 +220,7 @@ function MentionsView({ onOpen }: { onOpen: (conversationId: string) => void }) 
       {chat.mentions.length ? chat.mentions.map((mention) => <button key={mention.id} type="button" className={`chat-mention ${mention.unread ? 'is-unread' : ''}`} onClick={() => onOpen(mention.conversation.id)}>
         <span className="chat-mention__where">{mention.conversation.kind === 'CHANNEL' ? `# ${mention.conversation.name}` : mention.conversation.name ?? 'Личные сообщения'} · {relativeTime(mention.createdAt)}</span>
         <strong>{mention.author.fullName}</strong>
-        <p><MessageText body={mention.body ?? ''} people={people} myUsername={me.username} /></p>
+        <p>{markdownToPlain(mention.body ?? '')}</p>
       </button>) : <EmptyState title="Упоминаний нет" description="Когда коллеги отметят вас через @, сообщение появится здесь" icon={AtSign} />}
     </div>
   </Surface>;

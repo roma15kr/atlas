@@ -1,4 +1,5 @@
 import { Camera, Check, LockKeyhole, Save, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
+import { RichTextView } from '../components/richtext/RichTextView';
 import { AiAnalysisDialog } from '../components/AiAnalysisDialog';
 import { ChangePasswordDialog } from '../components/team/MemberDialogs';
 import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
@@ -103,7 +104,7 @@ export function ProfilePage() {
           <div><dt>Отдел</dt><dd>{user.department}</dd></div>
           <div><dt>Специализация</dt><dd>{user.specialty ?? 'Не указана'}</dd></div>
           {birthday && <div><dt>День рождения</dt><dd>{birthday}{user.showBirthday === false && <small> · скрыт от коллег</small>}</dd></div>}
-          <div className="profile-job-description"><dt>Должностная инструкция</dt><dd>{user.jobDescription?.trim() ? user.jobDescription : <span className="muted">Не заполнена — заполняет руководитель</span>}</dd></div>
+          <div className="profile-job-description"><dt>Должностная инструкция</dt><dd>{user.jobDescription?.trim() ? <RichTextView markdown={user.jobDescription} /> : <span className="muted">Не заполнена — заполняет руководитель</span>}</dd></div>
         </dl>
         <div className="profile-rating"><span><strong>{user.rating}</strong><small>рейтинг</small></span><Meter value={user.rating} /></div>
       </Surface>

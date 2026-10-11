@@ -164,6 +164,20 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   return payload as T;
 }
 
+/** Downloads a binary resource (an image) with the session token, refreshing the token once if it expired. */
+export async function apiBlob(path: string, retry = true): Promise<Blob> {
+  const session = sessionStore.get();
+  const headers = new Headers();
+  if (session?.accessToken) headers.set('Authorization', `Bearer ${session.accessToken}`);
+  const response = await trackedFetch(path.startsWith('/api') ? path : `${API_BASE}${path}`, { credentials: 'include', headers });
+  if (response.status === 401 && retry) {
+    const token = await refreshAccessToken();
+    if (token) return apiBlob(path, false);
+  }
+  if (!response.ok) throw new ApiError('Не удалось загрузить файл', response.status);
+  return response.blob();
+}
+
 const PAGE_SIZE = 100;
 
 /** Follows limit/offset pagination until every row the caller may see has been loaded. */

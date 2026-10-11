@@ -19,7 +19,9 @@ export const dealInputSchema = z.object({
   currency: z.string().trim().transform((value) => value.toUpperCase()).pipe(z.literal("UAH")).default("UAH"),
   probability: z.coerce.number().int().min(0).max(100).default(10),
   expectedCloseAt: z.string().datetime().nullable().optional(),
-  closedAt: z.string().datetime().nullable().optional()
+  closedAt: z.string().datetime().nullable().optional(),
+  /** Markdown. */
+  notes: z.string().trim().max(10_000).nullable().optional()
 });
 const dealPatch = dealInputSchema.omit({ clientId: true }).partial();
 const idSchema = z.string().uuid();
@@ -68,10 +70,10 @@ export async function createDeal(req: Request, auth: AuthContext, raw: unknown):
   await assertClientVisible(auth, input.clientId);
   const result = await query(
     `INSERT INTO deals
-      (company_id, department_id, client_id, owner_id, title, funnel_id, stage_id, value, currency, probability, expected_close_at, closed_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
+      (company_id, department_id, client_id, owner_id, title, funnel_id, stage_id, value, currency, probability, expected_close_at, closed_at, notes)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
     [auth.companyId, owner.department_id, input.clientId, owner.id, input.title, input.funnelId, stageId, input.value,
-      input.currency, input.probability, asOptionalDate(input.expectedCloseAt), asOptionalDate(input.closedAt)]
+      input.currency, input.probability, asOptionalDate(input.expectedCloseAt), asOptionalDate(input.closedAt), input.notes || null]
   );
   const id = result.rows[0]?.id as string;
   await writeAudit(req, { auth, action: "DEAL_CREATED", entityType: "deal", entityId: id, departmentId: owner.department_id, metadata: { funnelId: input.funnelId } });
@@ -91,7 +93,8 @@ dealsRouter.patch("/:id", asyncHandler(async (req, res) => {
   const data: Record<string, unknown> = {
     ...input,
     expectedCloseAt: asOptionalDate(input.expectedCloseAt),
-    closedAt: asOptionalDate(input.closedAt)
+    closedAt: asOptionalDate(input.closedAt),
+    ...(input.notes !== undefined ? { notes: input.notes || null } : {})
   };
   const funnelId = input.funnelId ?? existing.funnelId;
   const funnelChanged = funnelId !== existing.funnelId;
@@ -112,7 +115,7 @@ dealsRouter.patch("/:id", asyncHandler(async (req, res) => {
   }
   const update = updatedFields(data, {
     ownerId: "owner_id", departmentId: "department_id", title: "title", funnelId: "funnel_id", stageId: "stage_id", value: "value",
-    currency: "currency", probability: "probability", expectedCloseAt: "expected_close_at", closedAt: "closed_at"
+    currency: "currency", probability: "probability", expectedCloseAt: "expected_close_at", closedAt: "closed_at", notes: "notes"
   });
   if (!update.values.length) throw new ApiError(400, "NO_CHANGES", "No fields to update");
   update.values.push(id, auth.companyId);
@@ -185,7 +188,7 @@ function dealColumns(): string {
   return `d.id, d.title, d.client_id AS "clientId", d.owner_id AS "ownerId", d.funnel_id AS "funnelId",
     json_build_object('id', ds.id, 'name', ds.name, 'color', ds.color, 'outcome', ds.outcome) AS stage,
     d.value::float8 AS value, d.currency, d.probability,
-    d.expected_close_at AS "expectedCloseAt", d.closed_at AS "closedAt",
+    d.expected_close_at AS "expectedCloseAt", d.closed_at AS "closedAt", d.notes,
     json_build_object('id', c.id, 'name', c.name, 'companyName', c.company_name) AS client,
     json_build_object('id', u.id, 'fullName', u.full_name) AS owner,
     d.created_at AS "createdAt", d.updated_at AS "updatedAt"`;

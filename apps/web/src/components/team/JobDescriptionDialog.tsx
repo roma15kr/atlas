@@ -1,26 +1,30 @@
 import { FileText } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { Button, Dialog, Field } from '../ui';
+import { fitsLimit, RichTextEditor } from '../richtext/RichTextEditor';
+import { Button, Dialog } from '../ui';
 import { memberErrorMessage } from './MemberDialogs';
 import type { User } from '../../types';
 
 export const JOB_DESCRIPTION_MAX = 20_000;
 
-/** A starting structure; each section is filled in one point per line. */
+/** A starting structure: one heading per section, one point per bullet. */
 export const JOB_DESCRIPTION_TEMPLATE = [
-  'Цель должности:',
+  '## Цель должности',
   '',
+  '## Обязанности',
   '',
-  'Обязанности:',
   '- ',
   '',
-  'Показатели результата:',
+  '## Показатели результата',
+  '',
   '- ',
   '',
-  'Полномочия:',
+  '## Полномочия',
+  '',
   '- ',
   '',
-  'Взаимодействие:',
+  '## Взаимодействие',
+  '',
   '- ',
 ].join('\n');
 
@@ -42,13 +46,12 @@ export function JobDescriptionDialog({ member, save, onClose }: { member: User; 
   };
 
   return <Dialog open size="lg" title="Должностная инструкция" description={member.fullName} onClose={() => { if (!saving) onClose(); }}
-    footer={<><Button variant="secondary" disabled={saving} onClick={onClose}>Отмена</Button><Button type="submit" form="job-description-form" disabled={saving || unchanged}>{saving ? 'Сохраняем…' : 'Сохранить'}</Button></>}>
+    footer={<><Button variant="secondary" disabled={saving} onClick={onClose}>Отмена</Button><Button type="submit" form="job-description-form" disabled={saving || unchanged || !fitsLimit(text.trim(), JOB_DESCRIPTION_MAX)}>{saving ? 'Сохраняем…' : 'Сохранить'}</Button></>}>
     <form id="job-description-form" className="job-description-form" onSubmit={(event) => void submit(event)}>
-      <p className="dialog-note">Используется AI-аналитикой как описание ожидаемых обязанностей. Пишите по одному пункту в строке.</p>
+      <p className="dialog-note">Используется AI-аналитикой как описание ожидаемых обязанностей. Разделы — заголовками, пункты — списком.</p>
       {!text.trim() && <Button type="button" variant="secondary" icon={FileText} onClick={() => setText(JOB_DESCRIPTION_TEMPLATE)}>Вставить шаблон</Button>}
-      <Field label="Текст инструкции" hint={`${count.format(text.length)} / ${count.format(JOB_DESCRIPTION_MAX)}`}>
-        <textarea rows={16} maxLength={JOB_DESCRIPTION_MAX} value={text} onChange={(event) => setText(event.target.value)} placeholder="Цель должности, обязанности, показатели результата, полномочия" autoFocus />
-      </Field>
+      <RichTextEditor value={text} onChange={setText} maxLength={JOB_DESCRIPTION_MAX} label="Текст инструкции" placeholder="Цель должности, обязанности, показатели результата, полномочия" autoFocus minRows={12} />
+      <small className="job-description-form__count" aria-live="polite">{count.format(text.length)} / {count.format(JOB_DESCRIPTION_MAX)}</small>
       {error && <div className="form-error" role="alert">{error}</div>}
     </form>
   </Dialog>;

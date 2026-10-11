@@ -386,8 +386,22 @@ export function createDemoChat(users: User[], me: User): ChatBackend {
   };
 }
 
+/** Like the server: code blocks and inline code are blanked out, so `@` inside code is not a mention. */
+function withoutCode(body: string): string {
+  let fence: string | null = null;
+  return body.split('\n').map((line) => {
+    const opener = /^\s*(`{3,}|~{3,})/.exec(line)?.[1];
+    if (fence) {
+      if (opener && opener[0] === fence[0] && opener.length >= fence.length) fence = null;
+      return '';
+    }
+    if (opener) { fence = opener; return ''; }
+    return line;
+  }).join('\n').replace(/(`+)[\s\S]*?\1/g, ' ');
+}
+
 function parseDemoMentions(body: string): { usernames: string[]; channel: boolean } {
-  const usernames = messageParts(body).filter((part): part is { type: 'mention'; username: string } => part.type === 'mention').map((part) => part.username);
+  const usernames = messageParts(withoutCode(body)).filter((part): part is { type: 'mention'; username: string } => part.type === 'mention').map((part) => part.username);
   return { usernames: usernames.filter((name) => name !== 'channel'), channel: usernames.includes('channel') };
 }
 

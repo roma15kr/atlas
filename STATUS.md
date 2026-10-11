@@ -8,6 +8,8 @@ _Last updated: 2026-10-11 by Claude_
 - Open OpenSpec changes waiting for a live check: `add-email-client` (mailbox), `add-telegram-customer-inbox` (test bot), `add-alert-rules-and-scheduled-reports` (an automatic alert).
 
 ## Done recently
+- `add-rich-text-editor` implemented (16/16 tasks, not deployed, not archived) on `feat/rich-text-editor`: a TipTap 3 WYSIWYG editor storing Markdown for chat messages, task descriptions, the new task comments, client notes and the new client comment feed, the new deal notes, and job descriptions; formatted display sanitized with marked + DOMPurify; checklists that save on a tick; pasted images (`/api/v1/images`, `IMAGE_UPLOADS_PER_HOUR`, default 60). Bundle: main 240 KB gzip, lazy editor chunk 167 KB gzip.
+- Problem reports file GitHub issues: `GITHUB_TOKEN` (fine-grained, Issues read/write, expires 2027-10-11) and `GITHUB_REPOSITORY=roma15kr/atlas` are set in Coolify. Test report `ca426635` became issue #2 (translated, anonymised, labelled) and was closed as not planned; the test report itself stays in the director inbox, since reports cannot be deleted.
 - Telegram: b2b's bot @rdoffbot now runs in Atlas (token and a new webhook secret set in Coolify; confirmed connected). b2b's notifybot catalog and `/start` stopped, as agreed. Employees reach only the customers they're responsible for; heads see their department's. A test now covers replies to a colleague's customer.
 - Chat: the people picker reloads colleagues each time it opens, so new accounts appear without reloading the page.
 - `update-default-funnel-stages` archived: a new company's default funnel and the demo now use Квалификация → Коммерческое предложение → Согласование условий → Заказ и поставка (open) → Отгрузка (won) → Проиграна (lost). The live funnel was renamed by hand, and the five test «Опт» funnels were deleted.
@@ -22,7 +24,7 @@ _Last updated: 2026-10-11 by Claude_
 - `feat/crm-funnels` merged into `main` and deleted. The Coolify test app now deploys from `main`.
 
 ## Next steps
-0. Review `add-rich-text-editor` (WYSIWYG Markdown editor, task comments, deal notes, pasted images). It needs approval of TipTap 3 before slice 2.
+0. Deploy `add-rich-text-editor` (branch `feat/rich-text-editor`, migrations 015–017), run its live check with test content, delete that content and record the ids here, then archive the change.
 1. Run the three live checks above, then archive those changes.
 2. Fold `messaging-integrations` into the email and Telegram specs once `add-email-client` is archived.
 3. Feed job descriptions into the AI analysis.
@@ -32,12 +34,15 @@ _Last updated: 2026-10-11 by Claude_
 - In a group, the director sees neither «Добавить» nor «Покинуть», as if not a member; not investigated yet. Groups have no way to remove a member by design (team-chat spec).
 - Should department heads see only their own Telegram customers instead of the whole department's?
 - Two empty departments survived the cleanup because test task boards point to them; delete the boards and departments, or keep them.
-- A fine-grained GitHub token for `roma15kr/atlas`, with Issues read/write, is still needed for problem reports.
 - Should employees see colleagues in the Team directory? Today they see only themselves.
 - Should a director see colleagues' full birth dates, not just day and month?
 - Should employees be able to write or suggest their own job description?
 
 ## Known problems / gotchas
+- Editor tests: user-event treats `[` and `{` as key syntax (type `[[` for `[`); it can't do Ctrl+End or position a drop in a contenteditable, so drops are tested through the image button. The web test setup preloads the lazy editor chunk.
+- Pasted images that are later removed from a text stay in storage (`rich_text_images`); a cleanup job can remove unreferenced ones later.
+- `/health` and problem reports show version `dev`: Coolify holds `SOURCE_COMMIT=dev` as a plain variable. Fix in Coolify: enable "Include Source Commit in Build", delete both `SOURCE_COMMIT` variables, redeploy.
+- The GitHub token was created for all repositories (it also reaches `roma15kr/second-brain`); narrow it to `roma15kr/atlas` in GitHub.
 - `openspec validate --all --strict` fails on 13 older specs and changes whose requirement text is over 500 characters (a newer OpenSpec rule); new changes validate individually.
 - `bpi.rdim.ua` (behind b2b.rdim.ua) answers without auth: `/users/1/type/admin` lists every dealer's email, phone and Telegram id, and `/control/diy-employees` lists promoters' phones. Needs auth.
 - Deleting a user who has audit rows fails: the FK sets `audit_logs.actor_id` to NULL, which the append-only trigger refuses.

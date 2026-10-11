@@ -5,7 +5,9 @@ import { useChat } from '../../context/ChatContext';
 import { canCreateChannels, conversationTitle, type ChatChannel, type ChatConversation, type ChatMember, type ChatMessage, type ChatPerson, type ChatVisibility } from '../../lib/chat';
 import { chatErrorMessage } from '../../lib/chatErrors';
 import { plural } from '../../lib/format';
+import { fitsLimit, RichTextEditor } from '../richtext/RichTextEditor';
 import { Avatar, Badge, Button, Dialog, EmptyState, Field, IconButton, SelectField } from '../ui';
+import { CHAT_MESSAGE_LIMIT } from './ChatParts';
 
 const MEMBERS: [string, string, string] = ['участник', 'участника', 'участников'];
 
@@ -226,9 +228,10 @@ export function EditMessageDialog({ message, onClose }: { message: ChatMessage; 
     event.preventDefault(); setSaving(true); setError('');
     try { const updated = await backend.edit(message.id, body.trim()); notify({ type: 'message-updated', conversationId: updated.conversationId, message: updated }); onClose(); } catch (reason) { setError(chatErrorMessage(reason, 'Сообщение не изменено')); } finally { setSaving(false); }
   };
-  return <Dialog open title="Изменить сообщение" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Отмена</Button><Button type="submit" form="edit-message-form" disabled={saving || !body.trim()}>Сохранить</Button></>}>
+  const { people } = useChat();
+  return <Dialog open title="Изменить сообщение" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Отмена</Button><Button type="submit" form="edit-message-form" disabled={saving || !body.trim() || !fitsLimit(body.trim(), CHAT_MESSAGE_LIMIT)}>Сохранить</Button></>}>
     <form id="edit-message-form" className="form-grid" onSubmit={(event) => void submit(event)}>
-      <Field label="Текст" className="field--wide"><textarea rows={4} maxLength={4000} value={body} autoFocus onChange={(event) => setBody(event.target.value)} /></Field>
+      <div className="field--wide"><RichTextEditor value={body} onChange={setBody} maxLength={CHAT_MESSAGE_LIMIT} label="Текст сообщения" people={people} autoFocus minRows={4} /></div>
       {error && <div className="form-error field--wide" role="alert">{error}</div>}
     </form>
   </Dialog>;
