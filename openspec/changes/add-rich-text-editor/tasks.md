@@ -28,7 +28,7 @@
 
 ## 5. Client notes and comments
 
-- [ ] 5.1 Use the editor and view for client notes (interactive checklist for editors) and the comment feed (read-only checklists) on `ClientPage`. Verify the `ClientPage.test.tsx` cases pass; commit.
+- [x] 5.1 Use the editor and view for client notes on `ClientPage` (interactive checklist for whoever may edit the client), and add the missing comment feed to the client card (the API existed, the screen did not): newest first, formatted, read-only checklists, editor to add one, demo branch. Verify the `ClientPage` tests (formatted notes with a ticked item saved; formatted comment added) pass; commit.
 
 ## 6. Deal notes
 

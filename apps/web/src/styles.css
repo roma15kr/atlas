@@ -356,7 +356,7 @@ input[type="checkbox"] { width: 16px; min-height: 16px; accent-color: var(--prim
 .detail-list dd { margin: 5px 0 0 21px; display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 650; }
 .detail-list dd .avatar { width: 23px; height: 23px; flex-basis: 23px; font-size: 7px; }
 .notes-block { margin-top: 15px; padding: 12px; border-left: 3px solid var(--primary); background: var(--surface-soft); }
-.notes-block span { color: var(--muted); font-size: 9px; font-weight: 700; text-transform: uppercase; }
+.notes-block > span { color: var(--muted); font-size: 9px; font-weight: 700; text-transform: uppercase; }
 .notes-block p { margin-top: 5px; font-size: 11px; line-height: 1.55; }
 .deal-list { margin-top: 10px; }
 .deal-list > button { width: 100%; min-height: 61px; padding: 9px 2px; display: flex; align-items: center; justify-content: space-between; gap: 15px; border: 0; border-bottom: 1px solid #edf0ef; background: none; text-align: left; }
@@ -1242,3 +1242,5 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 .task-comments__list header { display: flex; align-items: baseline; gap: 6px; }
 .task-comments__list time { color: var(--subtle); font-size: 11px; }
 .task-comments__add { justify-self: end; }
+.client-comments { min-width: 0; padding: 17px; display: grid; gap: 8px; align-content: start; }
+.notes-block .rich-text { margin-top: 5px; font-size: 12px; line-height: 1.55; }
