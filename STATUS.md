@@ -1,5 +1,5 @@
 # Status
-_Last updated: 2026-10-06 by Claude_
+_Last updated: 2026-10-11 by Claude_
 
 ## Current focus
 - **Built, not yet deployed** (on `main`, not pushed). Both need a push and a live check on the Coolify test app:
@@ -8,6 +8,7 @@ _Last updated: 2026-10-06 by Claude_
 - Open OpenSpec changes waiting for a live check: `add-email-client` (mailbox), `add-telegram-customer-inbox` (test bot), `add-alert-rules-and-scheduled-reports` (an automatic alert).
 
 ## Done recently
+- Employee onboarding deck (`docs/onboarding`) revised for current features: 17 slides, new screenshots, PDF and HTML regenerated. The `.pptx` is still the August version and is marked outdated.
 - Profile photo and personal details: birth date, phone, email, city, "about".
 - Job description editor for every member, kept as AI input for later.
 - 13 OpenSpec changes archived. Specs reorganised into 16 capabilities.
