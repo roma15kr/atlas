@@ -4,7 +4,12 @@ import { useAuth, useWorkspace, type TaskInput } from '../context/AppContext';
 import { boardErrorMessage } from '../lib/boardErrors';
 import { categories, firstStageOf, groupBoards, orderedStages } from '../lib/boards';
 import type { BoardUser, TaskBoard, TaskPriority, WorkTask } from '../types';
+import { fitsLimit, RichTextEditor } from './richtext/RichTextEditor';
+import { RichTextView } from './richtext/RichTextView';
 import { Button, Dialog, Field, SelectField } from './ui';
+
+/** Characters of Markdown in a task description (the API limit). */
+const DESCRIPTION_LIMIT = 10_000;
 
 const toDateInput = (value?: string) => value ? new Date(value).toISOString().slice(0, 10) : '';
 const fromDateInput = (value: string) => value ? new Date(value).toISOString() : null;
@@ -41,6 +46,8 @@ export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTas
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // An existing description opens formatted, with checklist items that save on a tick; the editor opens on demand.
+  const [editingDescription, setEditingDescription] = useState(!task?.description);
   const board = taskBoards.find((item) => item.id === draft.boardId);
   const groups = useMemo(() => groupBoards(taskBoards), [taskBoards]);
 
@@ -67,7 +74,15 @@ export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTas
   const toggle = (id: string) => setDraft({ ...draft, assigneeIds: draft.assigneeIds.includes(id) ? draft.assigneeIds.filter((item) => item !== id) : [...draft.assigneeIds, id] });
 
   const title = draft.title.trim();
-  const ready = Boolean(title && draft.boardId && draft.stageId && draft.assigneeIds.length && people);
+  const ready = Boolean(title && draft.boardId && draft.stageId && draft.assigneeIds.length && people && fitsLimit(draft.description.trim(), DESCRIPTION_LIMIT));
+  const tickDescription = async (description: string) => {
+    if (!task) return;
+    setError('');
+    try {
+      await updateTask(task.id, { description });
+      setDraft((current) => ({ ...current, description }));
+    } catch (reason) { setError(boardErrorMessage(reason, 'Отметка не сохранена')); }
+  };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!ready) return;
@@ -92,7 +107,13 @@ export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTas
   </>}>
     <form id="task-form" className="form-grid" onSubmit={(event) => void submit(event)}>
       <Field label="Название" className="field--wide"><input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} maxLength={240} required placeholder="Что нужно сделать" autoFocus={!task} /></Field>
-      <Field label="Описание" className="field--wide"><textarea value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} rows={3} placeholder="Контекст и ожидаемый результат" /></Field>
+      <div className="field--wide rich-field">
+        <span className="rich-field__label">Описание</span>
+        {editingDescription
+          ? <RichTextEditor value={draft.description} onChange={(description) => setDraft((current) => ({ ...current, description }))} maxLength={DESCRIPTION_LIMIT} label="Описание" placeholder="Контекст и ожидаемый результат" />
+          : <><RichTextView markdown={draft.description} onChange={tickDescription} className="rich-field__view" />
+            <button type="button" className="text-button" onClick={() => setEditingDescription(true)}>Изменить описание</button></>}
+      </div>
       <SelectField label="Доска" value={draft.boardId} onChange={(event) => changeBoard(taskBoards.find((item) => item.id === event.target.value))}>{groups.map((group) => <optgroup key={group.label} label={group.label}>{group.boards.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>)}</SelectField>
       <SelectField label="Этап" value={draft.stageId} onChange={(event) => setDraft({ ...draft, stageId: event.target.value })}>{board && orderedStages(board).map((stage) => <option key={stage.id} value={stage.id}>{stage.name} · {categories[stage.category].label}</option>)}</SelectField>
       <Field label="Срок"><input type="date" value={draft.dueAt} onChange={(event) => setDraft({ ...draft, dueAt: event.target.value })} /></Field>

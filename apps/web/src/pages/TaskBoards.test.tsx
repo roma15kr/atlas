@@ -40,6 +40,31 @@ describe('my tasks', () => {
     expect(within(card('Обновить недельный прогноз')).getByText('Задачи отдела · Готово')).toBeInTheDocument();
   });
 
+  it('shows a formatted description whose checklist items save on a tick', async () => {
+    const user = userEvent.setup();
+    renderAs('employee', '/tasks');
+    await user.click(await screen.findByRole('button', { name: 'Новая задача' }));
+    let dialog = screen.getByRole('dialog', { name: 'Новая задача' });
+    await within(dialog).findByRole('checkbox', { name: /Анна Петрова \(вы\)/ });
+    await user.type(within(dialog).getByLabelText('Название'), 'КП для «Олді»');
+    await user.click(await within(dialog).findByRole('textbox', { name: 'Описание' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Чек-лист' }));
+    await user.keyboard('отправить КП');
+    await user.click(within(dialog).getByRole('button', { name: 'Создать задачу' }));
+    await user.click(await screen.findByRole('button', { name: 'КП для «Олді»' }));
+    dialog = await screen.findByRole('dialog', { name: 'Задача' });
+    expect(within(dialog).queryByRole('textbox', { name: 'Описание' })).not.toBeInTheDocument();
+    expect(within(card('КП для «Олді»')).getByText('отправить КП')).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('checkbox', { name: 'Не выполнено' }));
+    expect(await within(dialog).findByRole('checkbox', { name: 'Выполнено' })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Отмена' }));
+    await user.click(screen.getByRole('button', { name: 'КП для «Олді»' }));
+    dialog = await screen.findByRole('dialog', { name: 'Задача' });
+    expect(within(dialog).getByRole('checkbox', { name: 'Выполнено' })).toBeChecked();
+    await user.click(within(dialog).getByRole('button', { name: 'Изменить описание' }));
+    expect(await within(dialog).findByRole('textbox', { name: 'Описание' })).toHaveTextContent('отправить КП');
+  });
+
   it('preselects the current user in a new task and limits assignees to board users', async () => {
     const user = userEvent.setup();
     renderAs('employee', '/tasks');

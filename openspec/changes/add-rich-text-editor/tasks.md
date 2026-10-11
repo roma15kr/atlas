@@ -19,7 +19,7 @@
 
 ## 3. Task descriptions and checklists
 
-- [ ] 3.1 Use the editor for descriptions in `TaskDialog`, the view on the task, and plain previews on `TaskCard`; ticking a checklist item saves through the existing task update. Verify the `TaskDialog.test.tsx` case "description renders formatted and a ticked item saves" passes in demo mode; commit.
+- [x] 3.1 Use the editor for descriptions in `TaskDialog`, the view on the task, and plain previews on `TaskCard`; ticking a checklist item saves through the existing task update. Verify the `TaskDialog.test.tsx` case "description renders formatted and a ticked item saves" passes in demo mode; commit.
 
 ## 4. Task comments
 
