@@ -271,8 +271,8 @@ input[type="checkbox"] { width: 16px; min-height: 16px; accent-color: var(--prim
 .chart-legend > span { display: flex; align-items: center; gap: 5px; }
 .legend-dot { width: 7px; height: 7px; border-radius: 2px; background: var(--primary); }
 .legend-line { width: 13px; border-top: 1px dashed #aab5b2; }
-.bar-chart { height: 220px; padding: 17px 3px 0; display: flex; align-items: flex-end; gap: clamp(8px, 2.2vw, 22px); border-bottom: 1px solid var(--line); background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 54px, #edf1f0 55px); }
-.bar-chart__item { height: 100%; min-width: 24px; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 5px; }
+.bar-chart { height: 220px; padding: 17px 3px 0; display: flex; align-items: flex-end; gap: clamp(4px, 1.2vw, 22px); overflow-x: auto; overflow-y: hidden; border-bottom: 1px solid var(--line); background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 54px, #edf1f0 55px); }
+.bar-chart__item { height: 100%; min-width: 18px; flex: 1 0 18px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 5px; }
 .bar-chart__value { color: var(--muted); font-size: 9px; opacity: 0; transition: opacity .15s; }
 .bar-chart__item:hover .bar-chart__value { opacity: 1; }
 .bar-chart__track { width: min(100%, 32px); height: calc(100% - 36px); display: flex; align-items: flex-end; border-radius: 3px 3px 0 0; background: #edf1f0; }
