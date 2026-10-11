@@ -28,6 +28,16 @@ describe("production default catalogs", () => {
     expect(statements[1]).toContain("WHERE NOT EXISTS (SELECT 1 FROM deal_funnels f WHERE f.company_id = c.id)");
     expect(statements[1]).toContain("INSERT INTO deal_stages");
     expect(statements[1]).not.toContain("ON CONFLICT");
+    const stages = [...statements[1]!.matchAll(/\('([^']+)', '#[0-9A-F]{6}', (\d+), '(OPEN|WON|LOST)'\)/g)]
+      .map(([, name, order, outcome]) => [name, Number(order), outcome]);
+    expect(stages).toEqual([
+      ["Квалификация", 10, "OPEN"],
+      ["Коммерческое предложение", 20, "OPEN"],
+      ["Согласование условий", 30, "OPEN"],
+      ["Заказ и поставка", 40, "OPEN"],
+      ["Отгрузка", 50, "WON"],
+      ["Проиграна", 60, "LOST"]
+    ]);
     expect(statements[2]).toContain("INSERT INTO achievement_definitions");
     expect(statements[2]).toContain("ON CONFLICT (company_id, code) DO NOTHING");
   });

@@ -56,10 +56,10 @@ export async function ensureDefaultCatalogs(): Promise<void> {
        SELECT created.company_id, created.id, stage.name, stage.color, stage.sort_order, stage.outcome
        FROM created
        CROSS JOIN (VALUES
-         ('Заявка', '#2563EB', 10, 'OPEN'),
-         ('Переговоры', '#D97706', 20, 'OPEN'),
-         ('Счёт выставлен', '#7C3AED', 30, 'OPEN'),
-         ('Оплата', '#059669', 40, 'WON'),
+         ('Квалификация', '#2563EB', 10, 'OPEN'),
+         ('Коммерческое предложение', '#D97706', 20, 'OPEN'),
+         ('Согласование условий', '#7C3AED', 30, 'OPEN'),
+         ('Заказ и поставка', '#059669', 40, 'OPEN'),
          ('Отгрузка', '#0891B2', 50, 'WON'),
          ('Проиграна', '#DC2626', 60, 'LOST')
        ) AS stage(name, color, sort_order, outcome)`
