@@ -51,8 +51,8 @@
 
 ## 9. Integration checks
 
-- [ ] 9.1 Run `make check` and `npm run build`; note the size of the main and editor chunks in STATUS.md, and verify the editor is a separate lazy chunk.
-- [ ] 9.2 Run `npx openspec validate add-rich-text-editor --strict`; verify it passes.
+- [x] 9.1 Run `make check` and `npm run build`; note the size of the main and editor chunks in STATUS.md, and verify the editor is a separate lazy chunk.
+- [x] 9.2 Run `npx openspec validate add-rich-text-editor --strict`; verify it passes.
 
 ## Workflow follow-up
 
