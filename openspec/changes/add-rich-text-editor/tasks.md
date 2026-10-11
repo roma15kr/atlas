@@ -37,7 +37,7 @@
 
 ## 7. Job descriptions
 
-- [ ] 7.1 Use the editor in `JobDescriptionDialog` (keeping counter and template, with the template turned into headings and lists) and the view in `TeamPage` and `ProfilePage`. Verify the updated `JobDescriptionDialog.test.tsx` passes; commit.
+- [x] 7.1 Use the editor in `JobDescriptionDialog` (keeping counter and template, with the template turned into headings and lists) and the view in `TeamPage` and `ProfilePage`. Verify the updated `JobDescriptionDialog.test.tsx` passes; commit.
 
 ## 8. Pasted images
 

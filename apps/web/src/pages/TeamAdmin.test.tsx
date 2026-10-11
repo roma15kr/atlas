@@ -126,11 +126,13 @@ describe('job description', () => {
     const dialog = screen.getByRole('dialog', { name: 'Должностная инструкция' });
     expect(within(dialog).getByText(/Используется AI-аналитикой/)).toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: 'Вставить шаблон' }));
-    const text = within(dialog).getByLabelText(/Текст инструкции/) as HTMLTextAreaElement;
-    expect(text.value).toContain('Обязанности:');
-    await user.type(text, 'вести ключевых клиентов');
+    const text = await within(dialog).findByRole('textbox', { name: 'Текст инструкции' });
+    expect(await within(text).findByRole('heading', { name: 'Обязанности' })).toBeInTheDocument();
+    await user.click(text);
+    await user.keyboard('вести ключевых клиентов');
     await user.click(within(dialog).getByRole('button', { name: 'Сохранить' }));
     expect(await within(card).findByText(/вести ключевых клиентов/)).toBeInTheDocument();
+    expect(within(card).getByRole('heading', { name: 'Показатели результата' })).toBeInTheDocument();
     expect(within(screen.getByRole('button', { name: /Анна Петрова/ })).queryByText('Нет инструкции')).not.toBeInTheDocument();
     expect(within(card).getByRole('button', { name: 'Изменить инструкцию' })).toBeInTheDocument();
   });
@@ -142,7 +144,8 @@ describe('job description', () => {
     const card = (await screen.findByRole('heading', { name: 'Алексей Ким' })).closest('.team-detail') as HTMLElement;
     expect(within(card).getByText(/Развивает партнёрский канал/)).toBeInTheDocument();
     await user.click(within(card).getByRole('button', { name: 'Изменить инструкцию' }));
-    await user.clear(within(screen.getByRole('dialog')).getByLabelText(/Текст инструкции/));
+    await user.click(await within(screen.getByRole('dialog')).findByRole('textbox', { name: 'Текст инструкции' }));
+    await user.keyboard('{Control>}a{/Control}{Backspace}');
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Сохранить' }));
     expect(await within(card).findByText(/Не заполнена/)).toBeInTheDocument();
   });
