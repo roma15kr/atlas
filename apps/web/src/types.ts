@@ -103,6 +103,8 @@ export interface Deal {
   currency: 'UAH';
   probability: number;
   expectedCloseAt: string;
+  /** Markdown. */
+  notes?: string | null;
 }
 
 export type StageOutcome = 'OPEN' | 'WON' | 'LOST';

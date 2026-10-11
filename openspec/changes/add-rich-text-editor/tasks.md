@@ -32,8 +32,8 @@
 
 ## 6. Deal notes
 
-- [ ] 6.1 Add `database/016_deal_notes.sql` and `notes` to the deal create, update and select schemas. Verify the `routes/deals.test.ts` cases (stored, returned, audited by field name, out-of-scope 404) pass.
-- [ ] 6.2 Add the notes field and formatted view to the deal form and deal view in `SalesPage`, with a demo branch. Verify a `SalesPage` test "deal notes render formatted" passes; commit.
+- [x] 6.1 Add `database/016_deal_notes.sql` and `notes` to the deal create, update and select schemas. Verify the `routes/deals.test.ts` cases (stored, returned, audited by field name, out-of-scope 404) pass.
+- [x] 6.2 Add the notes field to the new-deal form and, since no deal view existed, a «Заметки» dialog opened from each deal card (formatted view, checklist ticks save, editor on demand), with `updateDealNotes` and its demo branch in `AppContext`. Verify the `SalesPage` test "writes formatted notes on a deal and saves a ticked checklist item" passes; commit.
 
 ## 7. Job descriptions
 
