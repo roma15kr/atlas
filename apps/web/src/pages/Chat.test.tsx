@@ -50,10 +50,32 @@ describe('team chat', () => {
     await user.click(await within(list()).findByRole('button', { name: /Елена Морозова/ }));
     const view = main('Елена Морозова');
     await within(view).findByText('Анна, как прошла встреча с клиентом?');
-    await user.type(within(view).getByLabelText('Сообщение'), '**Итог:**{Shift>}{Enter}{/Shift}- [[x] КП отправлено{Enter}');
+    await user.click(await within(view).findByRole('textbox', { name: 'Сообщение' }));
+    await user.click(within(view).getByRole('button', { name: 'Чек-лист' }));
+    await user.keyboard('{Control>}b{/Control}Итог:{Control>}b{/Control} КП отправлено{Control>}{Enter}{/Control}');
     expect(await within(view).findByText('Итог:', { selector: 'strong' })).toBeInTheDocument();
-    expect(within(view).getByRole('checkbox', { name: 'Выполнено' })).toBeDisabled();
+    expect(within(view).getByRole('checkbox', { name: 'Не выполнено' })).toBeDisabled();
     expect(await within(row(/Елена Морозова/)).findByText('Вы: Итог: КП отправлено')).toBeInTheDocument();
+  });
+
+  it('sends a formatted message with a mention in a list, and none from code', async () => {
+    const user = userEvent.setup();
+    renderAs('employee');
+    await user.click(await within(list()).findByRole('button', { name: /Продажи/ }));
+    const view = main('Продажи');
+    const box = await within(view).findByRole('textbox', { name: 'Сообщение' });
+    await user.click(box);
+    await user.click(within(view).getByRole('button', { name: 'Маркированный список' }));
+    await user.keyboard('согласовать скидку @mana');
+    await user.click(within(await screen.findByRole('option', { name: /Михаил Волков/ })).getByRole('button'));
+    await user.keyboard('{Control>}{Enter}{/Control}');
+    const sent = (await within(view).findByText('согласовать скидку', { exact: false, selector: 'li' })).closest('article')!;
+    expect(within(sent).getByText('@Михаил Волков')).toHaveClass('mention');
+    await waitFor(() => expect(box).toHaveTextContent(''));
+    await user.click(within(view).getByRole('button', { name: 'Код' }));
+    await user.keyboard('@manager{Enter}');
+    const code = await within(view).findByText('@manager', { selector: 'code' });
+    expect(code.closest('article')!.querySelector('.mention')).toBeNull();
   });
 
   it('sends a direct message and clears the unread count on open', async () => {
@@ -62,7 +84,7 @@ describe('team chat', () => {
     await user.click(await within(list()).findByRole('button', { name: /Елена Морозова/ }));
     const view = main('Елена Морозова');
     expect(await within(view).findByText('Анна, как прошла встреча с клиентом?')).toBeInTheDocument();
-    await user.type(within(view).getByLabelText('Сообщение'), 'Хорошо, договорились о пилоте{Enter}');
+    await user.type(await within(view).findByRole('textbox', { name: 'Сообщение' }), 'Хорошо, договорились о пилоте{Enter}');
     expect(await within(view).findByText('Хорошо, договорились о пилоте')).toBeInTheDocument();
     await waitFor(() => expect(within(row(/Елена Морозова/)).queryByText('1')).not.toBeInTheDocument());
   });
@@ -77,12 +99,12 @@ describe('team chat', () => {
     await user.click(within(message).getByRole('button', { name: 'Ответить в обсуждении' }));
     const thread = screen.getByRole('region', { name: 'Обсуждение' });
     expect(await within(thread).findByText('Готовлю, будет к вечеру.')).toBeInTheDocument();
-    const input = within(thread).getByLabelText('Ответ в обсуждении');
+    const input = await within(thread).findByRole('textbox', { name: 'Ответ в обсуждении' });
     await user.type(input, 'Готово, @мих');
     const suggestion = await screen.findByRole('option', { name: /Михаил Волков/ });
     await user.click(within(suggestion).getByRole('button'));
-    expect(input).toHaveValue('Готово, @manager ');
-    await user.type(input, '{Enter}');
+    await waitFor(() => expect(input).toHaveTextContent('Готово, @manager'));
+    await user.keyboard('{Enter}');
     expect(await within(thread).findByText('@Михаил Волков')).toBeInTheDocument();
     expect(await within(view).findByRole('button', { name: /2 ответа/ })).toBeInTheDocument();
   });

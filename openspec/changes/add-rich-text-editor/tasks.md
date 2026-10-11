@@ -8,14 +8,14 @@
 
 ## 2. Formatting editor in chat
 
-- [ ] 2.1 Get the user's approval for TipTap 3 (design decision 1), then add the TipTap packages and create the lazy `RichTextEditor`:
+- [x] 2.1 Get the user's approval for TipTap 3 (design decision 1), then add the TipTap packages and create the lazy `RichTextEditor`:
   - toolbar for basics, checklist and table;
   - Ctrl/⌘+B, I and K;
   - a counter that blocks saving over the limit;
   - Markdown in and out.
 
   Verify `RichTextEditor.test.tsx` (bold shortcut, limit) passes.
-- [ ] 2.2 Use the editor in the chat composer, thread replies and the edit-message dialog, with @-suggestions from the chat people list serialized as `@username`. Verify the `Chat.test.tsx` case "sends a formatted message with a mention in a list" passes and the existing chat tests still pass; commit.
+- [x] 2.2 Use the editor in the chat composer, thread replies and the edit-message dialog, with @-suggestions from the chat people list serialized as `@username`. Verify the `Chat.test.tsx` case "sends a formatted message with a mention in a list" passes and the existing chat tests still pass; commit.
 
 ## 3. Task descriptions and checklists
 
