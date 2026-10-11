@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
+    "dompurify": "^3.4.16",
     "lucide-react": "latest",
+    "marked": "^18.1.0",
     "modern-screenshot": "^4.7.0",
     "react": "latest",
     "react-dom": "latest",

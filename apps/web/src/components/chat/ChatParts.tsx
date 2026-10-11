@@ -1,7 +1,8 @@
 import { Hash, Lock, MessageSquareReply, Pencil, Send, Trash2, Users } from 'lucide-react';
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { conversationTitle, mentionQuery, messageParts, type ChatConversation, type ChatMessage, type ChatPerson } from '../../lib/chat';
+import { conversationTitle, mentionQuery, type ChatConversation, type ChatMessage, type ChatPerson } from '../../lib/chat';
 import { formatDateTime, plural } from '../../lib/format';
+import { RichTextView } from '../richtext/RichTextView';
 import { Avatar, IconButton } from '../ui';
 
 const REPLIES: [string, string, string] = ['ответ', 'ответа', 'ответов'];
@@ -15,15 +16,7 @@ export function ConversationIcon({ conversation, myId }: { conversation: ChatCon
 
 /** Message text as plain text, links and named mentions; nothing from the message is rendered as HTML. */
 export function MessageText({ body, people, myUsername }: { body: string; people: Map<string, ChatPerson>; myUsername: string }) {
-  return <>{messageParts(body).map((part, index) => {
-    if (part.type === 'link') return <a key={index} href={part.href} target="_blank" rel="noreferrer noopener">{part.href}</a>;
-    if (part.type === 'mention') {
-      const person = people.get(part.username);
-      if (part.username === 'channel') return <span key={index} className="mention mention--all">@канал</span>;
-      return <span key={index} className={`mention ${part.username === myUsername ? 'mention--me' : ''}`}>@{person?.fullName ?? part.username}</span>;
-    }
-    return <span key={index}>{part.value}</span>;
-  })}</>;
+  return <RichTextView markdown={body} people={people} myUsername={myUsername} />;
 }
 
 export function MessageItem({ message, people, me, canModerate, onReply, onEdit, onDelete, onOpenThread }: {
@@ -36,7 +29,7 @@ export function MessageItem({ message, people, me, canModerate, onReply, onEdit,
     <Avatar name={message.author.fullName} src={message.author.avatarUrl ?? undefined} size="sm" />
     <div className="chat-message__main">
       <header><strong>{message.author.fullName}{!message.author.active && <small> · деактивирован</small>}</strong><time dateTime={message.createdAt} title={formatDateTime(message.createdAt)}>{time(message.createdAt)}</time>{message.editedAt && !deleted && <small>изменено</small>}</header>
-      <p className={deleted ? 'chat-message__deleted' : ''}>{deleted ? 'Сообщение удалено' : <MessageText body={message.body ?? ''} people={people} myUsername={me.username} />}</p>
+      <div className={`chat-message__text${deleted ? ' chat-message__deleted' : ''}`}>{deleted ? 'Сообщение удалено' : <MessageText body={message.body ?? ''} people={people} myUsername={me.username} />}</div>
       {onOpenThread && message.replyCount > 0 && <button type="button" className="text-button chat-message__thread" onClick={onOpenThread}><MessageSquareReply size={13} />{plural(message.replyCount, REPLIES)}{message.lastReplyAt && <span> · {time(message.lastReplyAt)}</span>}</button>}
     </div>
     {!deleted && (onReply || own || canModerate) && <div className="chat-message__actions">

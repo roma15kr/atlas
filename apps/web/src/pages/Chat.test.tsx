@@ -44,6 +44,18 @@ describe('team chat', () => {
     expect(screen.getByLabelText(/Сообщения: непрочитанных \d+/)).toBeInTheDocument();
   });
 
+  it('shows a formatted message formatted and its preview as plain text', async () => {
+    const user = userEvent.setup();
+    renderAs('employee');
+    await user.click(await within(list()).findByRole('button', { name: /Елена Морозова/ }));
+    const view = main('Елена Морозова');
+    await within(view).findByText('Анна, как прошла встреча с клиентом?');
+    await user.type(within(view).getByLabelText('Сообщение'), '**Итог:**{Shift>}{Enter}{/Shift}- [[x] КП отправлено{Enter}');
+    expect(await within(view).findByText('Итог:', { selector: 'strong' })).toBeInTheDocument();
+    expect(within(view).getByRole('checkbox', { name: 'Выполнено' })).toBeDisabled();
+    expect(await within(row(/Елена Морозова/)).findByText('Вы: Итог: КП отправлено')).toBeInTheDocument();
+  });
+
   it('sends a direct message and clears the unread count on open', async () => {
     const user = userEvent.setup();
     renderAs('employee');

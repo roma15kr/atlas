@@ -56,14 +56,29 @@ export function groupParticipants(creatorId: string, userIds: string[]): string[
 
 export const dmKey = (a: string, b: string): string => [a, b].sort().join(":");
 
+/** The message with code blocks and inline code blanked out, so `@` inside code is plain text. */
+export function withoutCode(body: string): string {
+  let fence: string | null = null;
+  const lines = body.split("\n").map((line) => {
+    const opener = /^\s*(`{3,}|~{3,})/.exec(line)?.[1];
+    if (fence) {
+      if (opener && opener[0] === fence[0] && opener.length >= fence.length) fence = null;
+      return "";
+    }
+    if (opener) { fence = opener; return ""; }
+    return line;
+  });
+  return lines.join("\n").replace(/(`+)[\s\S]*?\1/g, " ");
+}
+
 /**
  * Usernames mentioned as `@username` (lowercased, unique), and whether `@channel` was used.
- * An `@` inside a word or an email address is not a mention.
+ * An `@` inside a word, an email address or code is not a mention.
  */
 export function parseMentions(body: string): { usernames: string[]; channel: boolean } {
   const found = new Set<string>();
   let channel = false;
-  for (const match of body.matchAll(/(^|[^\p{L}\p{N}._@-])@([a-z0-9._-]{2,50})/giu)) {
+  for (const match of withoutCode(body).matchAll(/(^|[^\p{L}\p{N}._@-])@([a-z0-9._-]{2,50})/giu)) {
     const name = match[2]!.toLowerCase().replace(/[.-]+$/, "");
     if (name === "channel") channel = true;
     else if (name.length >= 2) found.add(name);

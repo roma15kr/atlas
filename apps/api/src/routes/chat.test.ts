@@ -58,6 +58,12 @@ describe("parseMentions", () => {
     expect(parseMentions("@channel встреча в 16:00, @petrova, @petrova")).toEqual({ usernames: ["petrova"], channel: true });
     expect(parseMentions("без упоминаний @")).toEqual({ usernames: [], channel: false });
   });
+
+  it("ignores mentions inside inline code and code blocks", () => {
+    expect(parseMentions("- согласовать скидку @semenets\n\n`@petrova` и ``@channel``")).toEqual({ usernames: ["semenets"], channel: false });
+    expect(parseMentions("```\nnotify(@petrova)\n```\nа вот @alex — да\n~~~ts\n@channel\n~~~")).toEqual({ usernames: ["alex"], channel: false });
+    expect(parseMentions("незакрытый блок @alex\n```\n@petrova")).toEqual({ usernames: ["alex"], channel: false });
+  });
 });
 
 describe("@channel permission", () => {

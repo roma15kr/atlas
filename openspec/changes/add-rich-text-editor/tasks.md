@@ -2,9 +2,9 @@
 
 ## 1. Tracer bullet: formatted chat messages (display only)
 
-- [ ] 1.1 Add `marked` and `dompurify` to `apps/web`; create `lib/markdown.ts` (`renderMarkdown`, `markdownToPlain`, `toggleTask`) with `lib/markdown.test.ts` covering tables, task lists, code, escaped raw HTML, dropped `javascript:` links, external images and plain previews. Verify the tests pass.
-- [ ] 1.2 Create `components/richtext/RichTextView.tsx` (sanitized HTML, mention chips outside code, disabled checkboxes without `onChange`) and use it in chat `MessageText`; use `markdownToPlain` for conversation previews and notifications. Verify `RichTextView.test.tsx` and a new `Chat.test.tsx` case ("shows a formatted message, preview plain") pass in demo mode.
-- [ ] 1.3 Make the server's chat mention extraction skip inline code and code blocks. Verify the new `routes/chat.test.ts` case fails before and passes after; commit.
+- [x] 1.1 Add `marked` and `dompurify` to `apps/web`; create `lib/markdown.ts` (`renderMarkdown`, `markdownToPlain`, `toggleTask`) with `lib/markdown.test.ts` covering tables, task lists, code, escaped raw HTML, dropped `javascript:` links, external images and plain previews. Verify the tests pass.
+- [x] 1.2 Create `components/richtext/RichTextView.tsx` (sanitized HTML, mention chips outside code, disabled checkboxes without `onChange`) and use it in chat `MessageText`; use `markdownToPlain` for conversation previews and notifications. Verify `RichTextView.test.tsx` and a new `Chat.test.tsx` case ("shows a formatted message, preview plain") pass in demo mode.
+- [x] 1.3 Make the server's chat mention extraction skip inline code and code blocks. Verify the new `routes/chat.test.ts` case fails before and passes after; commit.
 
 ## 2. Formatting editor in chat
 

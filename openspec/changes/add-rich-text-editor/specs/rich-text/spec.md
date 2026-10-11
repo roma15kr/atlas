@@ -76,5 +76,5 @@ Where the viewer may edit a formatted field, ticking or unticking a checklist it
 Where formatted text is shortened to one line (conversation lists, notifications, card previews), the system SHALL show it as plain text: formatting marks removed, images shown as «[изображение]», and tables shown as cell text.
 
 #### Scenario: Conversation preview
-- **WHEN** the last chat message is `**Итог:** - [x] КП`
+- **WHEN** the last chat message is a bold line «**Итог:**» followed by the checklist item «- [x] КП»
 - **THEN** the conversation list shows «Итог: КП»
