@@ -127,6 +127,10 @@ describe("Telegram inbox", () => {
     expect(thread.messages.map((item: { text: string }) => item.text)).toEqual(expect.arrayContaining(["Здравствуйте, сколько стоит доставка?", "Алло?", "Доставка 150 грн"]));
     expect(thread.messages.find((item: { text: string }) => item.text === "Доставка 150 грн").sentBy.id).toBe(ids.anna);
     expect((await as("olga").get(`/communications/telegram/${contact.id}`)).status).toBe(404);
+    const sends = calls.length;
+    expect((await as("alex").post(`/telegram/contacts/${contact.id}/messages`, { text: "Чужой клиент" })).status).toBe(404);
+    expect(calls).toHaveLength(sends);
+    expect((await as("alex").get("/telegram/contacts")).body.data).toEqual([]);
     const [event] = await audit("TELEGRAM_MESSAGE_SENT");
     expect(JSON.stringify(event)).not.toContain("150");
   });
