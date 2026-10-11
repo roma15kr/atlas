@@ -5,6 +5,7 @@ import { boardErrorMessage } from '../lib/boardErrors';
 import { categories, firstStageOf, groupBoards, orderedStages } from '../lib/boards';
 import type { BoardUser, TaskBoard, TaskPriority, WorkTask } from '../types';
 import { fitsLimit, RichTextEditor } from './richtext/RichTextEditor';
+import { TaskComments } from './TaskComments';
 import { RichTextView } from './richtext/RichTextView';
 import { Button, Dialog, Field, SelectField } from './ui';
 
@@ -124,6 +125,7 @@ export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTas
       {people && !draft.assigneeIds.length && <small className="field--wide form-hint">Выберите хотя бы одного исполнителя</small>}
       {error && <div className="form-error field--wide" role="alert">{error}</div>}
     </form>
+    {task && <TaskComments taskId={task.id} />}
   </Dialog>;
 }
 

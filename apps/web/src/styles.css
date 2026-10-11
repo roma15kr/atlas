@@ -1231,3 +1231,14 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 .rich-field__label { color: var(--muted); font-size: 11px; font-weight: 600; }
 .rich-field__view { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; line-height: 1.5; }
 .rich-field > .text-button { justify-self: start; }
+
+.task-comments { margin-top: 16px; padding-top: 12px; display: grid; gap: 8px; border-top: 1px solid var(--line); }
+.task-comments__header { display: flex; align-items: center; gap: 6px; }
+.task-comments__header h3 { font-size: 13px; font-weight: 700; }
+.task-comments__empty { color: var(--subtle); }
+.task-comments__list { margin: 0; padding: 0; display: grid; gap: 10px; list-style: none; }
+.task-comments__list li { display: flex; gap: 8px; }
+.task-comments__list li > div { min-width: 0; flex: 1; font-size: 13px; line-height: 1.5; }
+.task-comments__list header { display: flex; align-items: baseline; gap: 6px; }
+.task-comments__list time { color: var(--subtle); font-size: 11px; }
+.task-comments__add { justify-self: end; }

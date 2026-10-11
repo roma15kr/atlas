@@ -23,8 +23,8 @@
 
 ## 4. Task comments
 
-- [ ] 4.1 Add `database/015_task_comments.sql` and `GET`/`POST /api/v1/tasks/:id/comments` (board access via `scopedTask`, 1–5000 characters, `TASK_COMMENT_CREATED` audit without body, cascade on task delete). Verify the new `routes/tasks.test.ts` cases (reader and writer, outsider 404, cascade) pass.
-- [ ] 4.2 Add the comments panel to `TaskDialog` with the editor and view, plus a demo-mode branch in `AppContext`. Verify the `TaskDialog.test.tsx` case "adds a formatted comment" passes; commit.
+- [x] 4.1 Add `database/015_task_comments.sql` and `GET`/`POST /api/v1/tasks/:id/comments` (board access via `scopedTask`, 1–5000 characters, `TASK_COMMENT_CREATED` audit without body, cascade on task delete). Verify the new `routes/tasks.test.ts` cases (reader and writer, outsider 404, cascade) pass.
+- [x] 4.2 Add the comments panel to `TaskDialog` with the editor and view, plus a demo-mode branch in `AppContext`. Verify the `TaskDialog.test.tsx` case "adds a formatted comment" passes; commit.
 
 ## 5. Client notes and comments
 
