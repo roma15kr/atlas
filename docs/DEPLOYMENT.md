@@ -25,3 +25,14 @@ store the bootstrap credential securely, replicate the verified database and
 document backup volumes (`postgres_backups`, `object_backups`) to encrypted
 off-server storage, perform a restore drill,
 and rotate the Coolify API token used during provisioning.
+
+## Cloudflare in front of Atlas
+
+Production (`atlas.rdim.ua`) is proxied by Cloudflare, so requests reach Atlas from Cloudflare edge
+addresses and Traefik does not pass Cloudflare's `X-Forwarded-For` on. The API therefore takes the
+visitor's address from `CF-Connecting-IP`, but only when the request itself came from a Cloudflare
+range (`apps/api/src/clientIp.ts`; update the ranges from https://www.cloudflare.com/ips if Cloudflare
+changes them). Without this, everyone shares a few edge addresses and the per-address flood limit
+(6000 requests per 15 minutes) blocks the whole team at busy times. `TRUST_PROXY=3` covers
+Cloudflare → Traefik → Nginx.
+
