@@ -10,6 +10,16 @@ const frameStyles = `html,body{margin:0}body{padding:1px 0 4px;font:13px/1.55 In
 img{max-width:100%;height:auto}a{color:#176f68}blockquote{margin:8px 0;padding-left:10px;border-left:3px solid #dfe5e3;color:#687472}table{max-width:100%}pre{white-space:pre-wrap}`;
 
 /**
+ * The frame height that fits the message: the body's height, never the root's. The root is at least as tall as
+ * the frame itself, so sizing the frame from it only ever grows it (up to the 4000 px cap).
+ */
+export function frameContentHeight(doc: Pick<Document, 'body'> | null | undefined): number | null {
+  const body = doc?.body;
+  if (!body) return null;
+  return Math.min(Math.max(Math.ceil(body.scrollHeight) + 4, 40), 4000);
+}
+
+/**
  * Shows sanitized mail HTML in a sandboxed frame: no scripts, no forms, and remote images blocked by
  * CSP until the owner allows them. Same-origin access is kept only so the frame can size to its content.
  */
@@ -19,8 +29,8 @@ export function MailFrame({ html, allowRemote }: { html: string; allowRemote: bo
   const csp = `default-src 'none'; style-src 'unsafe-inline'; font-src data:; img-src data:${allowRemote ? ' https: http:' : ''}`;
   const doc = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}"><base target="_blank"><style>${frameStyles}</style></head><body>${html}</body></html>`;
   const resize = () => {
-    const root = frame.current?.contentDocument?.documentElement;
-    if (root) setHeight(Math.min(Math.max(root.scrollHeight + 4, 40), 4000));
+    const next = frameContentHeight(frame.current?.contentDocument);
+    if (next !== null) setHeight((current) => Math.abs(current - next) > 1 ? next : current);
   };
   useEffect(() => {
     const body = frame.current?.contentDocument?.body;
