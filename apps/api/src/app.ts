@@ -8,6 +8,7 @@ import { authenticate } from "./auth";
 import { config } from "./config";
 import { pool } from "./db";
 import { errorHandler, asyncHandler, notFound } from "./errors";
+import { useCloudflareVisitorIp } from "./clientIp";
 import { apiLimiter, crmReadLimiter, ipFloodLimiter } from "./middleware";
 import { connectRedis } from "./redis";
 import { objectStorage } from "./storage";
@@ -63,6 +64,8 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: "same-site" } }));
 app.use(cors({ origin: config.corsOrigins, credentials: true }));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+// Behind Cloudflare every request arrives from an edge address; rate limits and the audit log need the visitor's.
+app.use(useCloudflareVisitorIp);
 // Telegram calls from a few shared IPs; it is authenticated by its secret token instead of the per-IP limit.
 app.post("/api/telegram/webhook", asyncHandler(webhookHandler));
 // Photos are loaded by <img> without a token, many per page from one office IP: only the flood limit applies.
