@@ -909,6 +909,8 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 .mail-message > header time { color: var(--subtle); font-size: 10px; white-space: nowrap; }
 .mail-message > .notice { margin: 0 13px 8px; }
 .mail-message > footer { padding: 10px 13px; display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid #edf0ef; }
+/* Reply actions stay in view while the last message is on screen, however long it is. */
+.mail-message > footer { position: sticky; bottom: 0; z-index: 1; border-radius: 0 0 7px 7px; background: var(--surface); box-shadow: 0 -6px 12px -10px rgba(16, 24, 23, .35); }
 .mail-frame { width: 100%; display: block; border: 0; padding: 0 13px; box-sizing: border-box; }
 .mail-text { padding: 0 13px 12px; font-size: 13px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 .mail-images-blocked { margin: 0 13px 8px; padding: 7px 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; border-radius: 5px; background: var(--amber-soft); color: var(--amber); font-size: 11px; }
