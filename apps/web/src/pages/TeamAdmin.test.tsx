@@ -53,6 +53,9 @@ describe('team administration', () => {
     localStorage.setItem('atlas.session', JSON.stringify(demoSessions.manager));
     renderAt('/team?user=u4');
     await user.click(await screen.findByRole('button', { name: 'Сбросить пароль' }));
+    // The note sits above the password field, so the field and «Сгенерировать» get the dialog's full width.
+    expect(screen.getByRole('dialog').querySelector('form')).toHaveClass('settings-form--single');
+    expect(within(screen.getByRole('dialog')).getByLabelText('Временный пароль')).not.toHaveValue('');
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Сбросить пароль' }));
     const done = await screen.findByRole('dialog', { name: 'Пароль сброшен' });
     expect(within(done).getByText('alex')).toBeInTheDocument();

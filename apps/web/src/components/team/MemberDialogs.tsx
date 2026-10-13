@@ -110,7 +110,7 @@ export function ResetPasswordDialog({ member, reset, onClose }: { member: User; 
   </Dialog>;
 
   return <Dialog open title="Сбросить пароль" description={member.fullName} onClose={() => { if (!saving) onClose(); }} footer={<><Button variant="secondary" disabled={saving} onClick={onClose}>Отмена</Button><Button type="submit" form="reset-form" disabled={saving}>{saving ? 'Сбрасываем…' : 'Сбросить пароль'}</Button></>}>
-    <form id="reset-form" className="settings-form" onSubmit={(event) => void submit(event)}>
+    <form id="reset-form" className="settings-form settings-form--single" onSubmit={(event) => void submit(event)}>
       <p className="dialog-note">Текущие сеансы сотрудника завершатся, блокировка входа снимется. При следующем входе нужно будет задать свой пароль.</p>
       <Field label="Временный пароль" hint="Не менее 12 символов"><span className="input-with-icon onboarding-password"><KeyRound size={17} /><input type={show ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} aria-label="Временный пароль" autoComplete="new-password" /><IconButton type="button" label={show ? 'Скрыть пароль' : 'Показать пароль'} icon={show ? EyeOff : Eye} onClick={() => setShow((value) => !value)} /><Button type="button" variant="secondary" icon={RefreshCw} onClick={() => setPassword(generateTemporaryPassword())}>Сгенерировать</Button></span></Field>
       {error && <div className="form-error" role="alert">{error}</div>}
