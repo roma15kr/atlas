@@ -2,7 +2,7 @@
 
 ## 1. Tracer bullet: the head of sales sees a DIY client
 
-- [ ] 1.1 Add `database/018_department_parents.sql` (parent column, self-reference check, one-level and same-company trigger), and `departmentIds` on `AuthContext`, loaded in `authenticate` and on socket connect. Make `recordScope` use `ANY`. Verify a new `subDepartments.integration.test.ts` case — "the parent head opens a sub-department client; the sub-head gets 404 on the parent's client" — fails before and passes after, and existing scope tests stay green; commit.
+- [x] 1.1 Add `database/018_department_parents.sql` (parent column, self-reference check, one-level and same-company trigger), and `departmentIds` on `AuthContext`, loaded in `authenticate` and on socket connect. Make `recordScope` use `ANY`. Verify a new `subDepartments.integration.test.ts` case — "the parent head opens a sub-department client; the sub-head gets 404 on the parent's client" — fails before and passes after, and existing scope tests stay green; commit.
 
 ## 2. Every department check covers sub-departments
 

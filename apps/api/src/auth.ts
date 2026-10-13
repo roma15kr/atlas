@@ -54,6 +54,15 @@ export function verifyAccessToken(token: string): AuthContext {
   }
 }
 
+/** Sub-departments of a user's department, selected alongside the user row (`u`). */
+export const SUB_DEPARTMENTS_SQL = "ARRAY(SELECT sd.id FROM departments sd WHERE sd.parent_id = u.department_id)";
+
+/** The departments a user acts within: a head covers their sub-departments too; others only their own. */
+export function coveredDepartments(user: { role: Role; department_id: string | null; sub_departments?: string[] | null }): string[] {
+  if (!user.department_id) return [];
+  return user.role === "MANAGER" ? [user.department_id, ...(user.sub_departments ?? [])] : [user.department_id];
+}
+
 export async function authenticate(req: Request, _res: Response, next: NextFunction): Promise<void> {
   const value = req.header("authorization");
   if (!value?.startsWith("Bearer ")) {
@@ -63,10 +72,10 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
   try {
     const tokenAuth = verifyAccessToken(value.slice(7));
     const current = await query<{
-      id: string; company_id: string; department_id: string | null; username: string; role: Role; must_change_password: boolean;
+      id: string; company_id: string; department_id: string | null; username: string; role: Role; must_change_password: boolean; sub_departments: string[];
     }>(
-      `SELECT id, company_id, department_id, username, role, must_change_password
-       FROM users WHERE id = $1 AND company_id = $2 AND status = 'ACTIVE'`,
+      `SELECT id, company_id, department_id, username, role, must_change_password, ${SUB_DEPARTMENTS_SQL} AS sub_departments
+       FROM users u WHERE id = $1 AND company_id = $2 AND status = 'ACTIVE'`,
       [tokenAuth.userId, tokenAuth.companyId]
     );
     const user = current.rows[0];
@@ -83,6 +92,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
       userId: user.id,
       companyId: user.company_id,
       departmentId: user.department_id,
+      departmentIds: coveredDepartments(user),
       username: user.username,
       role: user.role
     };

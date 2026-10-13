@@ -5,6 +5,8 @@ export interface AuthContext {
   userId: string;
   companyId: string;
   departmentId: string | null;
+  /** For a MANAGER: their department plus its sub-departments. Absent means just `departmentId`. */
+  departmentIds?: string[];
   username: string;
   role: Role;
 }

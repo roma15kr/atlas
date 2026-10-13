@@ -1,6 +1,6 @@
 import type { Server as HttpServer } from "node:http";
 import { Server } from "socket.io";
-import { verifyAccessToken } from "./auth";
+import { coveredDepartments, SUB_DEPARTMENTS_SQL, verifyAccessToken } from "./auth";
 import { config } from "./config";
 import { query } from "./db";
 import { applyActivity, closeSocket, MONITORING_POLICY_VERSION, presenceFor, touchSocket, type PresenceTransition } from "./presence";
@@ -20,8 +20,8 @@ export function createSocketServer(server: HttpServer): Server {
         ? socket.handshake.auth.token
         : header?.startsWith("Bearer ") ? header.slice(7) : "";
       const auth = verifyAccessToken(token);
-      const current = await query<{ id: string; company_id: string; department_id: string | null; username: string; role: Role; must_change_password: boolean }>(
-        "SELECT id, company_id, department_id, username, role, must_change_password FROM users WHERE id=$1 AND company_id=$2 AND status='ACTIVE'",
+      const current = await query<{ id: string; company_id: string; department_id: string | null; username: string; role: Role; must_change_password: boolean; sub_departments: string[] }>(
+        `SELECT id, company_id, department_id, username, role, must_change_password, ${SUB_DEPARTMENTS_SQL} AS sub_departments FROM users u WHERE id=$1 AND company_id=$2 AND status='ACTIVE'`,
         [auth.userId, auth.companyId]
       );
       const user = current.rows[0];
@@ -31,7 +31,7 @@ export function createSocketServer(server: HttpServer): Server {
         return;
       }
       socket.data.auth = {
-        userId: user.id, companyId: user.company_id, departmentId: user.department_id,
+        userId: user.id, companyId: user.company_id, departmentId: user.department_id, departmentIds: coveredDepartments(user),
         username: user.username, role: user.role
       } satisfies AuthContext;
       next();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boardAccessSql, boardManageSql, boardUserAccessSql, canManageUser, funnelAccessSql, recordScope } from "./scope";
+import { boardAccessSql, boardManageSql, boardUserAccessSql, canManageUser, coversDepartment, funnelAccessSql, recordScope } from "./scope";
 import type { AuthContext } from "./types";
 
 const base: AuthContext = {
@@ -21,9 +21,17 @@ describe("recordScope", () => {
   it("limits managers to their department", () => {
     const manager = { ...base, role: "MANAGER" as const };
     expect(recordScope(manager, {}, 3)).toEqual({
-      sql: "company_id = $3 AND department_id IS NOT DISTINCT FROM $4",
-      values: [base.companyId, base.departmentId]
+      sql: "company_id = $3 AND department_id = ANY($4::uuid[])",
+      values: [base.companyId, [base.departmentId]]
     });
+  });
+
+  it("lets a head cover their sub-departments", () => {
+    const head = { ...base, role: "MANAGER" as const, departmentIds: [base.departmentId!, "99999999-9999-4999-8999-999999999999"] };
+    expect(recordScope(head).values).toEqual([base.companyId, head.departmentIds]);
+    expect(coversDepartment(head, "99999999-9999-4999-8999-999999999999")).toBe(true);
+    expect(coversDepartment({ ...base, role: "MANAGER" as const }, "99999999-9999-4999-8999-999999999999")).toBe(false);
+    expect(coversDepartment(head, null)).toBe(false);
   });
 
   it("limits directors only by company", () => {

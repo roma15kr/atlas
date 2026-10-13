@@ -1,5 +1,15 @@
 import type { AuthContext, ScopeSql } from "./types";
 
+/** The departments the caller acts within: own department plus, for a head, its sub-departments. */
+export function scopeDepartments(auth: AuthContext): string[] {
+  return auth.departmentIds ?? (auth.departmentId ? [auth.departmentId] : []);
+}
+
+/** Whether a department is the caller's own or (for a head) one of its sub-departments. */
+export function coversDepartment(auth: AuthContext, departmentId: string | null | undefined): boolean {
+  return Boolean(departmentId) && scopeDepartments(auth).includes(departmentId!);
+}
+
 export interface ScopeColumns {
   company?: string;
   department?: string;
@@ -18,8 +28,8 @@ export function recordScope(
   const clauses = [`${company} = $${startIndex}`];
 
   if (auth.role === "MANAGER") {
-    values.push(auth.departmentId);
-    clauses.push(`${department} IS NOT DISTINCT FROM $${startIndex + 1}`);
+    values.push(scopeDepartments(auth));
+    clauses.push(`${department} = ANY($${startIndex + 1}::uuid[])`);
   } else if (auth.role === "EMPLOYEE") {
     values.push(auth.userId);
     clauses.push(`${owner} = $${startIndex + 1}`);
