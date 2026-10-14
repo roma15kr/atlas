@@ -43,7 +43,9 @@ export function TeamPage() {
   const canSetKpis = (member: User) => member.status !== 'DISABLED' && (actor.role === 'DIRECTOR' || actor.role === 'MANAGER' && member.role === 'EMPLOYEE' && member.department === actor.department);
   // The API allows analysis of oneself and of anyone the viewer manages.
   const canAnalyze = (member: User) => member.status !== 'DISABLED' && (member.id === actor.id || actor.role === 'DIRECTOR' || actor.role === 'MANAGER' && member.department === actor.department);
-  const canAdminister = (member: User) => actor.role === 'DIRECTOR' || actor.role === 'MANAGER' && member.role === 'EMPLOYEE' && member.department === actor.department;
+  // Heads see only their department and its sub-departments; in a sub-department they manage everyone, including its head.
+  const canAdminister = (member: User) => actor.role === 'DIRECTOR' || actor.role === 'MANAGER' && member.id !== actor.id && member.role !== 'DIRECTOR'
+    && (member.department === actor.department ? member.role === 'EMPLOYEE' : Boolean(member.department));
   const departments = useMemo(() => Array.from(new Set(users.map((user) => user.department).filter((name) => name && name !== 'Без отдела'))).sort((left, right) => left.localeCompare(right, 'ru')), [users]);
 
   return <>

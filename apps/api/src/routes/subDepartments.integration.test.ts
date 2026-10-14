@@ -11,7 +11,8 @@ let diyClient: string, salesClient: string;
 
 const as = (who: TestUser) => ({
   get: (path: string) => request(app).get(`/api/v1${path}`).set("Authorization", `Bearer ${who.token}`),
-  post: (path: string, body: object) => request(app).post(`/api/v1${path}`).set("Authorization", `Bearer ${who.token}`).send(body)
+  post: (path: string, body: object) => request(app).post(`/api/v1${path}`).set("Authorization", `Bearer ${who.token}`).send(body),
+  patch: (path: string, body: object) => request(app).patch(`/api/v1${path}`).set("Authorization", `Bearer ${who.token}`).send(body)
 });
 const client = async (owner: TestUser, name: string) => (await harness.query<{ id: string }>(
   "INSERT INTO clients (company_id, department_id, owner_id, name) VALUES ($1, $2, $3, $4) RETURNING id",
@@ -71,6 +72,22 @@ describe("sub-departments", () => {
     const refused = await as(diyHead).post("/clients", { name: "Чужий дилер", ownerId: seller.id });
     expect(refused.status).toBe(403);
     expect(refused.body.error.code).toBe("INVALID_OWNER");
+  });
+
+  it("lets the parent head manage the sub-department's head, but not his role", async () => {
+    const reset = await as(salesHead).post(`/team/${diyHead.id}/reset-password`, { password: "Temp-Password-2026!" });
+    expect(reset.status).toBe(200);
+    const audited = await harness.query("SELECT 1 FROM audit_logs WHERE action = 'PASSWORD_RESET' AND entity_id = $1 AND actor_id = $2", [diyHead.id, salesHead.id]);
+    expect(audited.rows).toHaveLength(1);
+    expect((await as(salesHead).patch(`/team/${diyHead.id}`, { jobTitle: "керівник DIY" })).status).toBe(200);
+    const promoted = await as(salesHead).patch(`/team/${diyHead.id}`, { role: "DIRECTOR" });
+    expect(promoted.status).toBe(403);
+    expect(promoted.body.error.code).toBe("ROLE_CHANGE_FORBIDDEN");
+    const kpi = await as(salesHead).post("/kpis", { userId: diyHead.id, name: "Продажі DIY", target: 100, unit: "%" });
+    expect(kpi.status).toBe(201);
+    await harness.query("UPDATE users SET must_change_password = false WHERE id = $1", [diyHead.id]);
+    expect((await as(diyHead).patch(`/team/${salesHead.id}`, { jobTitle: "x" })).status).toBe(404);
+    expect((await as(opsHead).post(`/team/${diyHead.id}/reset-password`, { password: "Temp-Password-2026!" })).status).toBe(404);
   });
 
   it("changes nothing for a head without sub-departments or for employees", async () => {
