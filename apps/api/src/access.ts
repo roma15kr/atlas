@@ -1,6 +1,6 @@
 import { query } from "./db";
 import { ApiError } from "./errors";
-import { boardAccessSql, boardUserAccessSql, canManageUser, funnelAccessSql } from "./scope";
+import { boardAccessSql, canManageUser, funnelAccessSql } from "./scope";
 import type { AuthContext, Role } from "./types";
 
 export interface TargetUser {
@@ -46,17 +46,15 @@ export async function canAccessBoard(auth: AuthContext, boardId: string): Promis
   return Boolean(result.rowCount);
 }
 
-/** Every assignee must be an active user who can open the board, otherwise they would own tasks they cannot see. */
-export async function assertAssigneesBoardAccess(boardId: string, userIds: string[]): Promise<void> {
+/** Task assignees may be any ACTIVE user of the company, from any department. */
+export async function assertAssignableUsers(companyId: string, userIds: string[]): Promise<void> {
   const unique = [...new Set(userIds)];
   if (!unique.length) return;
-  const result = await query<{ id: string }>(
-    `SELECT u.id FROM users u JOIN task_boards b ON b.id = $1 WHERE u.id = ANY($2::uuid[]) AND ${boardUserAccessSql("u", "b")}`,
-    [boardId, unique]
+  const result = await query<{ count: number }>(
+    "SELECT count(*)::int AS count FROM users WHERE company_id = $1 AND status = 'ACTIVE' AND id = ANY($2::uuid[])",
+    [companyId, unique]
   );
-  if (result.rows.length !== unique.length) {
-    throw new ApiError(403, "ASSIGNEE_BOARD_ACCESS_REQUIRED", "Every assignee must be able to open the board");
-  }
+  if (result.rows[0]!.count !== unique.length) throw new ApiError(400, "INVALID_ASSIGNEE", "Every assignee must be an active colleague");
 }
 
 export type ChatKind = "DM" | "GROUP" | "CHANNEL";

@@ -1,5 +1,5 @@
 # Status
-_Last updated: 2026-10-11 by Claude_
+_Last updated: 2026-10-14 by Claude_
 
 ## Current focus
 - **Built, not yet deployed** (on `main`, not pushed). Both need a push and a live check on the Coolify test app:
@@ -8,6 +8,7 @@ _Last updated: 2026-10-11 by Claude_
 - Open OpenSpec changes waiting for a live check: `add-email-client` (mailbox), `add-telegram-customer-inbox` (test bot), `add-alert-rules-and-scheduled-reports` (an automatic alert).
 
 ## Done recently
+- Tasks across departments (`assign-tasks-across-departments`, built on `feat/cross-department-tasks`, not yet deployed or archived): anyone can assign any active colleague; the picker lists the whole company by department with search. An assignee from outside the board sees only that task (in «Мои задачи»), can change its stage, fields and comments, but not its board or assignees (403 `TASK_OUTSIDER_FORBIDDEN`, audited). Next: PR into `dev`, check on atlas-dev, then `dev` → `main`, live check, archive.
 - Sub-departments (`add-sub-departments`, archived 2026-10-14): a director nests a department under another (one level) in «Команда → Отделы»; the parent head covers its records and people, including the sub-head (not roles). Production: «Отдел DIY» is under «Отдел продаж» (Денисюк covers Семенець's team); the empty test departments «Operations» and «Sales» and their boards were removed.
 - Production moved to `https://atlas.rdim.ua` (Cloudflare) on `main`; the test app `atlas-dev` runs the `dev` branch with its own database and no live integrations. Changes go `dev` → pull request → `main`. Behind Cloudflare the API takes the visitor's address from `CF-Connecting-IP` (only from Cloudflare ranges).
 - Live check of the rich text editor (2026-10-12, as the director, through the API): image upload and serving, a task with a formatted description, a ticked checklist item and a comment, a deal with notes and a ticked item, and a formatted chat message with an image in an empty test group (a mention inside code notified nobody). Deleted afterwards: task `4ed408aa-046a-4197-8cb8-611353d2b164` (its comment cascaded), deal `cad388c5-f2dc-4042-89fc-4703c42cb1ad`, message `ccc038f3-24b1-450b-a38a-59a3657898ca` (soft-deleted). Image `748be42c-fb11-477d-9742-0e44c573618d` stays in storage, unreferenced. A client comment was not tried live: comments cannot be deleted and would stay on a real dealer's card.

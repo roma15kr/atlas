@@ -28,7 +28,8 @@ export function TasksPage() {
 
   const moveToCategory = async (task: WorkTask, category: TaskCategory) => {
     if (task.stage.category === category) return;
-    const stage = firstStageOf(taskBoards.find((board) => board.id === task.boardId), category);
+    // A task assigned from another department's board carries that board's stages itself.
+    const stage = firstStageOf(taskBoards.find((board) => board.id === task.boardId) ?? (task.boardStages && { stages: task.boardStages }), category);
     if (!stage) { setError(`На доске «${task.boardName}» нет этапа «${categories[category].label}»`); return; }
     setError('');
     try { await moveTask(task.id, stage.id); } catch (reason) { setError(boardErrorMessage(reason, 'Задача не перемещена')); }
