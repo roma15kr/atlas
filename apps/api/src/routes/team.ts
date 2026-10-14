@@ -180,14 +180,16 @@ teamRouter.get("/directory", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
   const scope = recordScope(auth, { company: "u.company_id", department: "u.department_id", owner: "u.id" }, 2);
   // NULL as the viewer: nobody gets the full birth date here, not even the caller.
-  const result = await query<Record<string, unknown>>(
+  const result = await query<Record<string, unknown> & { id: string }>(
     `SELECT u.id, u.full_name AS "fullName", u.role, u.department_id AS "departmentId", d.name AS "departmentName",
             u.job_title AS "jobTitle", u.specialty, ${profileFieldsSql("u", "NULL::uuid")}, (${scope.sql}) AS "inTeam"
      FROM users u LEFT JOIN departments d ON d.id = u.department_id
      WHERE u.company_id = $1 AND u.status = 'ACTIVE' ORDER BY u.full_name`,
     [auth.companyId, ...scope.values]
   );
-  res.json({ data: result.rows.map(withoutHiddenProfile) });
+  // Whether each colleague is online now, never when they were last seen.
+  const presence = await presenceFor(result.rows.map((row) => row.id));
+  res.json({ data: result.rows.map((row) => ({ ...withoutHiddenProfile(row), online: presence[row.id]?.online ?? false })) });
 }));
 
 /**

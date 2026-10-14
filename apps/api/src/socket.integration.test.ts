@@ -8,7 +8,7 @@ import { startDbHarness, type TestUser } from "./test/dbHarness";
 let harness: Awaited<ReturnType<typeof startDbHarness>>;
 let http: HttpServer;
 let url: string;
-let boss: TestUser, anna: TestUser, ivan: TestUser;
+let boss: TestUser, anna: TestUser, ivan: TestUser, mira: TestUser;
 const sockets: Socket[] = [];
 
 const open = (user: TestUser) => new Promise<Socket>((resolve, reject) => {
@@ -31,6 +31,7 @@ beforeAll(async () => {
   boss = await harness.user("boss", "DIRECTOR", null, { consent: true });
   anna = await harness.user("anna", "EMPLOYEE", "Sales", { consent: true });
   ivan = await harness.user("ivan", "EMPLOYEE", "Sales", { consent: false });
+  mira = await harness.user("mira", "EMPLOYEE", "Marketing", { consent: true });
   http = createServer();
   createSocketServer(http);
   await new Promise<void>((resolve) => http.listen(0, "127.0.0.1", () => resolve()));
@@ -69,6 +70,23 @@ describe("presence over sockets", () => {
     await settle();
     expect(changes.map((change) => change.status)).toEqual(["ONLINE", "OFFLINE", "ONLINE", "OFFLINE"]);
     expect(await events(anna.id)).toEqual(["ONLINE", "OFFLINE", "ONLINE", "OFFLINE"]);
+  });
+
+  it("tells everyone in the company who is online, without times", async () => {
+    const colleague = await open(mira);
+    const online: unknown[] = [];
+    const scoped: unknown[] = [];
+    colleague.on("presence:online", (state: { userId: string }) => { if (state.userId === anna.id) online.push(state); });
+    colleague.on("presence:changed", (state: { userId: string }) => { if (state.userId === anna.id) scoped.push(state); });
+    await settle();
+    const tab = await open(anna);
+    await settle();
+    tab.disconnect();
+    await settle();
+    expect(online).toEqual([{ userId: anna.id, online: true }, { userId: anna.id, online: false }]);
+    expect(scoped).toEqual([]);
+    colleague.disconnect();
+    await settle();
   });
 
   it("broadcasts live status but keeps no history without monitoring consent", async () => {

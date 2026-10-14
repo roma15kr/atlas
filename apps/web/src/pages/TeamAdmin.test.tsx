@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -227,5 +227,29 @@ describe('company directory', () => {
     renderAt('/team?user=u4');
     await screen.findByRole('heading', { name: 'Алексей Ким' });
     for (const name of ['Изменить', 'Сбросить пароль', 'Отключить']) expect(screen.getByRole('button', { name })).toBeInTheDocument();
+  });
+
+  it('shows a head who is online across the company, live, without last-seen times', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.manager));
+    renderAt('/team?user=u5');
+    const list = (await screen.findByLabelText('Поиск сотрудников')).closest('.team-list') as HTMLElement;
+    const ivan = await within(list).findByRole('button', { name: /Иван Смирнов/ });
+    expect(within(ivan).getByText('В сети')).toBeInTheDocument();
+    expect(within(within(list).getByRole('button', { name: /Ольга Соколова/ })).getByText('Не в сети')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'В сети' }));
+    expect(within(list).getByRole('button', { name: /Иван Смирнов/ })).toBeInTheDocument();
+    expect(within(list).queryByRole('button', { name: /Ольга Соколова/ })).not.toBeInTheDocument();
+    // Ольга was selected but is offline: the detail follows the filtered list instead of staying on her.
+    expect(screen.queryByLabelText('Контакты: Ольга Соколова')).not.toBeInTheDocument();
+
+    act(() => { window.dispatchEvent(new CustomEvent('atlas:socket', { detail: { event: 'presence:online', payload: { userId: 'u6', online: false } } })); });
+    expect(within(list).queryByRole('button', { name: /Иван Смирнов/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Не в сети' }));
+    await user.click(within(list).getByRole('button', { name: /Иван Смирнов/ }));
+    const card = screen.getByLabelText('Контакты: Иван Смирнов');
+    expect(within(card).getByText('Не в сети')).toBeInTheDocument();
+    expect(within(card).queryByText(/назад/)).not.toBeInTheDocument();
   });
 });
