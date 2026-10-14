@@ -4,6 +4,8 @@ import type { AuthContext } from "./types";
 
 export interface AuditInput {
   auth?: AuthContext | null;
+  /** The company when there is no signed-in actor, e.g. a denied login for an unknown username. */
+  companyId?: string | null;
   action: string;
   entityType: string;
   entityId?: string | null;
@@ -18,7 +20,7 @@ export async function writeAudit(req: Request, input: AuditInput): Promise<void>
       (company_id, department_id, actor_id, action, entity_type, entity_id, ip, user_agent, metadata)
      VALUES ($1, $2, $3, $4, $5, $6, $7::inet, $8, $9::jsonb)`,
     [
-      input.auth?.companyId ?? null,
+      input.auth?.companyId ?? input.companyId ?? null,
       input.departmentId !== undefined ? input.departmentId : input.auth?.departmentId ?? null,
       input.auth?.userId ?? null,
       input.action,

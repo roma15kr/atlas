@@ -2,8 +2,8 @@
 
 ## 1. One person's typos don't block the office
 
-- [ ] 1.1 Key `loginLimiter` by IP and username and add `loginIpLimiter` (60 per IP). Verify `auth` integration cases: 12 failures for one username from an IP give 429 for it while a colleague from the same IP still signs in; 60 failures across usernames from one IP give 429 for everyone there; a success doesn't count. Commit.
-- [ ] 1.2 Record unknown-username denials under the company when there is exactly one. Verify the director sees them in `GET /audit?action=AUTH_LOGIN_DENIED`; commit.
+- [x] 1.1 Key `loginLimiter` by IP and username and add `loginIpLimiter` (60 per IP). Verify `auth` integration cases: 12 failures for one username from an IP give 429 for it while a colleague from the same IP still signs in; 60 failures across usernames from one IP give 429 for everyone there; a success doesn't count. Commit.
+- [x] 1.2 Record unknown-username denials under the company when there is exactly one. Verify the director sees them in `GET /audit?action=AUTH_LOGIN_DENIED`; commit.
 
 ## 2. Login screen
 
