@@ -24,20 +24,25 @@ The system SHALL lock an account for 15 minutes after 5 consecutive failed login
 ### Requirement: Denied logins visible to directors
 When an installation has exactly one company, the system SHALL record `AUTH_LOGIN_DENIED` for an unknown username under that company, with the typed username and never the password, so it appears in the director's audit log.
 
-#### Scenario: Username typed in the wrong layout
-- **WHEN** someone tries to sign in as `лщмфдсргл`
-- **THEN** the director sees an `AUTH_LOGIN_DENIED` event with that username in «Аудит»
+#### Scenario: Phone number instead of the username
+- **WHEN** someone tries to sign in as `+38 (067) 445-38-58`
+- **THEN** the director sees an `AUTH_LOGIN_DENIED` event with that text as the username in «Аудит»
 
 ### Requirement: Helpful login screen
 The login screen SHALL explain failures in Russian and warn about common typing mistakes:
 - a wrong username or password: «Неверный логин или пароль», with a note that 5 failures lock the account for 15 minutes;
 - 429 `LOGIN_RATE_LIMITED`: too many attempts, and in how many minutes to retry;
+- a username that looks like a phone number or an email address;
 - Caps Lock on while typing the password;
 - Cyrillic letters in the username.
 
 #### Scenario: Too many attempts
 - **WHEN** the server answers 429 `LOGIN_RATE_LIMITED` with a reset in 7 minutes
 - **THEN** the screen says «Слишком много попыток входа. Повторите через 7 мин.»
+
+#### Scenario: Phone number typed as the username
+- **WHEN** the user types `+38 (067) 445-38-58` as the username
+- **THEN** a hint says to sign in with the login, not a phone number or email
 
 #### Scenario: Cyrillic layout
 - **WHEN** the user types `лщмфдсргл` as the username

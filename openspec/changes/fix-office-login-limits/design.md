@@ -18,6 +18,7 @@
    - Metadata stays `{ username }` (the typed name is needed to see layout mistakes). It is never the password.
 4. **Login page.** It maps `INVALID_CREDENTIALS`, `LOGIN_RATE_LIMITED` (minutes from the `RateLimit` header's `reset`, else 15) and network errors to Russian texts.
    - **Caps Lock:** `getModifierState('CapsLock')` on key events in the password field.
+   - **Phone or email:** the username contains `@`, or has at least 7 digits and only digits, spaces, `+`, `(`, `)` and `-`.
    - **Cyrillic:** `/[А-Яа-яЁёЇїІіЄєҐґ]/` in the username.
    - The hints are shown as `form-hint` under the field.
 

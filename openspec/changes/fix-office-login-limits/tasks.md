@@ -7,7 +7,7 @@
 
 ## 2. Login screen
 
-- [ ] 2.1 Map login errors to Russian with the retry time, and add the Caps Lock and Cyrillic-username hints. Verify `LoginPage` tests for each message and hint; commit.
+- [ ] 2.1 Map login errors to Russian with the retry time, and add the phone-or-email, Caps Lock and Cyrillic-username hints. Verify `LoginPage` tests for each message and hint; commit.
 
 ## 3. Integration checks
 
