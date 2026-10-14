@@ -11,7 +11,7 @@
 
 ## 3. Department structure
 
-- [ ] 3.1 Add `GET /api/v1/departments` and `PATCH /api/v1/departments/:id` (director only, one level, `DEPARTMENT_UPDATED`/`DEPARTMENT_UPDATE_DENIED`). Verify `departments.integration.test.ts` passes; commit.
+- [x] 3.1 Add `GET /api/v1/departments` and `PATCH /api/v1/departments/:id` (director only, one level, `DEPARTMENT_UPDATED`/`DEPARTMENT_UPDATE_DENIED`). Verify `departments.integration.test.ts` passes; commit.
 - [ ] 3.2 Add the «Отделы» dialog on the Team page for directors, with a demo branch. Verify the `TeamAdmin.test.tsx` cases (director sets «Входит в»; manager sees no button) pass; commit.
 
 ## 4. Integration checks
