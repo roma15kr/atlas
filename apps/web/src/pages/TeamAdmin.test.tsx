@@ -5,10 +5,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import App from '../App';
 import { AuthProvider, WorkspaceProvider } from '../context/AppContext';
 import { demoSessions } from '../data/demo';
+import { resetDemoDepartments } from '../lib/departments';
 
 const renderAt = (path: string) => render(<MemoryRouter initialEntries={[path]}><AuthProvider><WorkspaceProvider><App /></WorkspaceProvider></AuthProvider></MemoryRouter>);
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => { localStorage.clear(); resetDemoDepartments(); });
 afterEach(() => { cleanup(); localStorage.clear(); });
 
 describe('team administration', () => {
@@ -169,3 +170,28 @@ describe('job description', () => {
     expect(within(screen.getByRole('dialog')).queryByLabelText(/Должностная инструкция/)).not.toBeInTheDocument();
   });
 });
+
+describe('department structure', () => {
+  it('lets a director place a department under another one', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.director));
+    renderAt('/team');
+    await user.click(await screen.findByRole('button', { name: 'Отделы' }));
+    const dialog = screen.getByRole('dialog', { name: 'Отделы' });
+    const finance = await within(dialog).findByLabelText('Входит в: Финансы');
+    expect(within(finance).queryByRole('option', { name: 'Финансы' })).not.toBeInTheDocument();
+    await user.selectOptions(finance, 'Продажи');
+    expect(await within(dialog).findByRole('status')).toHaveTextContent('Михаил Волков («Продажи») теперь видит людей и данные «Финансы»');
+    expect(within(dialog).getByText('↳ Финансы')).toBeInTheDocument();
+    // «Продажи» now has a sub-department, so it can't be placed under another one.
+    expect(within(dialog).getByLabelText('Входит в: Продажи')).toBeDisabled();
+  });
+
+  it('shows no structure button to a head', async () => {
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.manager));
+    renderAt('/team');
+    await screen.findByRole('heading', { name: 'Команда' });
+    expect(screen.queryByRole('button', { name: 'Отделы' })).not.toBeInTheDocument();
+  });
+});
+

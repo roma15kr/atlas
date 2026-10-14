@@ -1,6 +1,6 @@
 import {
   BriefcaseBusiness, Cake, Check, CheckCircle2, CircleDot, Clock3, Copy, Eye, EyeOff,
-  Gauge, ImageOff, KeyRound, Mail, MapPin, Pencil, Phone, Plus, RefreshCw, Search, ShieldCheck, Sparkles, Target, Trash2, UserCheck, Users, UserX,
+  Gauge, ImageOff, KeyRound, Mail, MapPin, Network, Pencil, Phone, Plus, RefreshCw, Search, ShieldCheck, Sparkles, Target, Trash2, UserCheck, Users, UserX,
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -13,6 +13,7 @@ import { RichTextView } from '../components/richtext/RichTextView';
 import { JobDescriptionDialog } from '../components/team/JobDescriptionDialog';
 import { KpiDialog } from '../components/team/KpiDialog';
 import { AiAnalysisDialog } from '../components/AiAnalysisDialog';
+import { DepartmentsDialog } from '../components/team/DepartmentsDialog';
 import { EditMemberDialog, generateTemporaryPassword, MemberStatusDialog, ResetPasswordDialog } from '../components/team/MemberDialogs';
 
 export { generateTemporaryPassword };
@@ -31,6 +32,7 @@ export function TeamPage() {
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState(params.get('user') ?? users[0]?.id ?? '');
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [departmentsOpen, setDepartmentsOpen] = useState(false);
   const canOnboard = session!.user.role === 'DIRECTOR' || session!.user.role === 'MANAGER';
 
   useEffect(() => { if (!selectedId && users[0]) setSelectedId(users[0].id); }, [users, selectedId]);
@@ -49,7 +51,7 @@ export function TeamPage() {
   const departments = useMemo(() => Array.from(new Set(users.map((user) => user.department).filter((name) => name && name !== 'Без отдела'))).sort((left, right) => left.localeCompare(right, 'ru')), [users]);
 
   return <>
-    <PageHeader title="Команда" description={`${online} из ${activeUsers.length} сотрудников в сети`} action={canOnboard ? <Button icon={Plus} onClick={() => setOnboardingOpen(true)}>Добавить сотрудника</Button> : undefined}>
+    <PageHeader title="Команда" description={`${online} из ${activeUsers.length} сотрудников в сети`} action={canOnboard ? <>{actor.role === 'DIRECTOR' && <Button variant="secondary" icon={Network} onClick={() => setDepartmentsOpen(true)}>Отделы</Button>}<Button icon={Plus} onClick={() => setOnboardingOpen(true)}>Добавить сотрудника</Button></> : undefined}>
       <Segmented value={scope} label="Статус присутствия" options={[{ value: 'all', label: 'Все' }, { value: 'online', label: 'В сети' }, { value: 'offline', label: 'Не в сети' }, ...(canOnboard ? [{ value: 'disabled' as const, label: `Отключённые${disabledUsers.length ? ` · ${disabledUsers.length}` : ''}` }] : [])]} onChange={setScope} />
     </PageHeader>
     <div className="team-layout">
@@ -69,6 +71,7 @@ export function TeamPage() {
     {selected && kpiDialog && <KpiDialog kpi={kpiDialog.kpi} save={(input) => kpiDialog.kpi ? updateKpi(selected.id, kpiDialog.kpi.id, input) : addKpi(selected.id, input)} onClose={() => setKpiDialog(null)} />}
     {selected && kpiDelete && <Dialog open size="sm" title="Удалить KPI?" description={kpiDelete.name} onClose={() => setKpiDelete(null)} footer={<><Button variant="secondary" onClick={() => setKpiDelete(null)}>Отмена</Button><Button variant="danger" icon={Trash2} onClick={() => { void deleteKpi(selected.id, kpiDelete.id).finally(() => setKpiDelete(null)); }}>Удалить</Button></>}><p className="dialog-note">Показатель перестанет учитываться в рейтинге сотрудника.</p></Dialog>}
     {selected && aiOpen && <AiAnalysisDialog targetUserId={selected.id} targetName={selected.fullName} onClose={() => setAiOpen(false)} />}
+    {departmentsOpen && <DepartmentsDialog onClose={() => setDepartmentsOpen(false)} />}
     {onboardingOpen && <OnboardingDialog actor={session!.user} departments={departments} createMember={createTeamMember} onCreated={(user) => { setSelectedId(user.id); setQuery(''); setScope('all'); }} onClose={() => setOnboardingOpen(false)} />}
   </>;
 }
