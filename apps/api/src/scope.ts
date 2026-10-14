@@ -75,6 +75,20 @@ export function boardAccessSql(auth: AuthContext, boardColumn: string, startInde
   };
 }
 
+/**
+ * Tasks the user may open: everything on boards they can open, plus tasks assigned to them on other boards
+ * (an assignee from another department sees their own task only, not the board).
+ */
+export function taskAccessSql(auth: AuthContext, taskAlias: string, startIndex = 1): ScopeSql {
+  const board = boardAccessSql(auth, `${taskAlias}.board_id`, startIndex);
+  if (auth.role === "DIRECTOR") return board;
+  const assignee = startIndex + board.values.length;
+  return {
+    sql: `(${board.sql} OR EXISTS (SELECT 1 FROM task_assignees ota WHERE ota.task_id = ${taskAlias}.id AND ota.user_id = $${assignee}))`,
+    values: [...board.values, auth.userId]
+  };
+}
+
 /** Boards whose settings the user may change: any for a director, own department's for a manager. */
 export function boardManageSql(auth: AuthContext, boardColumn: string, startIndex = 1): ScopeSql {
   const boards = `SELECT mb.id FROM task_boards mb WHERE mb.company_id = $${startIndex}`;

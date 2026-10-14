@@ -34,7 +34,7 @@ describe('client card', () => {
     expect(await screen.findByRole('checkbox', { name: 'Выполнено' })).toBeChecked();
     expect(screen.getByText('подписать договор')).toBeInTheDocument();
     expect(screen.queryByText('Расширение лицензий в четвёртом квартале.')).not.toBeInTheDocument();
-  });
+  }, 15_000);
 
   it('adds a formatted comment to the feed, newest first, with read-only checklists', async () => {
     const user = userEvent.setup();

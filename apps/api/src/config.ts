@@ -40,6 +40,8 @@ const envSchema = z.object({
   APP_VERSION: z.string().default("dev"),
   /** Images pasted into formatted text, per user per hour. */
   IMAGE_UPLOADS_PER_HOUR: z.coerce.number().int().min(1).max(10_000).default(60),
+  /** Minutes without keyboard or mouse activity before a person is shown «не в сети». */
+  PRESENCE_IDLE_MINUTES: z.coerce.number().int().min(5).max(120).default(15),
   OPENAI_API_KEY: z.string().optional(),
   AI_ANALYSIS_MODEL: z.string().default("gpt-6-luna"),
   FEEDBACK_MODEL: z.string().default("gpt-6-luna"),

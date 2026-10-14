@@ -21,7 +21,7 @@ import {
   demoBoardUsers,
   fallbackSession,
 } from '../data/demo';
-import type { Achievement, AiAnalysis, AiMode, Alert, AuditEvent, ReportRun, BoardUser, Client, CompanyDocument, DashboardMetrics, Deal, KpiInput, ProfileInput, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Kpi, Report, Role, Session, TaskAssignee, TaskBoard, TaskCategory, TaskPriority, TaskStage, TaskStageSummary, User, WorkTask } from '../types';
+import type { DirectoryEntry, Achievement, AiAnalysis, AiMode, Alert, AuditEvent, ReportRun, BoardUser, Client, CompanyDocument, DashboardMetrics, Deal, KpiInput, ProfileInput, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Kpi, Report, Role, Session, TaskAssignee, TaskBoard, TaskCategory, TaskPriority, TaskStage, TaskStageSummary, User, WorkTask } from '../types';
 
 const roleRank: Record<Role, number> = { EMPLOYEE: 1, MANAGER: 2, DIRECTOR: 3 };
 export const REFRESH_INTERVAL_MS = 180_000;
@@ -148,6 +148,7 @@ const normalizeTask = (source: Record<string, unknown>): WorkTask => {
     stage: { id: String(stage.id ?? ''), name: String(stage.name ?? ''), color: String(stage.color ?? '#6B7280'), category: stage.category ?? 'TODO' },
     assignees: assignees.map((item) => ({ id: String(item.id), fullName: String(item.fullName ?? ''), avatarUrl: (item.avatarUrl ?? undefined) as string | undefined })),
     createdBy: (source.createdBy ?? undefined) as string | undefined, canDelete: source.canDelete === undefined ? undefined : Boolean(source.canDelete),
+    viaAssignment: source.viaAssignment === true ? true : undefined, boardStages: Array.isArray(source.boardStages) ? (source.boardStages as Array<Record<string, unknown>>).map((item) => ({ id: String(item.id), name: String(item.name ?? ''), color: String(item.color ?? '#6B7280'), category: (item.category as TaskStageSummary['category']) ?? 'TODO', boardId: String(source.boardId ?? ''), sortOrder: Number(item.sortOrder ?? 0) })) : undefined,
     dealId: (source.dealId ?? deal?.id ?? undefined) as string | undefined, dealTitle: (source.dealTitle ?? deal?.title ?? undefined) as string | undefined,
     dueAt: String(source.dueAt ?? ''), completedAt: (source.completedAt ?? null) as string | null, priority: (source.priority as TaskPriority) ?? 'NORMAL',
   };
@@ -361,6 +362,8 @@ export interface TaskBoardConfig {
   boardUsers: (boardId: string) => Promise<BoardUser[]>;
   /** Active non-director users of any department, for choosing extra members. */
   memberCandidates: (boardId: string) => Promise<BoardUser[]>;
+  /** Every active colleague: tasks can be assigned across departments. */
+  assignableUsers: () => Promise<BoardUser[]>;
 }
 
 interface WorkspaceValue {
@@ -391,6 +394,8 @@ interface WorkspaceValue {
   removeMemberAvatar: (id: string) => Promise<void>;
   setMemberActive: (id: string, active: boolean) => Promise<void>;
   resetMemberPassword: (id: string, password: string) => Promise<void>;
+  /** Every active colleague of the company with contacts only; `inTeam` marks the people in `users`. */
+  teamDirectory: () => Promise<DirectoryEntry[]>;
   addKpi: (userId: string, input: KpiInput) => Promise<void>;
   updateKpi: (userId: string, kpiId: string, input: Partial<KpiInput>) => Promise<void>;
   deleteKpi: (userId: string, kpiId: string) => Promise<void>;
@@ -547,9 +552,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     socket.on('presence:update', updatePresence);
     socket.on('presence:changed', updatePresence);
     socket.on('presence:snapshot', (items: Array<{ userId: string; online?: boolean; lastSeen?: string; status?: string; lastSeenAt?: string }>) => items.forEach(updatePresence));
-    // Heartbeats say whether the person was active in the last 5 minutes, in any Atlas tab.
+    // Heartbeats say whether the person was active within the idle period, in any Atlas tab.
     let reported = true;
     const tracker = trackActivity(() => { reported = true; socket?.emit('presence:heartbeat', { active: true }); });
+    // The server decides how long a pause still counts as online (PRESENCE_IDLE_MINUTES).
+    socket.on('presence:config', (config: { idleMinutes?: unknown }) => {
+      const minutes = Number(config?.idleMinutes);
+      if (Number.isFinite(minutes) && minutes >= 1) tracker.setIdleAfter(minutes * 60_000);
+    });
     const beat = () => { reported = tracker.isActive(); socket?.emit('presence:heartbeat', { active: reported }); };
     const heartbeat = window.setInterval(beat, HEARTBEAT_MS);
     // Going idle is reported within 15 seconds rather than at the next heartbeat.
@@ -863,6 +873,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         if (isDemo) { const board = taskBoards.find((item) => item.id === boardId); return board ? demoBoardUsers(board) : []; }
         return api.list<BoardUser>(`task-boards/${boardId}/users`);
       },
+      assignableUsers: async () => {
+        if (isDemo) return demoUsers.map((user) => ({ id: user.id, fullName: user.fullName, jobTitle: user.jobTitle, departmentId: user.departmentId ?? null, departmentName: user.department, avatarUrl: user.avatarUrl }));
+        return api.list<BoardUser>('tasks/assignable-users');
+      },
       memberCandidates: async (boardId) => {
         if (isDemo) return demoUsers.filter((user) => user.role !== 'DIRECTOR').map((user) => ({ id: user.id, fullName: user.fullName, jobTitle: user.jobTitle, departmentId: user.departmentId ?? null, departmentName: user.department }));
         return api.list<BoardUser>(`task-boards/${boardId}/candidates`);
@@ -953,9 +967,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }), [session, isDemo, taskBoards]);
   const visibleTasks = useMemo(() => {
     const boards = new Map(visibleBoards.map((board) => [board.id, board]));
-    return tasks.filter((task) => boards.has(task.boardId)).map((task) => !isDemo || !session ? task
-      : { ...task, canDelete: task.createdBy === session.user.id || boards.get(task.boardId)!.canManage });
-  }, [tasks, visibleBoards, isDemo, session]);
+    if (!isDemo || !session) return tasks;
+    // An assignee from another department sees only their own task on a board they cannot open, as the API does.
+    return tasks.flatMap((task) => boards.has(task.boardId)
+      ? [{ ...task, canDelete: task.createdBy === session.user.id || boards.get(task.boardId)!.canManage }]
+      : task.assignees.some((assignee) => assignee.id === session.user.id)
+        ? [{ ...task, canDelete: false, viaAssignment: true, boardStages: taskBoards.find((board) => board.id === task.boardId)?.stages ?? [] }]
+        : []);
+  }, [tasks, visibleBoards, taskBoards, isDemo, session]);
   const visibleAlerts = !session || session.user.role !== 'EMPLOYEE'
     ? alerts
     : alerts.filter((alert) => alert.userName === session.user.fullName);
@@ -980,14 +999,24 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }, [isDemo, dashboardMetrics, clients, deals, visibleTasks, visibleUsers]);
   const refresh = useCallback(() => loadWorkspace(true), [loadWorkspace]);
 
+  const teamDirectory = useCallback(async (): Promise<DirectoryEntry[]> => {
+    if (!isDemo) return api.list<DirectoryEntry>('team/directory');
+    const team = new Set(visibleUsers.map((user) => user.id));
+    return users.filter((user) => user.status !== 'DISABLED').map((user) => ({
+      id: user.id, fullName: user.fullName, role: user.role, departmentId: user.departmentId ?? null, departmentName: user.department,
+      jobTitle: user.jobTitle, specialty: user.specialty, avatarUrl: user.avatarUrl, phone: user.phone, contactEmail: user.contactEmail,
+      city: user.city, about: user.about, birthday: user.birthday, inTeam: team.has(user.id),
+    })).sort((a, b) => a.fullName.localeCompare(b.fullName, 'ru'));
+  }, [isDemo, users, visibleUsers]);
+
   const value = useMemo<WorkspaceValue>(() => ({
     users: visibleUsers,
     clients: scopedClients, deals: scopedDeals, funnels: visibleFunnels, taskBoards: visibleBoards, tasks: visibleTasks, documents, reports, alerts: visibleAlerts,
     achievements, audit, dashboardMetrics: metrics, refresh,
-    dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, updateDealNotes, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, loadAnalyses,
+    dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, teamDirectory, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, updateDealNotes, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, loadAnalyses,
   // scoped is intentionally derived from current session and collections.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, updateDealNotes, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, loadAnalyses, session]);
+  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, teamDirectory, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, updateDealNotes, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, loadAnalyses, session]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

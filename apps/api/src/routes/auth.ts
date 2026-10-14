@@ -10,7 +10,7 @@ import {
 import { writeAudit } from "../audit";
 import { query, transaction } from "../db";
 import { ApiError, asyncHandler } from "../errors";
-import { loginLimiter } from "../middleware";
+import { loginIpLimiter, loginLimiter } from "../middleware";
 import { passwordSchema } from "./team";
 import type { AuthContext, Role } from "../types";
 
@@ -49,7 +49,7 @@ const loginSchema = z.object({
 
 export const authRouter = Router();
 
-authRouter.post("/login", loginLimiter, asyncHandler(async (req, res) => {
+authRouter.post("/login", loginIpLimiter, loginLimiter, asyncHandler(async (req, res) => {
   const input = loginSchema.parse(req.body);
   const result = await query<UserRow>(
     `${userSelect()} WHERE lower(u.username) = $1 ORDER BY u.created_at ASC LIMIT 2`,
@@ -69,6 +69,8 @@ authRouter.post("/login", loginLimiter, asyncHandler(async (req, res) => {
     }
     await writeAudit(req, {
       auth: user ? authFromUser(user) : null,
+      // An unknown username has no company; with a single company it still belongs in the director's audit log.
+      companyId: user ? undefined : await soleCompanyId(),
       action: "AUTH_LOGIN_DENIED",
       entityType: "user",
       entityId: user?.id ?? null,
@@ -90,6 +92,12 @@ authRouter.post("/login", loginLimiter, asyncHandler(async (req, res) => {
   setRefreshCookie(res, refresh.raw);
   res.json({ data: { accessToken: signAccessToken(auth), user: await enrichedPublicUser(user) } });
 }));
+
+/** The only company of this installation, or null when there are several (then nothing is attributed). */
+async function soleCompanyId(): Promise<string | null> {
+  const result = await query<{ id: string }>("SELECT id FROM companies LIMIT 2");
+  return result.rows.length === 1 ? result.rows[0]!.id : null;
+}
 
 authRouter.post("/refresh", asyncHandler(async (req, res) => {
   const raw = req.cookies?.[REFRESH_COOKIE] as string | undefined;

@@ -1,21 +1,34 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { IDLE_AFTER_MS, trackActivity } from './activity';
+import { DEFAULT_IDLE_AFTER_MS as IDLE_AFTER_MS, trackActivity } from './activity';
 
 afterEach(() => localStorage.clear());
 
 describe('activity tracker', () => {
-  it('turns idle after 5 minutes without input and reports the first activity at once', () => {
+  it('stays active through a 14-minute pause, turns idle at 15 and reports the first activity at once', () => {
     let now = 1_000_000;
     const onActive = vi.fn();
     const tracker = trackActivity(onActive, () => now);
     expect(tracker.isActive()).toBe(true);
-    now += IDLE_AFTER_MS;
+    now += 14 * 60_000;
+    expect(tracker.isActive()).toBe(true);
+    now += 60_000;
     expect(tracker.isActive()).toBe(false);
     window.dispatchEvent(new KeyboardEvent('keydown'));
     expect(onActive).toHaveBeenCalledTimes(1);
     expect(tracker.isActive()).toBe(true);
     window.dispatchEvent(new KeyboardEvent('keydown'));
     expect(onActive).toHaveBeenCalledTimes(1);
+    tracker.stop();
+  });
+
+  it('follows the period the server sets', () => {
+    let now = 1_000_000;
+    const tracker = trackActivity(vi.fn(), () => now);
+    tracker.setIdleAfter(10 * 60_000);
+    now += 10 * 60_000;
+    expect(tracker.isActive()).toBe(false);
+    tracker.setIdleAfter(30 * 60_000);
+    expect(tracker.isActive()).toBe(true);
     tracker.stop();
   });
 

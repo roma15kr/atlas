@@ -6,9 +6,9 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Avatar, Badge, Button, Dialog, EmptyState, Field, IconButton, Meter, PageHeader, Segmented, SectionHeader, SelectField, Surface } from '../components/ui';
 import { useAuth, useWorkspace, type CreateTeamMemberInput } from '../context/AppContext';
-import { formatDate, formatKpiValue, relativeTime, roleLabel } from '../lib/format';
+import { formatDate, formatKpiValue, plural, relativeTime, roleLabel } from '../lib/format';
 import { formatBirthday } from '../lib/profile';
-import type { Kpi, Role, User } from '../types';
+import type { DirectoryEntry, Kpi, Role, User } from '../types';
 import { RichTextView } from '../components/richtext/RichTextView';
 import { JobDescriptionDialog } from '../components/team/JobDescriptionDialog';
 import { KpiDialog } from '../components/team/KpiDialog';
@@ -20,7 +20,7 @@ export { generateTemporaryPassword };
 
 export function TeamPage() {
   const { session } = useAuth();
-  const { users: activeUsers, disabledUsers, createTeamMember, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, addKpi, updateKpi, deleteKpi } = useWorkspace();
+  const { users: activeUsers, disabledUsers, createTeamMember, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, teamDirectory, addKpi, updateKpi, deleteKpi } = useWorkspace();
   const [params] = useSearchParams();
   const [scope, setScope] = useState<'all' | 'online' | 'offline' | 'disabled'>('all');
   const [dialog, setDialog] = useState<'edit' | 'reset' | 'status' | 'photo' | 'job' | null>(null);
@@ -35,9 +35,27 @@ export function TeamPage() {
   const [departmentsOpen, setDepartmentsOpen] = useState(false);
   const canOnboard = session!.user.role === 'DIRECTOR' || session!.user.role === 'MANAGER';
 
+  // The whole company as contact cards; reloaded whenever the team changes. Without it the page shows the team only.
+  const [directory, setDirectory] = useState<DirectoryEntry[] | null>(null);
+  useEffect(() => {
+    let active = true;
+    teamDirectory().then((entries) => { if (active) setDirectory(entries); }, () => { if (active) setDirectory(null); });
+    return () => { active = false; };
+  }, [teamDirectory]);
+  // Colleagues outside the caller's team: no presence, so they appear only under «Все».
+  // Someone just disabled is still in the directory until it reloads, so the team's leavers are left out too.
+  const colleagues = useMemo(() => (directory ?? []).filter((entry) => ![...activeUsers, ...disabledUsers].some((user) => user.id === entry.id)), [directory, activeUsers, disabledUsers]);
+
   useEffect(() => { if (!selectedId && users[0]) setSelectedId(users[0].id); }, [users, selectedId]);
   const visible = useMemo(() => users.filter((user) => (scope === 'all' || scope === 'disabled' || (scope === 'online') === user.online) && `${user.fullName} ${user.jobTitle} ${user.department}`.toLowerCase().includes(query.toLowerCase())), [users, scope, query]);
-  const selected = users.find((user) => user.id === selectedId) ?? visible[0];
+  const rows = useMemo(() => [
+    ...visible.map((user) => ({ id: user.id, fullName: user.fullName, user, entry: undefined })),
+    ...(scope === 'all' ? colleagues : []).filter((entry) => `${entry.fullName} ${entry.jobTitle ?? ''} ${entry.departmentName ?? ''}`.toLowerCase().includes(query.toLowerCase()))
+      .map((entry) => ({ id: entry.id, fullName: entry.fullName, user: undefined, entry })),
+  ].sort((a, b) => a.fullName.localeCompare(b.fullName, 'ru')), [visible, colleagues, scope, query]);
+  const pickedColleague = users.some((user) => user.id === selectedId) ? undefined : colleagues.find((entry) => entry.id === selectedId);
+  const selected = users.find((user) => user.id === selectedId) ?? (pickedColleague ? undefined : rows[0]?.user);
+  const colleague = pickedColleague ?? (selected ? undefined : rows[0]?.entry);
   const online = activeUsers.filter((user) => user.online).length;
   const actor = session!.user;
   // Directors administer anyone; heads only the employees of their own department. The API enforces the same.
@@ -51,17 +69,17 @@ export function TeamPage() {
   const departments = useMemo(() => Array.from(new Set(users.map((user) => user.department).filter((name) => name && name !== 'Без отдела'))).sort((left, right) => left.localeCompare(right, 'ru')), [users]);
 
   return <>
-    <PageHeader title="Команда" description={`${online} из ${activeUsers.length} сотрудников в сети`} action={canOnboard ? <>{actor.role === 'DIRECTOR' && <Button variant="secondary" icon={Network} onClick={() => setDepartmentsOpen(true)}>Отделы</Button>}<Button icon={Plus} onClick={() => setOnboardingOpen(true)}>Добавить сотрудника</Button></> : undefined}>
+    <PageHeader title="Команда" description={colleagues.length ? `${plural(activeUsers.length + colleagues.length, ['сотрудник', 'сотрудника', 'сотрудников'])} в компании · в вашей команде в сети ${online} из ${activeUsers.length}` : `${online} из ${activeUsers.length} сотрудников в сети`} action={canOnboard ? <>{actor.role === 'DIRECTOR' && <Button variant="secondary" icon={Network} onClick={() => setDepartmentsOpen(true)}>Отделы</Button>}<Button icon={Plus} onClick={() => setOnboardingOpen(true)}>Добавить сотрудника</Button></> : undefined}>
       <Segmented value={scope} label="Статус присутствия" options={[{ value: 'all', label: 'Все' }, { value: 'online', label: 'В сети' }, { value: 'offline', label: 'Не в сети' }, ...(canOnboard ? [{ value: 'disabled' as const, label: `Отключённые${disabledUsers.length ? ` · ${disabledUsers.length}` : ''}` }] : [])]} onChange={setScope} />
     </PageHeader>
     <div className="team-layout">
-      <Surface className="team-list"><label className="table-search"><Search size={16} /><input aria-label="Поиск сотрудников" placeholder="Имя, должность или отдел" value={query} onChange={(event) => setQuery(event.target.value)} /></label><div className="team-list__rows">{visible.length ? visible.map((user) => <button key={user.id} className={selected?.id === user.id ? 'is-active' : ''} onClick={() => setSelectedId(user.id)}><Avatar name={user.fullName} src={user.avatarUrl} online={user.online} /><span><strong>{user.fullName}</strong><small>{user.jobTitle}</small>{canAdminister(user) && user.status !== 'DISABLED' && !user.jobDescription?.trim() && <Badge tone="warning">Нет инструкции</Badge>}</span><span className="person-status"><Badge tone={user.online ? 'success' : 'neutral'}>{user.online ? 'В сети' : relativeTime(user.lastSeen)}</Badge><small>{user.department}</small></span></button>) : <EmptyState title="Никого не найдено" description={scope === 'disabled' ? 'Отключённых сотрудников нет' : 'Измените фильтр присутствия'} icon={Users} />}</div></Surface>
+      <Surface className="team-list"><label className="table-search"><Search size={16} /><input aria-label="Поиск сотрудников" placeholder="Имя, должность или отдел" value={query} onChange={(event) => setQuery(event.target.value)} /></label><div className="team-list__rows">{rows.length ? rows.map(({ user, entry }) => entry ? <button key={entry.id} className={colleague?.id === entry.id ? 'is-active' : ''} onClick={() => setSelectedId(entry.id)}><Avatar name={entry.fullName} src={entry.avatarUrl ?? undefined} /><span><strong>{entry.fullName}</strong><small>{entry.jobTitle}</small></span><span className="person-status"><small>{entry.departmentName ?? 'Без отдела'}</small></span></button> : <button key={user.id} className={selected?.id === user.id ? 'is-active' : ''} onClick={() => setSelectedId(user.id)}><Avatar name={user.fullName} src={user.avatarUrl} online={user.online} /><span><strong>{user.fullName}</strong><small>{user.jobTitle}</small>{canAdminister(user) && user.status !== 'DISABLED' && !user.jobDescription?.trim() && <Badge tone="warning">Нет инструкции</Badge>}</span><span className="person-status"><Badge tone={user.online ? 'success' : 'neutral'}>{user.online ? 'В сети' : relativeTime(user.lastSeen)}</Badge><small>{user.department}</small></span></button>) : <EmptyState title="Никого не найдено" description={scope === 'disabled' ? 'Отключённых сотрудников нет' : 'Измените фильтр присутствия'} icon={Users} />}</div></Surface>
       {selected ? <div className="team-detail">
         <Surface className="team-profile"><div className="team-profile__head"><Avatar name={selected.fullName} src={selected.avatarUrl} online={selected.online} size="lg" /><div><h2>{selected.fullName}</h2><span>{selected.jobTitle}</span><div><Badge tone="info">{roleLabel[selected.role]}</Badge><Badge>{selected.department}</Badge>{selected.status === 'DISABLED' && <Badge tone="danger">Отключён</Badge>}{selected.mustChangePassword && <Badge tone="warning">Ждёт смены пароля</Badge>}</div></div>{(canAnalyze(selected) || canAdminister(selected)) && <div className="team-profile__actions">{canAnalyze(selected) && <Button variant="secondary" icon={Sparkles} onClick={() => setAiOpen(true)}>AI-анализ</Button>}{canAdminister(selected) && <><Button variant="secondary" icon={Pencil} onClick={() => setDialog('edit')}>Изменить</Button>{selected.id !== actor.id && selected.status !== 'DISABLED' && <Button variant="secondary" icon={KeyRound} onClick={() => setDialog('reset')}>Сбросить пароль</Button>}{selected.id !== actor.id && <Button variant={selected.status === 'DISABLED' ? 'secondary' : 'ghost'} icon={selected.status === 'DISABLED' ? UserCheck : UserX} onClick={() => setDialog('status')}>{selected.status === 'DISABLED' ? 'Включить' : 'Отключить'}</Button>}{selected.id !== actor.id && selected.avatarUrl && <Button variant="ghost" icon={ImageOff} onClick={() => { setPhotoError(''); setDialog('photo'); }}>Удалить фото</Button>}</>}</div>}</div>{selected.about && <p className="member-about">{selected.about}</p>}<div className="profile-facts"><div><BriefcaseBusiness size={16} /><span><small>Специализация</small><strong>{selected.specialty ?? 'Не указана'}</strong></span></div><div><Gauge size={16} /><span><small>Рейтинг</small><strong>{selected.rating || '—'} / 100</strong></span></div><div><CircleDot size={16} /><span><small>Присутствие</small><strong>{selected.online ? 'Сейчас в сети' : relativeTime(selected.lastSeen)}</strong></span></div><div><ShieldCheck size={16} /><span><small>Согласие</small><strong>{selected.monitoringConsentAt ? `Получено ${formatDate(selected.monitoringConsentAt)}` : 'Ожидается'}</strong></span></div></div><MemberContacts member={selected} /></Surface>
         <Surface className="job-description"><SectionHeader title="Должностная инструкция" action={canAdminister(selected) && selected.status !== 'DISABLED' ? <Button variant="secondary" icon={selected.jobDescription ? Pencil : Plus} onClick={() => setDialog('job')}>{selected.jobDescription ? 'Изменить инструкцию' : 'Заполнить'}</Button> : undefined} />{selected.jobDescription ? <RichTextView markdown={selected.jobDescription} /> : <p className="job-description__empty">Не заполнена{canAdminister(selected) ? '. Опишите обязанности — их будет учитывать AI.' : ''}</p>}</Surface>
         <Surface className="team-kpi"><SectionHeader title="KPI текущего периода" meta={<Badge tone="info">{selected.kpis.length}</Badge>} action={canSetKpis(selected) ? <Button variant="secondary" icon={Plus} onClick={() => setKpiDialog({})}>Добавить KPI</Button> : undefined} />{selected.kpis.length ? <div className="kpi-list">{selected.kpis.map((kpi) => { const progress = Math.round(Math.min(1, kpi.actual / kpi.target) * 100); const automatic = kpi.source && kpi.source !== 'MANUAL'; return <article key={kpi.id}><div><span><strong>{kpi.name}{automatic && <Badge>Авто</Badge>}</strong><small>Вес {Math.round(kpi.weight * 100)}%{automatic && kpi.periodStart ? ` · ${formatDate(kpi.periodStart)} – ${formatDate(kpi.periodEnd ?? undefined)}` : kpi.dueAt ? ` · до ${formatDate(kpi.dueAt)}` : ''}{automatic && kpi.computedAt ? ` · обновлено ${relativeTime(kpi.computedAt)}` : ''}</small></span><b>{progress}%</b>{canSetKpis(selected) && <span className="row-actions"><IconButton label={`Изменить KPI «${kpi.name}»`} icon={Pencil} onClick={() => setKpiDialog({ kpi })} /><IconButton label={`Удалить KPI «${kpi.name}»`} icon={Trash2} onClick={() => setKpiDelete(kpi)} /></span>}</div><Meter value={progress} tone={progress >= 85 ? 'teal' : progress >= 60 ? 'amber' : 'red'} /><footer><span>{formatKpiValue(kpi.actual, kpi.unit)}</span><span>цель {formatKpiValue(kpi.target, kpi.unit)}</span></footer></article>; })}</div> : <EmptyState title="KPI не назначены" description={canSetKpis(selected) ? 'Добавьте показатели — рейтинг считается по ним' : 'Показатели сотрудника ещё не настроены'} icon={Target} />}</Surface>
         <Surface className="presence-history"><SectionHeader title="Присутствие" /><div className="presence-timeline"><div>{selected.online ? <CheckCircle2 size={15} /> : <Clock3 size={15} />}<span><strong>{selected.online ? 'Сейчас в сети' : 'Последняя активность'}</strong><small>{selected.online ? 'активен в Atlas' : relativeTime(selected.lastSeen)}</small></span></div></div></Surface>
-      </div> : <Surface><EmptyState title="Выберите сотрудника" description="Профиль и KPI появятся здесь" icon={Users} /></Surface>}
+      </div> : colleague ? <ColleagueCard colleague={colleague} /> : <Surface><EmptyState title="Выберите сотрудника" description="Профиль и KPI появятся здесь" icon={Users} /></Surface>}
     </div>
     {selected && dialog === 'edit' && <EditMemberDialog member={selected} actor={actor} departments={departments} save={(patch) => updateMember(selected.id, patch)} onClose={() => setDialog(null)} />}
     {selected && dialog === 'reset' && <ResetPasswordDialog member={selected} reset={(password) => resetMemberPassword(selected.id, password)} onClose={() => setDialog(null)} />}
@@ -76,8 +94,21 @@ export function TeamPage() {
   </>;
 }
 
+/** A colleague outside the caller's team: who they are and how to reach them, nothing about their performance. */
+function ColleagueCard({ colleague }: { colleague: DirectoryEntry }) {
+  return <div className="team-detail"><Surface className="team-profile" aria-label={`Контакты: ${colleague.fullName}`}>
+    <div className="team-profile__head"><Avatar name={colleague.fullName} src={colleague.avatarUrl ?? undefined} size="lg" /><div><h2>{colleague.fullName}</h2><span>{colleague.jobTitle}</span><div><Badge tone="info">{roleLabel[colleague.role]}</Badge><Badge>{colleague.departmentName ?? 'Без отдела'}</Badge></div></div></div>
+    {colleague.about && <p className="member-about">{colleague.about}</p>}
+    <div className="profile-facts"><div><BriefcaseBusiness size={16} /><span><small>Специализация</small><strong>{colleague.specialty ?? 'Не указана'}</strong></span></div></div>
+    <MemberContacts member={colleague} />
+    <p className="dialog-note">Сотрудник другого отдела: здесь только контакты. KPI, рейтинг и должностную инструкцию видят он сам, его руководитель и директор.</p>
+  </Surface></div>;
+}
+
+type Contacts = Pick<User, 'phone' | 'contactEmail' | 'city' | 'birthday'> | Pick<DirectoryEntry, 'phone' | 'contactEmail' | 'city' | 'birthday'>;
+
 /** Phone, email, city and birthday, when the member has filled them in. */
-function MemberContacts({ member }: { member: User }) {
+function MemberContacts({ member }: { member: Contacts }) {
   const birthday = formatBirthday(member.birthday);
   if (!member.phone && !member.contactEmail && !member.city && !birthday) return null;
   return <div className="profile-facts profile-facts--contacts">

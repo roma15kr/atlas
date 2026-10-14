@@ -2,13 +2,16 @@
  * Tracks whether the person is actually working in Atlas, across all of their tabs: keyboard,
  * mouse, scroll and touch activity in any tab counts, shared through localStorage.
  */
-export const IDLE_AFTER_MS = 5 * 60_000;
+/** How long a pause still counts as active until the server sends its own period (`presence:config`). */
+export const DEFAULT_IDLE_AFTER_MS = 15 * 60_000;
 const STORAGE_KEY = 'atlas.lastActivity';
 const STORE_EVERY_MS = 15_000;
 const MOUSEMOVE_EVERY_MS = 10_000;
 
 export interface ActivityTracker {
   isActive: (now?: number) => boolean;
+  /** Changes the idle period, e.g. to the one the server configured. */
+  setIdleAfter: (ms: number) => void;
   stop: () => void;
 }
 
@@ -28,8 +31,9 @@ export function trackActivity(onActive: () => void, clock: () => number = Date.n
   let last = clock();
   let lastStored = 0;
   let lastMouse = 0;
+  let idleAfter = DEFAULT_IDLE_AFTER_MS;
   writeShared(last);
-  const isActive = (now = clock()) => now - Math.max(last, readShared()) < IDLE_AFTER_MS;
+  const isActive = (now = clock()) => now - Math.max(last, readShared()) < idleAfter;
 
   const mark = () => {
     const now = clock();
@@ -52,6 +56,7 @@ export function trackActivity(onActive: () => void, clock: () => number = Date.n
   document.addEventListener('visibilitychange', onVisible);
   return {
     isActive,
+    setIdleAfter: (ms) => { idleAfter = ms; },
     stop: () => {
       events.forEach((name) => window.removeEventListener(name, mark));
       window.removeEventListener('mousemove', onMouse);
