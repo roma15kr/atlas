@@ -170,3 +170,44 @@ describe('board settings', () => {
     expect(await screen.findByText('Ольга Соколова')).toBeInTheDocument();
   });
 });
+
+describe('personal tasks', () => {
+  it('creates a task for yourself as personal, and shares it as soon as a colleague is added', async () => {
+    const user = userEvent.setup();
+    renderAs('employee', '/tasks');
+    await user.click(await screen.findByRole('button', { name: 'Новая задача' }));
+    const dialog = screen.getByRole('dialog', { name: 'Новая задача' });
+    await within(dialog).findByRole('checkbox', { name: /Анна Петрова \(вы\)/ });
+    const placement = within(dialog).getByRole('checkbox', { name: /Показать на доске/ });
+    expect(placement).not.toBeChecked();
+    expect(within(dialog).getByText(/Личная задача: её видят автор/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('checkbox', { name: /Алексей Ким/ }));
+    expect(placement).toBeChecked();
+    await user.click(within(dialog).getByRole('checkbox', { name: /Алексей Ким/ }));
+    expect(placement).not.toBeChecked();
+    await user.type(within(dialog).getByLabelText('Название'), 'Мой отчёт');
+    await user.click(within(dialog).getByRole('button', { name: 'Создать задачу' }));
+    expect(await within(card('Мой отчёт')).findByText('Личная')).toBeInTheDocument();
+  });
+
+  it('hides a colleague\'s personal task from the board, and shows it to the head with a filter', async () => {
+    renderAs('employee', '/boards');
+    await screen.findByRole('button', { name: 'Обновить недельный прогноз' });
+    expect(screen.queryByRole('button', { name: 'Личный план звонков' })).not.toBeInTheDocument();
+    cleanup();
+
+    const user = userEvent.setup();
+    renderAs('manager', '/boards');
+    expect(await screen.findByRole('button', { name: 'Личный план звонков' })).toBeInTheDocument();
+    expect(within(card('Личный план звонков')).getByText('Личная')).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Видимость'), 'PERSONAL');
+    expect(screen.getByRole('button', { name: 'Личный план звонков' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Обновить недельный прогноз' })).not.toBeInTheDocument();
+  });
+
+  it('offers no visibility filter to an employee', async () => {
+    renderAs('employee', '/boards');
+    await screen.findByRole('button', { name: 'Обновить недельный прогноз' });
+    expect(screen.queryByLabelText('Видимость')).not.toBeInTheDocument();
+  });
+});

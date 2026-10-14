@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useWorkspace } from '../../context/AppContext';
 import { departmentsBackend, parentOptions, type DepartmentSummary } from '../../lib/departments';
 import { Button, Dialog } from '../ui';
@@ -39,7 +39,7 @@ export function DepartmentsDialog({ onClose }: { onClose: () => void }) {
         const options = parentOptions(rows, row.id);
         return <tr key={row.id}>
           <td className={row.parentId ? 'departments-table__sub' : undefined}>{row.parentId ? '↳ ' : ''}{row.name}</td>
-          <td>{row.head?.fullName ?? '—'}</td>
+          <td>{row.head?.fullName ?? inheritedHead(rows, row)}</td>
           <td>{row.memberCount}</td>
           <td><select aria-label={`Входит в: ${row.name}`} value={row.parentId ?? ''} disabled={saving !== null || (!options.length && !row.parentId)}
             onChange={(event) => void change(row, event.target.value || null)}>
@@ -52,4 +52,11 @@ export function DepartmentsDialog({ onClose }: { onClose: () => void }) {
     {notice && <p className="dialog-note" role="status">{notice}</p>}
     {error && <div className="form-error" role="alert">{error}</div>}
   </Dialog>;
+}
+
+/** A sub-department without a head of its own is led by its parent's head. */
+function inheritedHead(rows: Array<{ id: string; name: string; parentId?: string | null; head?: { fullName: string } | null }>, row: { parentId?: string | null }): ReactNode {
+  const parent = row.parentId ? rows.find((item) => item.id === row.parentId) : undefined;
+  if (!parent?.head) return '—';
+  return <span className="departments-table__inherited">{parent.head.fullName} <small>· через «{parent.name}»</small></span>;
 }

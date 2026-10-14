@@ -90,6 +90,7 @@ export const demoTasks: WorkTask[] = [
   { id: 't6', title: 'Сценарий демо-звонка', description: 'Структура показа и ответы на частые вопросы.', ...onStage('b-launch', 'bl2'), assignees: people('u2', 'u3', 'u4', 'u5'), createdBy: 'u2', dueAt: ahead(3), priority: 'HIGH' },
   { id: 't7', title: 'Проверить выгрузку заказов', description: 'Сверить поля заказа с операционным отделом.', ...onStage('b-launch', 'bl3'), assignees: people('u5'), createdBy: 'u2', dueAt: ahead(5), priority: 'NORMAL' },
   { id: 't8', title: 'Прайс для партнёров', description: 'Согласовать скидки с финансами.', ...onStage('b-launch', 'bl1'), assignees: people('u3', 'u4'), createdBy: 'u3', dueAt: ahead(9), priority: 'LOW' },
+  { id: 't11', title: 'Личный план звонков', description: 'Кого набрать на этой неделе.', ...onStage('b-sales', 'bs1'), assignees: people('u4'), createdBy: 'u4', onBoard: false, dueAt: ahead(5), priority: 'NORMAL' },
   { id: 't10', title: 'Сверить остатки для Northstar', description: 'Подтвердить наличие перед отгрузкой клиенту.', ...onStage('b-ops', 'bo1'), assignees: people('u3'), createdBy: 'u5', dealId: 'd3', dealTitle: 'Northstar Labs · Годовой план', dueAt: ahead(4), priority: 'NORMAL' },
   { id: 't9', title: 'Инвентаризация склада', description: 'Пересчитать остатки перед кварталом.', ...onStage('b-ops', 'bo1'), assignees: people('u5'), createdBy: 'u5', dueAt: ahead(7), priority: 'NORMAL' },
 ];

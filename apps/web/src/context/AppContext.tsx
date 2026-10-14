@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { io, type Socket } from 'socket.io-client';
 import { trackActivity } from '../lib/activity';
 import { recordDiagnostic } from '../lib/diagnostics';
+import { involvesColleagues } from '../lib/boards';
 import { api, ApiError, apiRequest, listAll, listPage, renewAccessToken, restoreSession, sessionStore } from '../lib/api';
 import {
   demoAchievements,
@@ -148,7 +149,7 @@ const normalizeTask = (source: Record<string, unknown>): WorkTask => {
     stage: { id: String(stage.id ?? ''), name: String(stage.name ?? ''), color: String(stage.color ?? '#6B7280'), category: stage.category ?? 'TODO' },
     assignees: assignees.map((item) => ({ id: String(item.id), fullName: String(item.fullName ?? ''), avatarUrl: (item.avatarUrl ?? undefined) as string | undefined })),
     createdBy: (source.createdBy ?? undefined) as string | undefined, canDelete: source.canDelete === undefined ? undefined : Boolean(source.canDelete),
-    viaAssignment: source.viaAssignment === true ? true : undefined, boardStages: Array.isArray(source.boardStages) ? (source.boardStages as Array<Record<string, unknown>>).map((item) => ({ id: String(item.id), name: String(item.name ?? ''), color: String(item.color ?? '#6B7280'), category: (item.category as TaskStageSummary['category']) ?? 'TODO', boardId: String(source.boardId ?? ''), sortOrder: Number(item.sortOrder ?? 0) })) : undefined,
+    onBoard: source.onBoard !== false, viaAssignment: source.viaAssignment === true ? true : undefined, boardStages: Array.isArray(source.boardStages) ? (source.boardStages as Array<Record<string, unknown>>).map((item) => ({ id: String(item.id), name: String(item.name ?? ''), color: String(item.color ?? '#6B7280'), category: (item.category as TaskStageSummary['category']) ?? 'TODO', boardId: String(source.boardId ?? ''), sortOrder: Number(item.sortOrder ?? 0) })) : undefined,
     dealId: (source.dealId ?? deal?.id ?? undefined) as string | undefined, dealTitle: (source.dealTitle ?? deal?.title ?? undefined) as string | undefined,
     dueAt: String(source.dueAt ?? ''), completedAt: (source.completedAt ?? null) as string | null, priority: (source.priority as TaskPriority) ?? 'NORMAL',
   };
@@ -344,6 +345,8 @@ export interface TaskInput {
   dueAt?: string | null;
   priority: TaskPriority;
   dealId?: string | null;
+  /** Shared on the board, or personal; omitted means the server's default. */
+  onBoard?: boolean;
 }
 
 export interface BoardStageInput { name: string; color: string; category: TaskCategory }
@@ -764,6 +767,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       ...(patch.priority !== undefined ? { priority: patch.priority } : {}),
       ...(patch.dueAt !== undefined ? { dueAt: patch.dueAt ?? '' } : {}),
       ...(patch.assigneeIds ? { assignees: demoPeople(patch.assigneeIds) } : {}),
+      ...(patch.onBoard !== undefined ? { onBoard: patch.onBoard }
+        : patch.assigneeIds && involvesColleagues(task.createdBy ?? '', patch.assigneeIds.filter((id) => !task.assignees.some((assignee) => assignee.id === id)), demoUsers) ? { onBoard: true } : {}),
     };
     if (!board || !stage) return next;
     const wasDone = task.stage.category === 'DONE';
@@ -782,6 +787,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       created = {
         id: crypto.randomUUID(), title: input.title, description: input.description ?? '', boardId: board.id, boardName: board.name,
         stage: stageSummary(stage), assignees: demoPeople(input.assigneeIds.length ? input.assigneeIds : [session!.user.id]), createdBy: session?.user.id,
+        onBoard: input.onBoard ?? involvesColleagues(session!.user.id, input.assigneeIds, demoUsers),
         dueAt: input.dueAt ?? '', completedAt: stage.category === 'DONE' ? new Date().toISOString() : null, priority: input.priority,
       };
     }
@@ -874,7 +880,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         return api.list<BoardUser>(`task-boards/${boardId}/users`);
       },
       assignableUsers: async () => {
-        if (isDemo) return demoUsers.map((user) => ({ id: user.id, fullName: user.fullName, jobTitle: user.jobTitle, departmentId: user.departmentId ?? null, departmentName: user.department, avatarUrl: user.avatarUrl }));
+        if (isDemo) return demoUsers.map((user) => ({ id: user.id, fullName: user.fullName, role: user.role, jobTitle: user.jobTitle, departmentId: user.departmentId ?? null, departmentName: user.department, avatarUrl: user.avatarUrl }));
         return api.list<BoardUser>('tasks/assignable-users');
       },
       memberCandidates: async (boardId) => {
@@ -968,8 +974,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const visibleTasks = useMemo(() => {
     const boards = new Map(visibleBoards.map((board) => [board.id, board]));
     if (!isDemo || !session) return tasks;
+    // A personal task: its people, the heads of their departments and directors, as the API decides.
+    const me = session.user;
+    const oversees = (task: WorkTask) => me.role === 'DIRECTOR' || task.createdBy === me.id || task.assignees.some((assignee) => assignee.id === me.id)
+      || (me.role === 'MANAGER' && [task.createdBy, ...task.assignees.map((assignee) => assignee.id)].some((id) => demoUsers.find((person) => person.id === id)?.departmentId === me.departmentId));
     // An assignee from another department sees only their own task on a board they cannot open, as the API does.
-    return tasks.flatMap((task) => boards.has(task.boardId)
+    return tasks.filter((task) => task.onBoard !== false || oversees(task)).flatMap((task) => boards.has(task.boardId)
       ? [{ ...task, canDelete: task.createdBy === session.user.id || boards.get(task.boardId)!.canManage }]
       : task.assignees.some((assignee) => assignee.id === session.user.id)
         ? [{ ...task, canDelete: false, viaAssignment: true, boardStages: taskBoards.find((board) => board.id === task.boardId)?.stages ?? [] }]

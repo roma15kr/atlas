@@ -209,6 +209,8 @@ export interface WorkTask {
   stage: TaskStageSummary;
   assignees: TaskAssignee[];
   createdBy?: string;
+  /** False for a personal task: only its people, their heads and directors see it. */
+  onBoard?: boolean;
   /** Assigned from another department: only this task of the board is open to the user. */
   viaAssignment?: boolean;
   /** The board's stages, sent to such an assignee so they can move the task. */

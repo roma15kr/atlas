@@ -32,6 +32,10 @@ export const firstStageOf = (board: Pick<TaskBoard, 'stages'> | undefined, categ
 
 export const isOverdue = (task: WorkTask) => task.stage.category !== 'DONE' && Boolean(task.dueAt) && new Date(task.dueAt).getTime() < Date.now();
 
+/** Someone other than the author and directors works on the task: then it belongs on the board (as the server decides). */
+export const involvesColleagues = (authorId: string, assigneeIds: string[], people: Array<{ id: string; role?: string }>) =>
+  assigneeIds.some((id) => id !== authorId && people.find((person) => person.id === id)?.role !== 'DIRECTOR');
+
 export const isAssignedTo = (task: WorkTask, userId: string) => task.assignees.some((assignee) => assignee.id === userId);
 
 /** Default board for a new task: the remembered one, else the first board of the user's department. */

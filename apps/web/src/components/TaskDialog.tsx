@@ -2,7 +2,7 @@ import { Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth, useWorkspace, type TaskInput } from '../context/AppContext';
 import { boardErrorMessage } from '../lib/boardErrors';
-import { categories, firstStageOf, groupBoards, orderedStages } from '../lib/boards';
+import { categories, firstStageOf, groupBoards, involvesColleagues, orderedStages } from '../lib/boards';
 import type { BoardUser, TaskBoard, TaskPriority, WorkTask } from '../types';
 import { fitsLimit, RichTextEditor } from './richtext/RichTextEditor';
 import { TaskComments } from './TaskComments';
@@ -44,6 +44,8 @@ export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTas
     assigneeIds: task ? task.assignees.map((assignee) => assignee.id) : [user.id],
   }));
   const [people, setPeople] = useState<BoardUser[] | null>(null);
+  // «Показать на доске» follows the server's default until the user sets it.
+  const [placement, setPlacement] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -82,6 +84,10 @@ export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTas
     const category = board?.stages.find((stage) => stage.id === draft.stageId)?.category ?? 'TODO';
     setDraft({ ...draft, boardId: next.id, stageId: (firstStageOf(next, category) ?? firstStageOf(next, 'TODO'))?.id ?? '' });
   };
+  const authorId = task?.createdBy ?? user.id;
+  const added = task ? draft.assigneeIds.filter((id) => !task.assignees.some((assignee) => assignee.id === id)) : draft.assigneeIds;
+  const automatic = task ? task.onBoard !== false || involvesColleagues(authorId, added, people ?? []) : involvesColleagues(authorId, added, people ?? []);
+  const onBoard = placement ?? automatic;
   const toggle = (id: string) => setDraft({ ...draft, assigneeIds: draft.assigneeIds.includes(id) ? draft.assigneeIds.filter((item) => item !== id) : [...draft.assigneeIds, id] });
 
   const title = draft.title.trim();
@@ -98,7 +104,7 @@ export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTas
     event.preventDefault();
     if (!ready) return;
     setSaving(true); setError('');
-    const input: TaskInput = { boardId: draft.boardId, stageId: draft.stageId, assigneeIds: draft.assigneeIds, title, description: draft.description.trim(), dueAt: fromDateInput(draft.dueAt), priority: draft.priority };
+    const input: TaskInput = { boardId: draft.boardId, stageId: draft.stageId, assigneeIds: draft.assigneeIds, title, description: draft.description.trim(), dueAt: fromDateInput(draft.dueAt), priority: draft.priority, onBoard };
     try {
       if (task) await updateTask(task.id, changes(task, input));
       else await addTask(input);
@@ -111,7 +117,7 @@ export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTas
   if (confirmDelete && task) return <DeleteTaskDialog task={task} onClose={() => setConfirmDelete(false)} onDeleted={onClose} onDelete={() => deleteTask(task.id)} />;
 
   const deleteBlocked = task && !task.canDelete ? 'Удалить задачу может её автор или руководитель отдела доски' : undefined;
-  return <Dialog open title={task ? 'Задача' : 'Новая задача'} description={task ? `${task.boardName} · ${task.stage.name}` : 'Задачу увидят все участники выбранной доски'} size="lg" onClose={onClose} footer={<>
+  return <Dialog open title={task ? 'Задача' : 'Новая задача'} description={task ? `${task.boardName} · ${task.stage.name}` : 'Доска, исполнители и срок'} size="lg" onClose={onClose} footer={<>
     {task && <Button variant="ghost" icon={Trash2} className="dialog-footer__start" disabled={Boolean(deleteBlocked)} title={deleteBlocked} onClick={() => setConfirmDelete(true)}>Удалить</Button>}
     <Button variant="secondary" onClick={onClose}>Отмена</Button>
     <Button type="submit" form="task-form" disabled={saving || !ready}>{saving ? 'Сохраняем…' : task ? 'Сохранить' : 'Создать задачу'}</Button>
@@ -143,6 +149,8 @@ export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTas
           {people && draft.assigneeIds.some((id) => { const person = people.find((item) => item.id === id); return person && outsideBoard(person); }) && <small className="form-hint">Исполнители из других отделов увидят только эту задачу, а не всю доску.</small>}
         </fieldset>}
       {people && !draft.assigneeIds.length && <small className="field--wide form-hint">Выберите хотя бы одного исполнителя</small>}
+      {!outsider && <label className="check-field field--wide"><input type="checkbox" checked={onBoard} onChange={(event) => setPlacement(event.target.checked)} /><span><strong>Показать на доске</strong>
+        <small className="form-hint">{onBoard ? 'Задачу видят все участники доски.' : 'Личная задача: её видят автор, исполнители, их руководители и директор.'}</small></span></label>}
       {error && <div className="form-error field--wide" role="alert">{error}</div>}
     </form>
     {task && <TaskComments taskId={task.id} />}
@@ -157,6 +165,8 @@ function changes(task: WorkTask, input: TaskInput): Partial<TaskInput> {
   if (toDateInput(input.dueAt ?? undefined) !== toDateInput(task.dueAt || undefined)) patch.dueAt = input.dueAt;
   if (input.boardId !== task.boardId) { patch.boardId = input.boardId; patch.stageId = input.stageId; }
   else if (input.stageId !== task.stage.id) patch.stageId = input.stageId;
+  // An explicit placement only; adding a colleague shares the task on the server by itself.
+  if (input.onBoard !== undefined && input.onBoard !== (task.onBoard !== false)) patch.onBoard = input.onBoard;
   const before = task.assignees.map((assignee) => assignee.id).sort().join();
   if ([...input.assigneeIds].sort().join() !== before) patch.assigneeIds = input.assigneeIds;
   return patch;

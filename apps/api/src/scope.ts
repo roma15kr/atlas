@@ -82,11 +82,16 @@ export function boardAccessSql(auth: AuthContext, boardColumn: string, startInde
 export function taskAccessSql(auth: AuthContext, taskAlias: string, startIndex = 1): ScopeSql {
   const board = boardAccessSql(auth, `${taskAlias}.board_id`, startIndex);
   if (auth.role === "DIRECTOR") return board;
-  const assignee = startIndex + board.values.length;
-  return {
-    sql: `(${board.sql} OR EXISTS (SELECT 1 FROM task_assignees ota WHERE ota.task_id = ${taskAlias}.id AND ota.user_id = $${assignee}))`,
-    values: [...board.values, auth.userId]
-  };
+  const me = startIndex + board.values.length;
+  const own = `EXISTS (SELECT 1 FROM task_assignees ota WHERE ota.task_id = ${taskAlias}.id AND ota.user_id = $${me}) OR ${taskAlias}.created_by = $${me}`;
+  if (auth.role !== "MANAGER") {
+    return { sql: `((${taskAlias}.on_board AND ${board.sql}) OR ${own})`, values: [...board.values, auth.userId] };
+  }
+  // A head also oversees personal tasks whose author or an assignee works in a department they cover.
+  const departments = me + 1;
+  const team = `EXISTS (SELECT 1 FROM users tu WHERE tu.department_id = ANY($${departments}::uuid[]) AND (tu.id = ${taskAlias}.created_by
+    OR EXISTS (SELECT 1 FROM task_assignees tta WHERE tta.task_id = ${taskAlias}.id AND tta.user_id = tu.id)))`;
+  return { sql: `((${taskAlias}.on_board AND ${board.sql}) OR ${own} OR ${team})`, values: [...board.values, auth.userId, scopeDepartments(auth)] };
 }
 
 /** Boards whose settings the user may change: any for a director, own department's for a manager. */
