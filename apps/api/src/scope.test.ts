@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boardAccessSql, boardManageSql, boardUserAccessSql, canManageUser, funnelAccessSql, recordScope } from "./scope";
+import { boardAccessSql, boardManageSql, boardUserAccessSql, canManageUser, coversDepartment, funnelAccessSql, recordScope } from "./scope";
 import type { AuthContext } from "./types";
 
 const base: AuthContext = {
@@ -21,9 +21,17 @@ describe("recordScope", () => {
   it("limits managers to their department", () => {
     const manager = { ...base, role: "MANAGER" as const };
     expect(recordScope(manager, {}, 3)).toEqual({
-      sql: "company_id = $3 AND department_id IS NOT DISTINCT FROM $4",
-      values: [base.companyId, base.departmentId]
+      sql: "company_id = $3 AND department_id = ANY($4::uuid[])",
+      values: [base.companyId, [base.departmentId]]
     });
+  });
+
+  it("lets a head cover their sub-departments", () => {
+    const head = { ...base, role: "MANAGER" as const, departmentIds: [base.departmentId!, "99999999-9999-4999-8999-999999999999"] };
+    expect(recordScope(head).values).toEqual([base.companyId, head.departmentIds]);
+    expect(coversDepartment(head, "99999999-9999-4999-8999-999999999999")).toBe(true);
+    expect(coversDepartment({ ...base, role: "MANAGER" as const }, "99999999-9999-4999-8999-999999999999")).toBe(false);
+    expect(coversDepartment(head, null)).toBe(false);
   });
 
   it("limits directors only by company", () => {
@@ -86,9 +94,9 @@ describe("boardAccessSql", () => {
     for (const role of ["MANAGER", "EMPLOYEE"] as const) {
       const access = boardAccessSql({ ...base, role }, "t.board_id", 2);
       expect(access.sql).toContain("ab.company_id = $2");
-      expect(access.sql).toContain("ab.department_id = $3");
+      expect(access.sql).toContain("ab.department_id = ANY($3::uuid[])");
       expect(access.sql).toContain("am.board_id = ab.id AND am.user_id = $4");
-      expect(access.values).toEqual([base.companyId, base.departmentId, base.userId]);
+      expect(access.values).toEqual([base.companyId, [base.departmentId], base.userId]);
     }
   });
 
@@ -96,7 +104,8 @@ describe("boardAccessSql", () => {
     const access = boardAccessSql({ ...base, departmentId: null }, "b.id");
     // department_id = NULL is never true, so only membership remains.
     expect(access.sql).not.toContain("IS NOT DISTINCT FROM");
-    expect(access.values).toEqual([base.companyId, null, base.userId]);
+    // No department: an empty list, which matches no board (director boards have no department).
+    expect(access.values).toEqual([base.companyId, [], base.userId]);
   });
 });
 
@@ -110,8 +119,8 @@ describe("boardManageSql", () => {
 
   it("lets managers manage only their department's boards", () => {
     expect(boardManageSql({ ...base, role: "MANAGER" }, "b.id", 2)).toEqual({
-      sql: "b.id IN (SELECT mb.id FROM task_boards mb WHERE mb.company_id = $2 AND mb.department_id = $3)",
-      values: [base.companyId, base.departmentId]
+      sql: "b.id IN (SELECT mb.id FROM task_boards mb WHERE mb.company_id = $2 AND mb.department_id = ANY($3::uuid[]))",
+      values: [base.companyId, [base.departmentId]]
     });
   });
 

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { coversDepartment } from "../scope";
 import { query, transaction } from "../db";
 import { ApiError } from "../errors";
 import type { AuthContext } from "../types";
@@ -40,7 +41,7 @@ export async function previewImport(auth: AuthContext, csv: string): Promise<Pre
     query<{ telegram_user_id: string; client_id: string | null; responsible_id: string | null; first_name: string | null }>(
       "SELECT telegram_user_id::text, client_id, responsible_id, first_name FROM telegram_contacts WHERE company_id = $1", [auth.companyId])
   ]);
-  const inScope = (departmentId: string | null) => auth.role === "DIRECTOR" || departmentId === auth.departmentId;
+  const inScope = (departmentId: string | null) => auth.role === "DIRECTOR" || coversDepartment(auth, departmentId);
   const existing = new Map(contacts.rows.map((row) => [row.telegram_user_id, row]));
   const seen = new Set<string>();
 

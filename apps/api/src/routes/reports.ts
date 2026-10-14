@@ -7,7 +7,7 @@ import { query } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { pagination } from "../http";
 import { MONITORING_POLICY_VERSION } from "../presence";
-import { funnelAccessSql } from "../scope";
+import { funnelAccessSql, scopeDepartments } from "../scope";
 
 export const reportsRouter = Router();
 
@@ -16,7 +16,7 @@ reportsRouter.get("/", asyncHandler(async (req, res) => {
   const page = pagination(req);
   const values: unknown[] = [auth.companyId];
   const clauses = ["r.company_id = $1"];
-  if (auth.role === "MANAGER") { values.push(auth.departmentId); clauses.push("r.department_id IS NOT DISTINCT FROM $2"); }
+  if (auth.role === "MANAGER") { values.push(scopeDepartments(auth)); clauses.push("r.department_id = ANY($2::uuid[])"); }
   if (auth.role === "EMPLOYEE") { values.push(auth.userId); clauses.push("r.target_user_id = $2"); }
   values.push(page.limit, page.offset);
   const result = await query(
@@ -70,7 +70,7 @@ reportsRouter.post("/", requireRoles("DIRECTOR", "MANAGER"), asyncHandler(async 
 async function scopedReport(auth: ReturnType<typeof requireAuth>, id: string): Promise<{ id: string; department_id: string | null; schedule: string }> {
   const values: unknown[] = [id, auth.companyId];
   let scope = "";
-  if (auth.role === "MANAGER") { values.push(auth.departmentId); scope = "AND department_id IS NOT DISTINCT FROM $3"; }
+  if (auth.role === "MANAGER") { values.push(scopeDepartments(auth)); scope = "AND department_id = ANY($3::uuid[])"; }
   if (auth.role === "EMPLOYEE") { values.push(auth.userId); scope = "AND target_user_id = $3"; }
   const result = await query<{ id: string; department_id: string | null; schedule: string }>(
     `SELECT id, department_id, schedule FROM reports WHERE id = $1 AND company_id = $2 ${scope}`, values);

@@ -1256,3 +1256,8 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 .rich-editor__image img, .rich-image { max-width: 100%; max-height: 360px; border-radius: 6px; }
 .rich-image--loading { display: inline-block; width: 160px; height: 90px; border-radius: 6px; background: var(--surface-soft); }
 .rich-image--missing { color: var(--subtle); font-size: 12px; }
+.departments-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.departments-table th, .departments-table td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+.departments-table th { color: var(--muted); font-size: 11px; font-weight: 600; }
+.departments-table__sub { padding-left: 26px !important; color: var(--muted); }
+.departments-table select { min-width: 180px; }

@@ -1,6 +1,7 @@
 import type { Server as HttpServer } from "node:http";
+import { scopeDepartments } from "./scope";
 import { Server } from "socket.io";
-import { verifyAccessToken } from "./auth";
+import { coveredDepartments, SUB_DEPARTMENTS_SQL, verifyAccessToken } from "./auth";
 import { config } from "./config";
 import { query } from "./db";
 import { applyActivity, closeSocket, MONITORING_POLICY_VERSION, presenceFor, touchSocket, type PresenceTransition } from "./presence";
@@ -20,8 +21,8 @@ export function createSocketServer(server: HttpServer): Server {
         ? socket.handshake.auth.token
         : header?.startsWith("Bearer ") ? header.slice(7) : "";
       const auth = verifyAccessToken(token);
-      const current = await query<{ id: string; company_id: string; department_id: string | null; username: string; role: Role; must_change_password: boolean }>(
-        "SELECT id, company_id, department_id, username, role, must_change_password FROM users WHERE id=$1 AND company_id=$2 AND status='ACTIVE'",
+      const current = await query<{ id: string; company_id: string; department_id: string | null; username: string; role: Role; must_change_password: boolean; sub_departments: string[] }>(
+        `SELECT id, company_id, department_id, username, role, must_change_password, ${SUB_DEPARTMENTS_SQL} AS sub_departments FROM users u WHERE id=$1 AND company_id=$2 AND status='ACTIVE'`,
         [auth.userId, auth.companyId]
       );
       const user = current.rows[0];
@@ -31,7 +32,7 @@ export function createSocketServer(server: HttpServer): Server {
         return;
       }
       socket.data.auth = {
-        userId: user.id, companyId: user.company_id, departmentId: user.department_id,
+        userId: user.id, companyId: user.company_id, departmentId: user.department_id, departmentIds: coveredDepartments(user),
         username: user.username, role: user.role
       } satisfies AuthContext;
       next();
@@ -83,8 +84,8 @@ export function createSocketServer(server: HttpServer): Server {
 function presenceSubscriptionRooms(auth: AuthContext): string[] {
   const rooms = [`presence:user:${auth.userId}`];
   if (auth.role === "DIRECTOR") rooms.push(`presence:directors:${auth.companyId}`);
-  if (auth.role === "MANAGER" && auth.departmentId) {
-    rooms.push(`presence:managers:${auth.companyId}:${auth.departmentId}`);
+  if (auth.role === "MANAGER") {
+    for (const department of scopeDepartments(auth)) rooms.push(`presence:managers:${auth.companyId}:${department}`);
   }
   return rooms;
 }
@@ -98,7 +99,7 @@ function presenceAudienceRooms(auth: AuthContext): string[] {
 async function visibleUserIds(auth: AuthContext): Promise<string[]> {
   const values: unknown[] = [auth.companyId];
   const clauses = ["company_id=$1", "status='ACTIVE'"];
-  if (auth.role === "MANAGER") { values.push(auth.departmentId); clauses.push("department_id IS NOT DISTINCT FROM $2"); }
+  if (auth.role === "MANAGER") { values.push(scopeDepartments(auth)); clauses.push("department_id = ANY($2::uuid[])"); }
   if (auth.role === "EMPLOYEE") { values.push(auth.userId); clauses.push("id=$2"); }
   const users = await query<{ id: string }>(`SELECT id FROM users WHERE ${clauses.join(" AND ")}`, values);
   return users.rows.map((row) => row.id);
