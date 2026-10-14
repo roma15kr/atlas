@@ -3,9 +3,19 @@ import { recordRequest } from './diagnostics';
 
 type ApiErrorBody = { message?: string; error?: string | { code?: string; message?: string; details?: unknown } };
 export class ApiError extends Error {
+  /** Seconds until a rate limit lets the request through again, when the server said so. */
+  public retryAfterSeconds?: number;
   constructor(message: string, public status: number, public details?: unknown, public code?: string) {
     super(message);
   }
+}
+
+/** `Retry-After: 840` or `RateLimit: limit=12, remaining=0, reset=840`. */
+function retryAfter(response: Response): number | undefined {
+  const plain = Number(response.headers.get('retry-after'));
+  if (Number.isFinite(plain) && plain > 0) return plain;
+  const reset = /reset=(\d+)/.exec(response.headers.get('ratelimit') ?? '');
+  return reset ? Number(reset[1]) : undefined;
 }
 
 const API_BASE = '/api/v1';
@@ -155,7 +165,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     try { body = (await response.json()) as ApiErrorBody; } catch { body = undefined; }
     const nested = typeof body?.error === 'object' ? body.error : undefined;
     const message = body?.message ?? nested?.message ?? (typeof body?.error === 'string' ? body.error : undefined) ?? 'Не удалось выполнить запрос';
-    throw new ApiError(message, response.status, nested?.details ?? body, nested?.code);
+    const error = new ApiError(message, response.status, nested?.details ?? body, nested?.code);
+    if (response.status === 429) error.retryAfterSeconds = retryAfter(response);
+    throw error;
   }
   if (response.status === 204) return undefined as T;
   const payload = await response.json() as { data?: T } | T;

@@ -34,14 +34,28 @@ export const ipFloodLimiter = rateLimit({
   message: { error: { code: "RATE_LIMITED", message: "Too many requests" } }
 });
 
-export const loginLimiter = rateLimit({
+export const LOGIN_FAILURES_PER_ACCOUNT = 12;
+export const LOGIN_FAILURES_PER_IP = 60;
+
+/** Failed logins are counted per typed username and address, so one person's typos don't block an office. */
+export function loginAccountKey(req: Pick<Request, "ip" | "body">): string {
+  const username: unknown = (req.body as { username?: unknown } | undefined)?.username;
+  return `login:${req.ip ?? "unknown"}:${typeof username === "string" ? username.trim().toLowerCase().slice(0, 100) : ""}`;
+}
+
+const loginLimit = (limit: number, keyGenerator?: (req: Request) => string) => rateLimit({
   windowMs: 15 * 60_000,
-  limit: 12,
+  limit,
+  ...(keyGenerator ? { keyGenerator } : {}),
   standardHeaders: "draft-7",
   legacyHeaders: false,
   skipSuccessfulRequests: true,
   message: { error: { code: "LOGIN_RATE_LIMITED", message: "Too many login attempts" } }
 });
+
+/** A ceiling per address across all usernames, against guessing many accounts from one place. */
+export const loginIpLimiter = loginLimit(LOGIN_FAILURES_PER_IP);
+export const loginLimiter = loginLimit(LOGIN_FAILURES_PER_ACCOUNT, loginAccountKey);
 
 export const crmReadLimiter = rateLimit({
   windowMs: 10 * 60_000,
