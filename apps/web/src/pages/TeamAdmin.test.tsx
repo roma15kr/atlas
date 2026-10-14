@@ -198,3 +198,34 @@ describe('department structure', () => {
   });
 });
 
+
+describe('company directory', () => {
+  it('lets an employee find colleagues of every department and open a contact card without actions', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.employee));
+    renderAt('/team');
+    const list = (await screen.findByLabelText('Поиск сотрудников')).closest('.team-list') as HTMLElement;
+    expect(await within(list).findByRole('button', { name: /Ольга Соколова/ })).toBeInTheDocument();
+    expect(within(list).getByRole('button', { name: /Иван Смирнов/ })).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Поиск сотрудников'), 'Алексей');
+    await user.click(within(list).getByRole('button', { name: /Алексей Ким/ }));
+    const card = screen.getByLabelText('Контакты: Алексей Ким');
+    expect(within(card).getByText('Менеджер по развитию')).toBeInTheDocument();
+    expect(within(card).getByRole('link', { name: '+380 67 123 45 67' })).toBeInTheDocument();
+    expect(screen.queryByText('KPI текущего периода')).not.toBeInTheDocument();
+    expect(screen.queryByText('Рейтинг')).not.toBeInTheDocument();
+    expect(screen.queryByText('Должностная инструкция')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /AI-анализ|Изменить|Сбросить пароль|Отключить/ })).not.toBeInTheDocument();
+  });
+
+  it('gives a head actions for their own team only', async () => {
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.manager));
+    renderAt('/team?user=u5');
+    expect(await screen.findByLabelText('Контакты: Ольга Соколова')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Изменить|Сбросить пароль|Отключить/ })).not.toBeInTheDocument();
+    cleanup();
+    renderAt('/team?user=u4');
+    await screen.findByRole('heading', { name: 'Алексей Ким' });
+    for (const name of ['Изменить', 'Сбросить пароль', 'Отключить']) expect(screen.getByRole('button', { name })).toBeInTheDocument();
+  });
+});
