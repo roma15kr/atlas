@@ -146,7 +146,7 @@ tasksRouter.post("/", asyncHandler(async (req, res) => {
 tasksRouter.get("/assignable-users", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
   const result = await query(
-    `SELECT u.id, u.full_name AS "fullName", u.job_title AS "jobTitle", u.avatar_url AS "avatarUrl",
+    `SELECT u.id, u.full_name AS "fullName", u.role, u.job_title AS "jobTitle", u.avatar_url AS "avatarUrl",
             u.department_id AS "departmentId", d.name AS "departmentName"
      FROM users u LEFT JOIN departments d ON d.id = u.department_id
      WHERE u.company_id = $1 AND u.status = 'ACTIVE' ORDER BY d.name NULLS LAST, u.full_name`,

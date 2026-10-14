@@ -1,4 +1,4 @@
-import { Flag, SquareKanban, Plus, Settings2, UserRound } from 'lucide-react';
+import { Lock, Flag, SquareKanban, Plus, Settings2, UserRound } from 'lucide-react';
 import { useEffect, useMemo, useState, type DragEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TaskCard } from '../components/TaskCard';
@@ -19,6 +19,7 @@ export function BoardsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(() => rememberedBoard(user.id));
   const [assignee, setAssignee] = useState('ALL');
   const [priority, setPriority] = useState('ALL');
+  const [placement, setPlacement] = useState<'ALL' | 'BOARD' | 'PERSONAL'>('ALL');
   const [dialog, setDialog] = useState<{ task?: WorkTask; stageId?: string } | null>(null);
   const [dragged, setDragged] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -33,7 +34,8 @@ export function BoardsPage() {
     boardTasks.forEach((task) => task.assignees.forEach((person) => byId.set(person.id, person)));
     return [...byId.values()].sort((a, b) => a.fullName.localeCompare(b.fullName, 'ru'));
   }, [boardTasks]);
-  const visible = boardTasks.filter((task) => (assignee === 'ALL' || task.assignees.some((person) => person.id === assignee)) && (priority === 'ALL' || task.priority === priority));
+  const visible = boardTasks.filter((task) => (assignee === 'ALL' || task.assignees.some((person) => person.id === assignee)) && (priority === 'ALL' || task.priority === priority)
+    && (placement === 'ALL' || (placement === 'PERSONAL') === (task.onBoard === false)));
   const overdue = visible.filter(isOverdue).length;
   const stages = board ? orderedStages(board) : [];
 
@@ -56,6 +58,7 @@ export function BoardsPage() {
     <PageHeader title={board?.name ?? 'Доски'} description={board ? `${boardGroupName(board)} · ${plural(visible.length, TASKS)}${overdue ? ` · ${overdue} просрочено` : ''}` : undefined} action={<>
       {switcher}
       {board && <label className="compact-select"><UserRound size={15} /><select aria-label="Исполнитель" value={assignee} onChange={(event) => setAssignee(event.target.value)}><option value="ALL">Все исполнители</option>{people.map((person) => <option key={person.id} value={person.id}>{person.fullName}</option>)}</select></label>}
+      {board && canConfigure && <label className="compact-select"><Lock size={15} /><select aria-label="Видимость" value={placement} onChange={(event) => setPlacement(event.target.value as typeof placement)}><option value="ALL">Все задачи</option><option value="BOARD">Общие</option><option value="PERSONAL">Личные задачи команды</option></select></label>}
       {board && <label className="compact-select"><Flag size={15} /><select aria-label="Приоритет" value={priority} onChange={(event) => setPriority(event.target.value)}><option value="ALL">Все приоритеты</option><option value="HIGH">Высокий</option><option value="NORMAL">Обычный</option><option value="LOW">Низкий</option></select></label>}
       {canConfigure && <IconButton label="Настроить доски" icon={Settings2} onClick={() => navigate(settingsPath)} />}
       {board && <Button icon={Plus} onClick={() => setDialog({})}>Новая задача</Button>}

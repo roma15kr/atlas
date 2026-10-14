@@ -7,7 +7,7 @@
 
 ## 2. Screens
 
-- [ ] 2.1 Add the «Показать на доске» switch with the automatic default in `TaskDialog`, the «Личная» mark on cards, the board filter for heads and directors, and the demo branch. Verify the `TaskBoards.test.tsx` cases (a task for yourself is created personal and marked; assigning a colleague turns the switch on; a head filters «Личные задачи команды»; an employee doesn't see a colleague's personal task on the board). Commit.
+- [x] 2.1 Add the «Показать на доске» switch with the automatic default in `TaskDialog`, the «Личная» mark on cards, the board filter for heads and directors, and the demo branch. Verify the `TaskBoards.test.tsx` cases (a task for yourself is created personal and marked; assigning a colleague turns the switch on; a head filters «Личные задачи команды»; an employee doesn't see a colleague's personal task on the board). Commit.
 
 ## 3. Integration checks
 

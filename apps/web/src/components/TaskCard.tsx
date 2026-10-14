@@ -1,4 +1,4 @@
-import { CalendarDays, GripVertical } from 'lucide-react';
+import { Lock, CalendarDays, GripVertical } from 'lucide-react';
 import { markdownToPlain } from '../lib/markdown';
 import { formatDate } from '../lib/format';
 import { isOverdue, priorityLabels } from '../lib/boards';
@@ -18,7 +18,7 @@ export function TaskCard({ task, caption, moveLabel, moveValue, moveOptions, onD
 }) {
   const overdue = isOverdue(task);
   return <article className={`kanban-card task-card ${overdue ? 'task-card--overdue' : ''}`} draggable onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; onDrag(); }}>
-    <div className="kanban-card__top"><span className="drag-handle"><GripVertical size={15} /></span>{caption && <small>{caption}</small>}<Badge tone={task.priority === 'HIGH' ? 'danger' : task.priority === 'LOW' ? 'neutral' : 'info'}>{priorityLabels[task.priority]}</Badge></div>
+    <div className="kanban-card__top"><span className="drag-handle"><GripVertical size={15} /></span>{caption && <small>{caption}</small>}{task.onBoard === false && <Badge tone="warning"><Lock size={11} aria-hidden /> Личная</Badge>}<Badge tone={task.priority === 'HIGH' ? 'danger' : task.priority === 'LOW' ? 'neutral' : 'info'}>{priorityLabels[task.priority]}</Badge></div>
     <button type="button" className="task-card__title" onClick={onOpen}>{task.title}</button>
     {task.description && <p>{markdownToPlain(task.description)}</p>}
     {task.dealTitle && <small className="linked-deal">{task.dealTitle}</small>}
