@@ -39,7 +39,7 @@ describe("describeMessage", () => {
 describe("telegramAccessSql", () => {
   it("gives directors the company, heads their department plus triage, employees their own", () => {
     expect(telegramAccessSql({ ...base, role: "DIRECTOR" }, "c")).toEqual({ sql: "c.company_id = $1", values: ["c1"] });
-    expect(telegramAccessSql({ ...base, role: "MANAGER" }, "c", 2)).toEqual({ sql: "c.company_id = $2 AND (c.responsible_id IS NULL OR c.department_id = $3)", values: ["c1", "d1"] });
+    expect(telegramAccessSql({ ...base, role: "MANAGER" }, "c", 2)).toEqual({ sql: "c.company_id = $2 AND (c.responsible_id IS NULL OR c.department_id = ANY($3::uuid[]))", values: ["c1", ["d1"]] });
     expect(telegramAccessSql(base, "c")).toEqual({ sql: "c.company_id = $1 AND c.responsible_id = $2", values: ["c1", "u1"] });
   });
 });

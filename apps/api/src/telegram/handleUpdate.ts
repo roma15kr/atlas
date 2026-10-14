@@ -38,7 +38,7 @@ export function describeMessage(message: TelegramMessage): { kind: MessageKind; 
 export async function contactAudience(contact: Pick<ContactRow, "company_id" | "responsible_id" | "department_id">): Promise<string[]> {
   const result = await query<{ id: string }>(
     `SELECT id FROM users WHERE company_id = $1 AND status = 'ACTIVE' AND (
-       role = 'DIRECTOR' OR id = $2 OR (role = 'MANAGER' AND (($2::uuid IS NULL) OR department_id = $3)))`,
+       role = 'DIRECTOR' OR id = $2 OR (role = 'MANAGER' AND (($2::uuid IS NULL) OR department_id = $3 OR department_id = (SELECT parent_id FROM departments WHERE id = $3))))`,
     [contact.company_id, contact.responsible_id, contact.department_id]
   );
   return result.rows.map((row) => row.id);
@@ -84,7 +84,8 @@ async function sendBotText(contact: ContactRow, text: string): Promise<void> {
 /** The invite's creator when they may handle that client (a director, or the client's department), otherwise the client's owner. */
 async function responsibleForInvite(createdBy: string | null, clientId: string): Promise<string | null> {
   const result = await query<{ responsible: string | null }>(
-    `SELECT CASE WHEN u.id IS NOT NULL AND u.status = 'ACTIVE' AND (u.role = 'DIRECTOR' OR u.department_id IS NOT DISTINCT FROM c.department_id)
+    `SELECT CASE WHEN u.id IS NOT NULL AND u.status = 'ACTIVE' AND (u.role = 'DIRECTOR' OR u.department_id IS NOT DISTINCT FROM c.department_id
+                   OR (u.role = 'MANAGER' AND u.department_id = (SELECT parent_id FROM departments WHERE id = c.department_id)))
                  THEN u.id ELSE c.owner_id END AS responsible
      FROM clients c LEFT JOIN users u ON u.id = $1 WHERE c.id = $2`,
     [createdBy, clientId]

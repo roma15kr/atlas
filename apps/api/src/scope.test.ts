@@ -94,9 +94,9 @@ describe("boardAccessSql", () => {
     for (const role of ["MANAGER", "EMPLOYEE"] as const) {
       const access = boardAccessSql({ ...base, role }, "t.board_id", 2);
       expect(access.sql).toContain("ab.company_id = $2");
-      expect(access.sql).toContain("ab.department_id = $3");
+      expect(access.sql).toContain("ab.department_id = ANY($3::uuid[])");
       expect(access.sql).toContain("am.board_id = ab.id AND am.user_id = $4");
-      expect(access.values).toEqual([base.companyId, base.departmentId, base.userId]);
+      expect(access.values).toEqual([base.companyId, [base.departmentId], base.userId]);
     }
   });
 
@@ -104,7 +104,8 @@ describe("boardAccessSql", () => {
     const access = boardAccessSql({ ...base, departmentId: null }, "b.id");
     // department_id = NULL is never true, so only membership remains.
     expect(access.sql).not.toContain("IS NOT DISTINCT FROM");
-    expect(access.values).toEqual([base.companyId, null, base.userId]);
+    // No department: an empty list, which matches no board (director boards have no department).
+    expect(access.values).toEqual([base.companyId, [], base.userId]);
   });
 });
 
@@ -118,8 +119,8 @@ describe("boardManageSql", () => {
 
   it("lets managers manage only their department's boards", () => {
     expect(boardManageSql({ ...base, role: "MANAGER" }, "b.id", 2)).toEqual({
-      sql: "b.id IN (SELECT mb.id FROM task_boards mb WHERE mb.company_id = $2 AND mb.department_id = $3)",
-      values: [base.companyId, base.departmentId]
+      sql: "b.id IN (SELECT mb.id FROM task_boards mb WHERE mb.company_id = $2 AND mb.department_id = ANY($3::uuid[]))",
+      values: [base.companyId, [base.departmentId]]
     });
   });
 

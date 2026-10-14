@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { coversDepartment, scopeDepartments } from "../scope";
 import multer from "multer";
 import { z } from "zod";
 import { writeAudit } from "../audit";
@@ -97,7 +98,7 @@ documentsRouter.post("/:id/versions", upload.single("file"), asyncHandler(async 
   const existing = await scopedDocument(auth, id);
   if (!req.file) throw new ApiError(400, "FILE_REQUIRED", "A document file is required");
   const ownsDocument = existing.uploadedById === auth.userId;
-  const managerOwnsDepartment = auth.role === "MANAGER" && existing.departmentId === auth.departmentId;
+  const managerOwnsDepartment = auth.role === "MANAGER" && coversDepartment(auth, existing.departmentId as string | null);
   if (auth.role !== "DIRECTOR" && !ownsDocument && !managerOwnsDepartment) {
     throw new ApiError(403, "FORBIDDEN", "Document is outside your management scope");
   }
@@ -163,9 +164,9 @@ function documentAccess(auth: ReturnType<typeof requireAuth>, startIndex = 1): {
   return {
     sql: `doc.company_id = $${startIndex} AND (
       doc.visibility = 'COMPANY' OR doc.uploaded_by = $${startIndex + 1} OR
-      (doc.visibility = 'DEPARTMENT' AND doc.department_id IS NOT DISTINCT FROM $${startIndex + 2})
+      (doc.visibility = 'DEPARTMENT' AND doc.department_id = ANY($${startIndex + 2}::uuid[]))
     )`,
-    values: [auth.companyId, auth.userId, auth.departmentId]
+    values: [auth.companyId, auth.userId, scopeDepartments(auth)]
   };
 }
 
@@ -182,8 +183,8 @@ async function resolveDepartment(
     return requested;
   }
   if (!auth.departmentId) throw new ApiError(400, "DEPARTMENT_REQUIRED", "User has no department");
-  if (requested && requested !== auth.departmentId) throw new ApiError(403, "INVALID_DEPARTMENT", "Department is outside your scope");
-  return auth.departmentId;
+  if (requested && !coversDepartment(auth, requested)) throw new ApiError(403, "INVALID_DEPARTMENT", "Department is outside your scope");
+  return requested ?? auth.departmentId;
 }
 
 async function scopedDocument(auth: ReturnType<typeof requireAuth>, id: string): Promise<Record<string, unknown>> {

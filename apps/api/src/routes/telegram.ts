@@ -8,7 +8,7 @@ import { config } from "../config";
 import { query, transaction } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { emitToUsers } from "../realtime";
-import { recordScope, telegramAccessSql } from "../scope";
+import { coversDepartment, recordScope, telegramAccessSql } from "../scope";
 import { objectStorage } from "../storage";
 import { bot, telegramConfigured, TelegramApiError } from "../telegram/botApi";
 import { contactAudience, hashToken, notifyContact, type ContactRow } from "../telegram/handleUpdate";
@@ -275,7 +275,7 @@ telegramRouter.patch("/contacts/:id", asyncHandler(async (req, res) => {
     if (input.responsibleId) {
       const target = (await query<{ department_id: string | null }>("SELECT department_id FROM users WHERE id = $1 AND company_id = $2 AND status = 'ACTIVE'", [input.responsibleId, auth.companyId])).rows[0];
       if (!target) throw new ApiError(400, "TELEGRAM_INVALID_RESPONSIBLE", "Choose an active colleague");
-      if (auth.role === "MANAGER" && target.department_id !== auth.departmentId) await deny(req, auth, "TELEGRAM_CONTACT_REASSIGNED", contact.id, "Heads reassign only within their department");
+      if (auth.role === "MANAGER" && !coversDepartment(auth, target.department_id)) await deny(req, auth, "TELEGRAM_CONTACT_REASSIGNED", contact.id, "Heads reassign only within their department");
     }
   }
   const before = { clientId: contact.client_id, responsibleId: contact.responsible_id };

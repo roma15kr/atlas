@@ -8,7 +8,7 @@ import { config } from "../config";
 import { query } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { pagination } from "../http";
-import { canManageUser } from "../scope";
+import { canManageUser, scopeDepartments } from "../scope";
 import type { AuthContext } from "../types";
 import { llmConfigured } from "../llm/openai";
 
@@ -30,8 +30,8 @@ const analysisColumns = `a.id, a.mode, a.summary, a.recommendations, a.source, a
 function analysisVisibility(auth: AuthContext, start: number): { sql: string; values: unknown[] } {
   return {
     sql: `a.company_id = $${start} AND CASE WHEN a.subject_id = $${start + 1} THEN a.requested_by = $${start + 1}
-      ELSE ($${start + 2} = 'DIRECTOR' OR ($${start + 2} = 'MANAGER' AND s.department_id = $${start + 3})) END`,
-    values: [auth.companyId, auth.userId, auth.role, auth.departmentId]
+      ELSE ($${start + 2} = 'DIRECTOR' OR ($${start + 2} = 'MANAGER' AND s.department_id = ANY($${start + 3}::uuid[]))) END`,
+    values: [auth.companyId, auth.userId, auth.role, scopeDepartments(auth)]
   };
 }
 

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { scopeDepartments } from "../scope";
 import { z } from "zod";
 import { writeAudit } from "../audit";
 import { requireAuth, requireRoles } from "../auth";
@@ -37,7 +38,7 @@ alertsRouter.patch("/:id/acknowledge", requireRoles("DIRECTOR", "MANAGER"), asyn
   const id = z.string().uuid().parse(req.params.id);
   const values: unknown[] = [auth.userId, id, auth.companyId];
   let scope = "company_id = $3";
-  if (auth.role === "MANAGER") { values.push(auth.departmentId); scope += " AND department_id IS NOT DISTINCT FROM $4"; }
+  if (auth.role === "MANAGER") { values.push(scopeDepartments(auth)); scope += " AND department_id = ANY($4::uuid[])"; }
   const result = await query(
     `UPDATE alerts SET acknowledged_at = now(), acknowledged_by = $1
      WHERE id = $2 AND ${scope}
@@ -56,7 +57,7 @@ alertsRouter.patch("/:id/acknowledge", requireRoles("DIRECTOR", "MANAGER"), asyn
 export function alertVisibility(auth: ReturnType<typeof requireAuth>): { sql: string; values: unknown[] } {
   const values: unknown[] = [auth.companyId];
   const clauses = ["a.company_id = $1"];
-  if (auth.role === "MANAGER") { values.push(auth.departmentId); clauses.push(`a.department_id IS NOT DISTINCT FROM $${values.length}`); }
+  if (auth.role === "MANAGER") { values.push(scopeDepartments(auth)); clauses.push(`a.department_id = ANY($${values.length}::uuid[])`); }
   if (auth.role === "EMPLOYEE") { values.push(auth.userId); clauses.push(`a.user_id = $${values.length}`); }
   const deals = dealScope(auth, values.length + 1);
   values.push(...deals.values);

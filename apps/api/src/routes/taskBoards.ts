@@ -5,7 +5,7 @@ import { writeAudit } from "../audit";
 import { requireAuth } from "../auth";
 import { query, transaction } from "../db";
 import { ApiError, asyncHandler } from "../errors";
-import { boardAccessSql, boardManageSql, boardUserAccessSql } from "../scope";
+import { boardAccessSql, boardManageSql, boardUserAccessSql, coversDepartment } from "../scope";
 import type { AuthContext } from "../types";
 import { assertExactOrder } from "./funnels";
 
@@ -51,7 +51,7 @@ export const taskBoardsRouter = Router();
 /** Mirrors boardManageSql(): directors manage every board, managers the boards of their own department. */
 export function canManageBoard(auth: AuthContext, board: { department_id: string | null }): boolean {
   if (auth.role === "DIRECTOR") return true;
-  return auth.role === "MANAGER" && auth.departmentId !== null && board.department_id === auth.departmentId;
+  return auth.role === "MANAGER" && coversDepartment(auth, board.department_id);
 }
 
 function hasRequiredCategories(categories: StageCategory[]): boolean {

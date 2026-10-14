@@ -1,4 +1,5 @@
 import type { Server as HttpServer } from "node:http";
+import { scopeDepartments } from "./scope";
 import { Server } from "socket.io";
 import { coveredDepartments, SUB_DEPARTMENTS_SQL, verifyAccessToken } from "./auth";
 import { config } from "./config";
@@ -83,8 +84,8 @@ export function createSocketServer(server: HttpServer): Server {
 function presenceSubscriptionRooms(auth: AuthContext): string[] {
   const rooms = [`presence:user:${auth.userId}`];
   if (auth.role === "DIRECTOR") rooms.push(`presence:directors:${auth.companyId}`);
-  if (auth.role === "MANAGER" && auth.departmentId) {
-    rooms.push(`presence:managers:${auth.companyId}:${auth.departmentId}`);
+  if (auth.role === "MANAGER") {
+    for (const department of scopeDepartments(auth)) rooms.push(`presence:managers:${auth.companyId}:${department}`);
   }
   return rooms;
 }
@@ -98,7 +99,7 @@ function presenceAudienceRooms(auth: AuthContext): string[] {
 async function visibleUserIds(auth: AuthContext): Promise<string[]> {
   const values: unknown[] = [auth.companyId];
   const clauses = ["company_id=$1", "status='ACTIVE'"];
-  if (auth.role === "MANAGER") { values.push(auth.departmentId); clauses.push("department_id IS NOT DISTINCT FROM $2"); }
+  if (auth.role === "MANAGER") { values.push(scopeDepartments(auth)); clauses.push("department_id = ANY($2::uuid[])"); }
   if (auth.role === "EMPLOYEE") { values.push(auth.userId); clauses.push("id=$2"); }
   const users = await query<{ id: string }>(`SELECT id FROM users WHERE ${clauses.join(" AND ")}`, values);
   return users.rows.map((row) => row.id);

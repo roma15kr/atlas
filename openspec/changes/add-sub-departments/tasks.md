@@ -6,7 +6,7 @@
 
 ## 2. Every department check covers sub-departments
 
-- [ ] 2.1 Add `coversDepartment` and switch the remaining scope helpers and route checks listed in design.md (funnels, boards, Telegram, documents, reports, alerts, audit, AI, KPIs, dashboard, team directory, owner assignment, presence rooms). Verify the integration cases for deals, tasks, Telegram and owner assignment pass, and `rg "auth.departmentId"` shows only home-department uses; commit.
+- [x] 2.1 Add `coversDepartment` and switch the remaining scope helpers and route checks listed in design.md (funnels, boards, Telegram, documents, reports, alerts, audit, AI, KPIs, dashboard, team directory, owner assignment, presence rooms). Verify the integration cases for deals, tasks, Telegram and owner assignment pass, and `rg "auth.departmentId"` shows only home-department uses; commit.
 - [ ] 2.2 Let a parent head manage the sub-department's people, including its head (edit, reset password, disable/enable, KPIs) but not roles or departments. Verify the cases "parent head resets the sub-head's password" and "parent head changing the sub-head's role gets 403" pass; commit.
 
 ## 3. Department structure
