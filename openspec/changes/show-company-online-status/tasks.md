@@ -6,12 +6,12 @@
 
 ## 2. Team page
 
-- [ ] 2.1 Show the dot and «В сети»/«Не в сети» for every row, filter the tabs over the whole company, count the company in the header, update live from `presence:online`, and keep the selection on a visible row. Verify the `TeamAdmin.test.tsx` cases (a head sees another department's colleague under «В сети», with no last-seen time; a live `presence:online` moves them to «Не в сети»; the detail follows the filtered list); commit.
+- [x] 2.1 Show the dot and «В сети»/«Не в сети» for every row, filter the tabs over the whole company, count the company in the header, update live from `presence:online`, and keep the selection on a visible row. Verify the `TeamAdmin.test.tsx` cases (a head sees another department's colleague under «В сети», with no last-seen time; a live `presence:online` moves them to «Не в сети»; the detail follows the filtered list); commit.
 
 ## 3. Integration checks
 
-- [ ] 3.1 Run `make check` and `npm run build`; verify both pass.
-- [ ] 3.2 Run `npx openspec validate show-company-online-status --strict`; verify it passes.
+- [x] 3.1 Run `make check` and `npm run build`; verify both pass.
+- [x] 3.2 Run `npx openspec validate show-company-online-status --strict`; verify it passes.
 
 ## Workflow follow-up
 

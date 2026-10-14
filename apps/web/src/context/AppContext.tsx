@@ -1005,7 +1005,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     return users.filter((user) => user.status !== 'DISABLED').map((user) => ({
       id: user.id, fullName: user.fullName, role: user.role, departmentId: user.departmentId ?? null, departmentName: user.department,
       jobTitle: user.jobTitle, specialty: user.specialty, avatarUrl: user.avatarUrl, phone: user.phone, contactEmail: user.contactEmail,
-      city: user.city, about: user.about, birthday: user.birthday, inTeam: team.has(user.id),
+      city: user.city, about: user.about, birthday: user.birthday, online: user.online, inTeam: team.has(user.id),
     })).sort((a, b) => a.fullName.localeCompare(b.fullName, 'ru'));
   }, [isDemo, users, visibleUsers]);
 
