@@ -552,9 +552,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     socket.on('presence:update', updatePresence);
     socket.on('presence:changed', updatePresence);
     socket.on('presence:snapshot', (items: Array<{ userId: string; online?: boolean; lastSeen?: string; status?: string; lastSeenAt?: string }>) => items.forEach(updatePresence));
-    // Heartbeats say whether the person was active in the last 5 minutes, in any Atlas tab.
+    // Heartbeats say whether the person was active within the idle period, in any Atlas tab.
     let reported = true;
     const tracker = trackActivity(() => { reported = true; socket?.emit('presence:heartbeat', { active: true }); });
+    // The server decides how long a pause still counts as online (PRESENCE_IDLE_MINUTES).
+    socket.on('presence:config', (config: { idleMinutes?: unknown }) => {
+      const minutes = Number(config?.idleMinutes);
+      if (Number.isFinite(minutes) && minutes >= 1) tracker.setIdleAfter(minutes * 60_000);
+    });
     const beat = () => { reported = tracker.isActive(); socket?.emit('presence:heartbeat', { active: reported }); };
     const heartbeat = window.setInterval(beat, HEARTBEAT_MS);
     // Going idle is reported within 15 seconds rather than at the next heartbeat.
