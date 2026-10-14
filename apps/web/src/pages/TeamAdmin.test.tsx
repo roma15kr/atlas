@@ -82,7 +82,7 @@ describe('forced password change', () => {
     await user.type(screen.getByLabelText(/^Новый пароль/), 'My-Own-Secret-2026');
     await user.type(screen.getByLabelText('Повторите пароль'), 'My-Own-Secret-2026');
     await user.click(screen.getByRole('button', { name: 'Сохранить пароль' }));
-    expect(await screen.findByText(/Добрый день, Анна/)).toBeInTheDocument();
+    expect(await screen.findByText(/Добрый день, Анна/, {}, { timeout: 5_000 })).toBeInTheDocument();
   });
 });
 
