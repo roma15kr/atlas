@@ -3,7 +3,7 @@ import { requireAuth } from "../auth";
 import { query } from "../db";
 import { asyncHandler } from "../errors";
 import { presenceFor } from "../presence";
-import { recordScope } from "../scope";
+import { recordScope, scopeDepartments } from "../scope";
 import { alertVisibility } from "./alerts";
 import { dealScope } from "./deals";
 
@@ -17,7 +17,7 @@ dashboardRouter.get("/", asyncHandler(async (req, res) => {
   const taskScope = auth.role === "DIRECTOR"
     ? { sql: "t.company_id = $1", values: [auth.companyId] }
     : auth.role === "MANAGER"
-      ? { sql: "t.company_id = $1 AND b.department_id = $2", values: [auth.companyId, auth.departmentId] }
+      ? { sql: "t.company_id = $1 AND b.department_id = ANY($2::uuid[])", values: [auth.companyId, scopeDepartments(auth)] }
       : { sql: "t.company_id = $1 AND EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.user_id = $2)", values: [auth.companyId, auth.userId] };
   const userScope = recordScope(auth, { company: "u.company_id", department: "u.department_id", owner: "u.id" });
   const alertScope = alertVisibility(auth);

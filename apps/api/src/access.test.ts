@@ -52,7 +52,7 @@ describe("board access checks", () => {
     await expect(canAccessBoard(auth, boardId)).resolves.toBe(false);
     const [sql, values] = queryMock.mock.calls[0]!;
     expect(sql).toContain("am.user_id = $4");
-    expect(values).toEqual([boardId, owner.company_id, owner.department_id, owner.id]);
+    expect(values).toEqual([boardId, owner.company_id, [owner.department_id], owner.id]);
   });
 
   it("accepts assignees who can all open the board, checking each once", async () => {

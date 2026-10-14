@@ -5,7 +5,7 @@ import { requireAuth } from "../auth";
 import { KPI_SOURCE_UNITS, KPI_SOURCES, recomputeKpis, type KpiSource } from "../automation/kpis";
 import { query } from "../db";
 import { ApiError, asyncHandler } from "../errors";
-import { canManageUser } from "../scope";
+import { canManageUser, coversDepartment } from "../scope";
 import type { AuthContext, Role } from "../types";
 
 /** KPIs are set by directors for anyone and by department heads for their employees. */
@@ -59,9 +59,11 @@ async function loadOwner(auth: AuthContext, userId: string): Promise<KpiOwner> {
   return owner;
 }
 
-/** Directors manage anyone; heads only employees of their own department, never themselves. */
+/** Directors manage anyone; heads employees of their department and everyone in its sub-departments, never themselves. */
 async function assertCanManage(req: Request, auth: AuthContext, owner: KpiOwner, kpiId: string | null): Promise<void> {
-  const allowed = auth.role === "DIRECTOR" || auth.role === "MANAGER" && owner.role === "EMPLOYEE" && owner.department_id === auth.departmentId;
+  const inSubDepartment = owner.department_id !== auth.departmentId;
+  const allowed = auth.role === "DIRECTOR" || auth.role === "MANAGER" && coversDepartment(auth, owner.department_id)
+    && (owner.role === "EMPLOYEE" || (owner.role === "MANAGER" && inSubDepartment));
   if (allowed && owner.status === "ACTIVE") return;
   if (allowed) throw new ApiError(409, "USER_NOT_ACTIVE", "KPIs can be set only for active users");
   await writeAudit(req, { auth, action: "KPI_CHANGE_DENIED", entityType: "kpi", entityId: kpiId, departmentId: owner.department_id, metadata: { userId: owner.id } });

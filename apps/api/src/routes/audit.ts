@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { scopeDepartments } from "../scope";
 import { z } from "zod";
 import { requireAuth, requireRoles } from "../auth";
 import { query } from "../db";
@@ -13,7 +14,7 @@ auditRouter.get("/", requireRoles("DIRECTOR", "MANAGER"), asyncHandler(async (re
   const filters = z.object({ action: z.string().max(100).optional(), entityType: z.string().max(100).optional() }).parse(req.query);
   const values: unknown[] = [auth.companyId];
   const clauses = ["al.company_id = $1"];
-  if (auth.role === "MANAGER") { values.push(auth.departmentId); clauses.push("al.department_id IS NOT DISTINCT FROM $2"); }
+  if (auth.role === "MANAGER") { values.push(scopeDepartments(auth)); clauses.push("al.department_id = ANY($2::uuid[])"); }
   if (filters.action) { values.push(filters.action); clauses.push(`al.action = $${values.length}`); }
   if (filters.entityType) { values.push(filters.entityType); clauses.push(`al.entity_type = $${values.length}`); }
   values.push(page.limit, page.offset);

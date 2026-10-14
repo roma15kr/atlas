@@ -1,4 +1,5 @@
 import { Router, type Request } from "express";
+import { coversDepartment } from "../scope";
 import bcrypt from "bcryptjs";
 import type { PoolClient } from "pg";
 import { z } from "zod";
@@ -32,8 +33,12 @@ export function adminDenial(auth: AuthContext, target: AdminTarget, action: Admi
   if (target.company_id !== auth.companyId) return new ApiError(404, "USER_NOT_FOUND", "User not found");
   if (auth.role === "EMPLOYEE") return new ApiError(403, "FORBIDDEN", "You do not have permission to perform this action");
   if (auth.role === "MANAGER") {
-    if (target.department_id !== auth.departmentId) return new ApiError(404, "USER_NOT_FOUND", "User not found");
-    if (target.role !== "EMPLOYEE") return new ApiError(403, "MANAGER_EMPLOYEE_ONLY", "Department heads manage employee accounts only");
+    if (!coversDepartment(auth, target.department_id)) return new ApiError(404, "USER_NOT_FOUND", "User not found");
+    // A head manages employees of their department and everyone in its sub-departments, including their heads.
+    const inSubDepartment = target.department_id !== auth.departmentId;
+    if (target.role === "DIRECTOR" || (target.role === "MANAGER" && !inSubDepartment)) {
+      return new ApiError(403, "MANAGER_EMPLOYEE_ONLY", "Department heads manage employee accounts only");
+    }
   }
   if (target.id === auth.userId && action === "disable") return new ApiError(409, "CANNOT_DISABLE_SELF", "You cannot disable your own account");
   if (target.id === auth.userId && action === "reset-password") return new ApiError(409, "CANNOT_RESET_SELF", "Change your own password in the profile");

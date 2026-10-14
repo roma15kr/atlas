@@ -1,0 +1,14 @@
+<!doctype html><html lang="ru"><meta charset="utf-8"><title>Команда — Отделы</title>
+<style>body{font:14px/1.5 system-ui,sans-serif;background:#8e9997;margin:0;padding:40px}.d{background:#fff;border-radius:10px;max-width:720px;margin:auto;box-shadow:0 10px 40px rgba(0,0,0,.25)}header,footer{padding:18px 22px}header{border-bottom:1px solid #e3e8e7}h1{font-size:20px;margin:0}small{color:#64706e}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 22px;border-bottom:1px solid #eef0ef}th{font-size:12px;color:#64706e;font-weight:600}td.sub{padding-left:42px}select{padding:6px 8px;border:1px solid #cfd8d6;border-radius:6px}.note{margin:12px 22px;padding:10px 12px;background:#fdf6e7;border-radius:6px;font-size:13px}footer{display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #e3e8e7}.b{padding:8px 14px;border-radius:8px;border:1px solid #cfd8d6;background:#fff}.p{background:#2f6f63;color:#fff;border-color:#2f6f63}</style>
+<div class="d"><header><h1>Отделы</h1><small>Руководитель отдела видит и подотделы: их клиентов, сделки, задачи, чаты и людей</small></header>
+<table><tr><th>Отдел</th><th>Руководитель</th><th>Людей</th><th>Входит в</th></tr>
+<tr><td>Руководство</td><td>Ніконов В.</td><td>1</td><td><select><option>—</option></select></td></tr>
+<tr><td>Отдел продаж</td><td>Денисюк Н.</td><td>5</td><td><select><option>—</option></select></td></tr>
+<tr><td class="sub">↳ Отдел DIY</td><td>Семенець М.</td><td>17</td><td><select><option>Отдел продаж</option><option>—</option><option>Руководство</option><option>Маркетинг</option></select></td></tr>
+<tr><td>Отдел промышленного электрообогрева</td><td>Вербіцький А.</td><td>2</td><td><select><option>—</option></select></td></tr>
+<tr><td>Маркетинг</td><td>Пономаренко Р.</td><td>3</td><td><select><option>—</option></select></td></tr>
+<tr><td>Комплектация и склад</td><td>Косян О.</td><td>4</td><td><select><option>—</option></select></td></tr>
+<tr><td>Бухгалтерия</td><td>Драгун Г.</td><td>3</td><td><select><option>—</option></select></td></tr>
+<tr><td>Отдел кадров</td><td>Купчук О.</td><td>1</td><td><select><option>—</option></select></td></tr></table>
+<p class="note">После сохранения Денисюк Н. увидит людей и данные «Отдел DIY» и сможет управлять его сотрудниками, включая руководителя. Семенець М. по-прежнему видит только свой отдел.</p>
+<footer><span class="b">Закрыть</span></footer></div>
