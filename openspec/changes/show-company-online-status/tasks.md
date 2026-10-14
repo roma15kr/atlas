@@ -2,7 +2,7 @@
 
 ## 1. The online state reaches everyone
 
-- [ ] 1.1 Add `online` to `GET /team/directory`, and emit `presence:online { userId, online }` to a company room on each transition. Verify `companyDirectory.integration.test.ts` (online from presence; still no `lastSeenAt`) and a socket test (an employee of another department receives `presence:online` without times when a colleague connects); commit.
+- [x] 1.1 Add `online` to `GET /team/directory`, and emit `presence:online { userId, online }` to a company room on each transition. Verify `companyDirectory.integration.test.ts` (online from presence; still no `lastSeenAt`) and a socket test (an employee of another department receives `presence:online` without times when a colleague connects); commit.
 
 ## 2. Team page
 
