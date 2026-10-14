@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const queryMock = vi.hoisted(() => vi.fn());
 vi.mock("./db", () => ({ query: queryMock }));
 
-import { assertAssigneesBoardAccess, assertOwnerFunnelAccess, canAccessBoard, canAccessFunnel, type TargetUser } from "./access";
+import { assertAssignableUsers, assertOwnerFunnelAccess, canAccessBoard, canAccessFunnel, type TargetUser } from "./access";
 import { ApiError } from "./errors";
 
 const funnelId = "55555555-5555-4555-8555-555555555555";
@@ -55,16 +55,18 @@ describe("board access checks", () => {
     expect(values).toEqual([boardId, owner.company_id, [owner.department_id], owner.id]);
   });
 
-  it("accepts assignees who can all open the board, checking each once", async () => {
-    queryMock.mockResolvedValue({ rows: [{ id: owner.id }, { id: other }] });
-    await assertAssigneesBoardAccess(boardId, [owner.id, other, owner.id]);
-    expect(queryMock.mock.calls[0]![1]).toEqual([boardId, [owner.id, other]]);
+  it("accepts assignees who are all active colleagues of the company, checking each once", async () => {
+    queryMock.mockResolvedValue({ rows: [{ count: 2 }] });
+    await assertAssignableUsers(owner.company_id, [owner.id, other, owner.id]);
+    const [sql, values] = queryMock.mock.calls[0]!;
+    expect(sql).toContain("status = 'ACTIVE'");
+    expect(values).toEqual([owner.company_id, [owner.id, other]]);
   });
 
-  it("rejects when any assignee cannot open the board", async () => {
-    queryMock.mockResolvedValue({ rows: [{ id: owner.id }] });
-    const error = await assertAssigneesBoardAccess(boardId, [owner.id, other]).catch((reason: unknown) => reason);
-    expect((error as ApiError).code).toBe("ASSIGNEE_BOARD_ACCESS_REQUIRED");
-    expect((error as ApiError).status).toBe(403);
+  it("rejects when any assignee is disabled or from another company", async () => {
+    queryMock.mockResolvedValue({ rows: [{ count: 1 }] });
+    const error = await assertAssignableUsers(owner.company_id, [owner.id, other]).catch((reason: unknown) => reason);
+    expect((error as ApiError).code).toBe("INVALID_ASSIGNEE");
+    expect((error as ApiError).status).toBe(400);
   });
 });

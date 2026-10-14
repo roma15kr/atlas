@@ -1,13 +1,13 @@
 import { Router } from "express";
 import type { PoolClient } from "pg";
 import { z } from "zod";
-import { assertAssigneesBoardAccess } from "../access";
+import { assertAssignableUsers, canAccessBoard } from "../access";
 import { writeAudit } from "../audit";
 import { requireAuth } from "../auth";
 import { query, transaction } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { asOptionalDate, pagination } from "../http";
-import { boardAccessSql, funnelAccessSql } from "../scope";
+import { boardAccessSql, funnelAccessSql, taskAccessSql } from "../scope";
 import type { AuthContext } from "../types";
 import { dealScope } from "./deals";
 import { canManageBoard, STAGE_CATEGORIES, type StageCategory } from "./taskBoards";
@@ -82,7 +82,7 @@ tasksRouter.get("/", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
   const page = pagination(req);
   const filters = taskFilters.parse(req.query);
-  const access = boardAccessSql(auth, "t.board_id");
+  const access = taskAccessSql(auth, "t");
   const values: unknown[] = [...access.values];
   const clauses = [access.sql];
   if (filters.boardId) { values.push(filters.boardId); clauses.push(`t.board_id = $${values.length}`); }
@@ -114,7 +114,7 @@ tasksRouter.post("/", asyncHandler(async (req, res) => {
   const stage = input.stageId
     ? await boardStage(auth, input.boardId, input.stageId)
     : await firstTodoStage(auth, input.boardId);
-  await assertAssigneesBoardAccess(input.boardId, assigneeIds);
+  await assertAssignableUsers(auth.companyId, assigneeIds);
   if (input.dealId) await assertDealVisible(auth, input.dealId);
   const id = await transaction(async (client) => {
     const result = await client.query<{ id: string }>(
@@ -147,14 +147,18 @@ tasksRouter.patch("/:id", asyncHandler(async (req, res) => {
   const input = taskPatch.parse(req.body);
   if (!Object.values(input).some((value) => value !== undefined)) throw new ApiError(400, "NO_CHANGES", "No fields to update");
   const current = await accessibleTask(auth, id);
+  const outsider = !(await canAccessBoard(auth, current.board_id));
+  if (outsider && ((input.boardId && input.boardId !== current.board_id) || input.assigneeIds)) {
+    await writeAudit(req, { auth, action: "TASK_UPDATE_DENIED", entityType: "task", entityId: id, departmentId: current.board_department_id,
+      metadata: { fields: Object.keys(input).filter((key) => input[key as keyof typeof input] !== undefined) } });
+    throw new ApiError(403, "TASK_OUTSIDER_FORBIDDEN", "Only the board's people move a task to another board or change its assignees");
+  }
   const boardId = input.boardId ?? current.board_id;
   const boardChanged = boardId !== current.board_id;
-  const stage = input.stageId ? await boardStage(auth, boardId, input.stageId) : undefined;
-  if (input.assigneeIds) {
-    await assertAssigneesBoardAccess(boardId, input.assigneeIds);
-  } else if (boardChanged) {
-    await assertAssigneesBoardAccess(boardId, await currentAssignees(id));
-  }
+  const stage = input.stageId
+    ? outsider ? await stageOfBoard(current.board_id, input.stageId) : await boardStage(auth, boardId, input.stageId)
+    : undefined;
+  if (input.assigneeIds) await assertAssignableUsers(auth.companyId, input.assigneeIds);
   if (input.dealId) await assertDealVisible(auth, input.dealId);
 
   const departmentId = await transaction(async (client) => {
@@ -215,7 +219,7 @@ tasksRouter.delete("/:id", asyncHandler(async (req, res) => {
 }));
 
 async function accessibleTask(auth: AuthContext, id: string): Promise<TaskRow> {
-  const access = boardAccessSql(auth, "t.board_id", 2);
+  const access = taskAccessSql(auth, "t", 2);
   const result = await query<TaskRow>(
     `SELECT t.id, t.board_id, t.stage_id, s.category, t.completed_at, t.created_by, b.department_id AS board_department_id
      FROM tasks t JOIN task_board_stages s ON s.id = t.stage_id JOIN task_boards b ON b.id = t.board_id
@@ -240,6 +244,16 @@ async function boardStage(auth: AuthContext, boardId: string, stageId: string): 
   return row;
 }
 
+/** A stage of the task's own board, for an assignee who can't open the board itself. */
+async function stageOfBoard(boardId: string, stageId: string): Promise<StageRow> {
+  const result = await query<StageRow>(
+    `SELECT s.id, s.category, b.department_id FROM task_board_stages s JOIN task_boards b ON b.id = s.board_id WHERE s.board_id = $1 AND s.id = $2`,
+    [boardId, stageId]
+  );
+  if (!result.rows[0]) throw new ApiError(400, "INVALID_STAGE", "The stage does not belong to the board");
+  return result.rows[0];
+}
+
 async function firstTodoStage(auth: AuthContext, boardId: string): Promise<StageRow> {
   const access = boardAccessSql(auth, "b.id", 2);
   const result = await query<StageRow>(
@@ -255,11 +269,6 @@ async function firstTodoStage(auth: AuthContext, boardId: string): Promise<Stage
   if (!row) throw new ApiError(404, "BOARD_NOT_FOUND", "Board not found");
   if (!row.id) throw new ApiError(409, "STAGE_CATEGORY_REQUIRED", "The board has no TODO stage");
   return row;
-}
-
-async function currentAssignees(taskId: string): Promise<string[]> {
-  const result = await query<{ user_id: string }>("SELECT user_id FROM task_assignees WHERE task_id = $1", [taskId]);
-  return result.rows.map((row) => row.user_id);
 }
 
 async function replaceAssignees(client: PoolClient, taskId: string, userIds: string[]): Promise<void> {
@@ -308,14 +317,21 @@ tasksRouter.post("/:id/comments", asyncHandler(async (req, res) => {
 }));
 
 async function scopedTask(auth: AuthContext, id: string): Promise<Record<string, unknown>> {
-  const access = boardAccessSql(auth, "t.board_id", 2);
+  const access = taskAccessSql(auth, "t", 2);
   const dealAccess = funnelAccessSql(auth, "d.funnel_id", 2 + access.values.length);
   const result = await query(
     `SELECT ${taskColumns(dealAccess.sql)} FROM ${taskFrom} WHERE t.id = $1 AND ${access.sql}`,
     [id, ...access.values, ...dealAccess.values]
   );
   if (!result.rows[0]) throw new ApiError(404, "TASK_NOT_FOUND", "Task not found");
-  return presentTask(auth, result.rows[0]);
+  const task = presentTask(auth, result.rows[0]);
+  if (await canAccessBoard(auth, String(task.boardId))) return { ...task, viaAssignment: false };
+  // An assignee from outside the board gets the board's stages, to move their task, and nothing else of the board.
+  const stages = await query(
+    `SELECT id, name, color, category, sort_order AS "sortOrder" FROM task_board_stages WHERE board_id = $1 ORDER BY sort_order, name`,
+    [task.boardId]
+  );
+  return { ...task, viaAssignment: true, boardStages: stages.rows };
 }
 
 const taskFrom = `tasks t
