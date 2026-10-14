@@ -21,7 +21,7 @@ import {
   demoBoardUsers,
   fallbackSession,
 } from '../data/demo';
-import type { Achievement, AiAnalysis, AiMode, Alert, AuditEvent, ReportRun, BoardUser, Client, CompanyDocument, DashboardMetrics, Deal, KpiInput, ProfileInput, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Kpi, Report, Role, Session, TaskAssignee, TaskBoard, TaskCategory, TaskPriority, TaskStage, TaskStageSummary, User, WorkTask } from '../types';
+import type { DirectoryEntry, Achievement, AiAnalysis, AiMode, Alert, AuditEvent, ReportRun, BoardUser, Client, CompanyDocument, DashboardMetrics, Deal, KpiInput, ProfileInput, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Kpi, Report, Role, Session, TaskAssignee, TaskBoard, TaskCategory, TaskPriority, TaskStage, TaskStageSummary, User, WorkTask } from '../types';
 
 const roleRank: Record<Role, number> = { EMPLOYEE: 1, MANAGER: 2, DIRECTOR: 3 };
 export const REFRESH_INTERVAL_MS = 180_000;
@@ -394,6 +394,8 @@ interface WorkspaceValue {
   removeMemberAvatar: (id: string) => Promise<void>;
   setMemberActive: (id: string, active: boolean) => Promise<void>;
   resetMemberPassword: (id: string, password: string) => Promise<void>;
+  /** Every active colleague of the company with contacts only; `inTeam` marks the people in `users`. */
+  teamDirectory: () => Promise<DirectoryEntry[]>;
   addKpi: (userId: string, input: KpiInput) => Promise<void>;
   updateKpi: (userId: string, kpiId: string, input: Partial<KpiInput>) => Promise<void>;
   deleteKpi: (userId: string, kpiId: string) => Promise<void>;
@@ -992,14 +994,24 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }, [isDemo, dashboardMetrics, clients, deals, visibleTasks, visibleUsers]);
   const refresh = useCallback(() => loadWorkspace(true), [loadWorkspace]);
 
+  const teamDirectory = useCallback(async (): Promise<DirectoryEntry[]> => {
+    if (!isDemo) return api.list<DirectoryEntry>('team/directory');
+    const team = new Set(visibleUsers.map((user) => user.id));
+    return users.filter((user) => user.status !== 'DISABLED').map((user) => ({
+      id: user.id, fullName: user.fullName, role: user.role, departmentId: user.departmentId ?? null, departmentName: user.department,
+      jobTitle: user.jobTitle, specialty: user.specialty, avatarUrl: user.avatarUrl, phone: user.phone, contactEmail: user.contactEmail,
+      city: user.city, about: user.about, birthday: user.birthday, inTeam: team.has(user.id),
+    })).sort((a, b) => a.fullName.localeCompare(b.fullName, 'ru'));
+  }, [isDemo, users, visibleUsers]);
+
   const value = useMemo<WorkspaceValue>(() => ({
     users: visibleUsers,
     clients: scopedClients, deals: scopedDeals, funnels: visibleFunnels, taskBoards: visibleBoards, tasks: visibleTasks, documents, reports, alerts: visibleAlerts,
     achievements, audit, dashboardMetrics: metrics, refresh,
-    dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, updateDealNotes, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, loadAnalyses,
+    dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, teamDirectory, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, updateDealNotes, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, loadAnalyses,
   // scoped is intentionally derived from current session and collections.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, updateDealNotes, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, loadAnalyses, session]);
+  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, teamDirectory, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, updateDealNotes, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, loadAnalyses, session]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

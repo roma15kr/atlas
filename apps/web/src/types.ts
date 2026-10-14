@@ -170,6 +170,24 @@ export interface TaskAssignee {
 }
 
 /** A user who can open a board, i.e. who can be assigned to its tasks. */
+/** A colleague in the company contact directory: contacts only, and whether they are in the caller's team. */
+export interface DirectoryEntry {
+  id: string;
+  fullName: string;
+  role: Role;
+  departmentId?: string | null;
+  departmentName?: string | null;
+  jobTitle?: string | null;
+  specialty?: string | null;
+  avatarUrl?: string | null;
+  phone?: string | null;
+  contactEmail?: string | null;
+  city?: string | null;
+  about?: string | null;
+  birthday?: string;
+  inTeam: boolean;
+}
+
 export interface BoardUser extends TaskAssignee {
   role?: Role;
   jobTitle?: string;
