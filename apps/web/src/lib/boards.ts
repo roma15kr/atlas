@@ -24,10 +24,10 @@ export function groupBoards(boards: TaskBoard[]): Array<{ label: string; boards:
   return [...groups.entries()].map(([label, items]) => ({ label, boards: [...items].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, 'ru')) }));
 }
 
-export const orderedStages = (board: TaskBoard): TaskStage[] => [...board.stages].sort((a, b) => a.sortOrder - b.sortOrder);
+export const orderedStages = (board: Pick<TaskBoard, 'stages'>): TaskStage[] => [...board.stages].sort((a, b) => a.sortOrder - b.sortOrder);
 
 /** A drop into a category column lands in the first stage of that category on the task's own board. */
-export const firstStageOf = (board: TaskBoard | undefined, category: TaskCategory): TaskStage | undefined =>
+export const firstStageOf = (board: Pick<TaskBoard, 'stages'> | undefined, category: TaskCategory): TaskStage | undefined =>
   board ? orderedStages(board).find((stage) => stage.category === category) : undefined;
 
 export const isOverdue = (task: WorkTask) => task.stage.category !== 'DONE' && Boolean(task.dueAt) && new Date(task.dueAt).getTime() < Date.now();

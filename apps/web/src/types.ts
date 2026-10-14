@@ -189,6 +189,10 @@ export interface WorkTask {
   stage: TaskStageSummary;
   assignees: TaskAssignee[];
   createdBy?: string;
+  /** Assigned from another department: only this task of the board is open to the user. */
+  viaAssignment?: boolean;
+  /** The board's stages, sent to such an assignee so they can move the task. */
+  boardStages?: TaskStage[];
   canDelete?: boolean;
   dealId?: string;
   dealTitle?: string;

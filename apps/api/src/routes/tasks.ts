@@ -136,6 +136,19 @@ tasksRouter.post("/", asyncHandler(async (req, res) => {
   res.status(201).json({ data: await scopedTask(auth, id) });
 }));
 
+/** `GET /api/v1/tasks/assignable-users`: every active colleague, for the assignee picker (tasks can be assigned across departments). */
+tasksRouter.get("/assignable-users", asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const result = await query(
+    `SELECT u.id, u.full_name AS "fullName", u.job_title AS "jobTitle", u.avatar_url AS "avatarUrl",
+            u.department_id AS "departmentId", d.name AS "departmentName"
+     FROM users u LEFT JOIN departments d ON d.id = u.department_id
+     WHERE u.company_id = $1 AND u.status = 'ACTIVE' ORDER BY d.name NULLS LAST, u.full_name`,
+    [auth.companyId]
+  );
+  res.json({ data: result.rows });
+}));
+
 tasksRouter.get("/:id", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
   res.json({ data: await scopedTask(auth, idSchema.parse(req.params.id)) });

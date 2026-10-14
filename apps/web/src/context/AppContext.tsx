@@ -148,6 +148,7 @@ const normalizeTask = (source: Record<string, unknown>): WorkTask => {
     stage: { id: String(stage.id ?? ''), name: String(stage.name ?? ''), color: String(stage.color ?? '#6B7280'), category: stage.category ?? 'TODO' },
     assignees: assignees.map((item) => ({ id: String(item.id), fullName: String(item.fullName ?? ''), avatarUrl: (item.avatarUrl ?? undefined) as string | undefined })),
     createdBy: (source.createdBy ?? undefined) as string | undefined, canDelete: source.canDelete === undefined ? undefined : Boolean(source.canDelete),
+    viaAssignment: source.viaAssignment === true ? true : undefined, boardStages: Array.isArray(source.boardStages) ? (source.boardStages as Array<Record<string, unknown>>).map((item) => ({ id: String(item.id), name: String(item.name ?? ''), color: String(item.color ?? '#6B7280'), category: (item.category as TaskStageSummary['category']) ?? 'TODO', boardId: String(source.boardId ?? ''), sortOrder: Number(item.sortOrder ?? 0) })) : undefined,
     dealId: (source.dealId ?? deal?.id ?? undefined) as string | undefined, dealTitle: (source.dealTitle ?? deal?.title ?? undefined) as string | undefined,
     dueAt: String(source.dueAt ?? ''), completedAt: (source.completedAt ?? null) as string | null, priority: (source.priority as TaskPriority) ?? 'NORMAL',
   };
@@ -361,6 +362,8 @@ export interface TaskBoardConfig {
   boardUsers: (boardId: string) => Promise<BoardUser[]>;
   /** Active non-director users of any department, for choosing extra members. */
   memberCandidates: (boardId: string) => Promise<BoardUser[]>;
+  /** Every active colleague: tasks can be assigned across departments. */
+  assignableUsers: () => Promise<BoardUser[]>;
 }
 
 interface WorkspaceValue {
@@ -863,6 +866,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         if (isDemo) { const board = taskBoards.find((item) => item.id === boardId); return board ? demoBoardUsers(board) : []; }
         return api.list<BoardUser>(`task-boards/${boardId}/users`);
       },
+      assignableUsers: async () => {
+        if (isDemo) return demoUsers.map((user) => ({ id: user.id, fullName: user.fullName, jobTitle: user.jobTitle, departmentId: user.departmentId ?? null, departmentName: user.department, avatarUrl: user.avatarUrl }));
+        return api.list<BoardUser>('tasks/assignable-users');
+      },
       memberCandidates: async (boardId) => {
         if (isDemo) return demoUsers.filter((user) => user.role !== 'DIRECTOR').map((user) => ({ id: user.id, fullName: user.fullName, jobTitle: user.jobTitle, departmentId: user.departmentId ?? null, departmentName: user.department }));
         return api.list<BoardUser>(`task-boards/${boardId}/candidates`);
@@ -953,9 +960,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }), [session, isDemo, taskBoards]);
   const visibleTasks = useMemo(() => {
     const boards = new Map(visibleBoards.map((board) => [board.id, board]));
-    return tasks.filter((task) => boards.has(task.boardId)).map((task) => !isDemo || !session ? task
-      : { ...task, canDelete: task.createdBy === session.user.id || boards.get(task.boardId)!.canManage });
-  }, [tasks, visibleBoards, isDemo, session]);
+    if (!isDemo || !session) return tasks;
+    // An assignee from another department sees only their own task on a board they cannot open, as the API does.
+    return tasks.flatMap((task) => boards.has(task.boardId)
+      ? [{ ...task, canDelete: task.createdBy === session.user.id || boards.get(task.boardId)!.canManage }]
+      : task.assignees.some((assignee) => assignee.id === session.user.id)
+        ? [{ ...task, canDelete: false, viaAssignment: true, boardStages: taskBoards.find((board) => board.id === task.boardId)?.stages ?? [] }]
+        : []);
+  }, [tasks, visibleBoards, taskBoards, isDemo, session]);
   const visibleAlerts = !session || session.user.role !== 'EMPLOYEE'
     ? alerts
     : alerts.filter((alert) => alert.userName === session.user.fullName);

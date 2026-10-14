@@ -10,12 +10,12 @@
 
 ## 3. Picker and dialog
 
-- [ ] 3.1 Add `GET /api/v1/tasks/assignable-users` and `assignableUsers()` in `AppContext` with a demo branch; change the `TaskDialog` picker to the whole company grouped by department with search, and the outsider mode (stages from `boardStages`, no board select, assignees read-only). Verify the `TaskBoards.test.tsx` cases pass; commit.
+- [x] 3.1 Add `GET /api/v1/tasks/assignable-users` and `assignableUsers()` in `AppContext` with a demo branch; change the `TaskDialog` picker to the whole company grouped by department with search, and the outsider mode (stages from `boardStages`, no board select, assignees read-only). Verify the `TaskBoards.test.tsx` cases pass; commit.
 
 ## 4. Integration checks
 
-- [ ] 4.1 Run `make check` and `npm run build`; verify both pass.
-- [ ] 4.2 Run `npx openspec validate assign-tasks-across-departments --strict`; verify it passes.
+- [x] 4.1 Run `make check` and `npm run build`; verify both pass.
+- [x] 4.2 Run `npx openspec validate assign-tasks-across-departments --strict`; verify it passes.
 
 ## Workflow follow-up
 

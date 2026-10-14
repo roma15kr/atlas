@@ -82,23 +82,42 @@ describe('my tasks', () => {
     await waitFor(() => expect(within(comments).getByRole('textbox', { name: 'Новый комментарий' })).toHaveTextContent(''));
   });
 
-  it('preselects the current user in a new task and limits assignees to board users', async () => {
+  it('preselects the current user and offers the whole company, grouped by department', async () => {
     const user = userEvent.setup();
     renderAs('employee', '/tasks');
     await user.click(await screen.findByRole('button', { name: 'Новая задача' }));
     const dialog = screen.getByRole('dialog', { name: 'Новая задача' });
     expect(await within(dialog).findByRole('checkbox', { name: /Анна Петрова \(вы\)/ })).toBeChecked();
-    expect(within(dialog).getByRole('checkbox', { name: /Алексей Ким/ })).not.toBeChecked();
-    expect(within(dialog).queryByRole('checkbox', { name: /Ольга Соколова/ })).not.toBeInTheDocument();
-    await user.selectOptions(within(dialog).getByLabelText('Доска'), within(dialog).getByRole('option', { name: 'Запуск продукта' }));
-    // A cross-department member of the board becomes assignable there.
-    expect(await within(dialog).findByRole('checkbox', { name: /Ольга Соколова/ })).toBeInTheDocument();
+    // The board's own department comes first; other departments follow.
+    const groups = within(dialog).getAllByRole('group').map((group) => group.getAttribute('aria-label')).filter(Boolean);
+    expect(groups[0]).toBe('Продажи');
+    expect(groups).toEqual(expect.arrayContaining(['Операции', 'Финансы']));
+    await user.type(within(dialog).getByRole('searchbox', { name: 'Найти исполнителя' }), 'Ольга');
+    expect(within(dialog).queryByRole('checkbox', { name: /Алексей Ким/ })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('checkbox', { name: /Анна Петрова/ })).toBeChecked();
+    await user.click(within(within(dialog).getByRole('group', { name: 'Операции' })).getByRole('checkbox', { name: /Ольга Соколова/ }));
+    expect(within(dialog).getByText(/увидят только эту задачу/)).toBeInTheDocument();
     await user.type(within(dialog).getByLabelText('Название'), 'Подготовить демо');
-    await user.click(within(dialog).getByRole('checkbox', { name: /Ольга Соколова/ }));
     await user.click(within(dialog).getByRole('button', { name: 'Создать задачу' }));
     expect(await within(column('Не начато')).findByRole('button', { name: 'Подготовить демо' })).toBeInTheDocument();
-    expect(within(card('Подготовить демо')).getByText('Запуск продукта · Бэклог')).toBeInTheDocument();
     expect(within(card('Подготовить демо')).getByLabelText(/Исполнители: .*Анна Петрова.*Ольга Соколова|Исполнители: .*Ольга Соколова.*Анна Петрова/)).toBeInTheDocument();
+  });
+
+  it('shows a task assigned from another department, movable but not reassignable', async () => {
+    const user = userEvent.setup();
+    renderAs('employee', '/tasks');
+    await screen.findByRole('heading', { name: 'Мои задачи' });
+    expect(within(card('Сверить остатки для Northstar')).getByText('Задачи отдела · Нужно сделать')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Сверить остатки для Northstar' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByLabelText('Доска')).toHaveAttribute('readonly');
+    expect(within(dialog).queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(within(dialog).getByText(/видите только эту задачу/)).toBeInTheDocument();
+    expect(within(within(dialog).getByLabelText('Этап')).getAllByRole('option').map((option) => option.textContent)).toEqual(['Нужно сделать · Не начато', 'В работе · В работе', 'Готово · Готово']);
+    await user.click(within(dialog).getByRole('button', { name: 'Закрыть' }));
+    fireEvent.dragStart(card('Сверить остатки для Northstar'), { dataTransfer: { effectAllowed: '' } });
+    fireEvent.drop(column('В работе'));
+    expect(await within(column('В работе')).findByText('Задачи отдела · В работе')).toBeInTheDocument();
   });
 });
 

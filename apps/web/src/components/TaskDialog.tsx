@@ -37,7 +37,7 @@ export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTas
   const [draft, setDraft] = useState<Draft>(() => ({
     title: task?.title ?? '',
     description: task?.description ?? '',
-    boardId: initialBoard?.id ?? '',
+    boardId: task?.viaAssignment ? task.boardId : initialBoard?.id ?? '',
     stageId: task?.stage.id ?? stageId ?? firstStageOf(initialBoard, 'TODO')?.id ?? '',
     dueAt: toDateInput(task ? task.dueAt : new Date(Date.now() + 86400000).toISOString()),
     priority: task?.priority ?? 'NORMAL',
@@ -52,20 +52,30 @@ export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTas
   const board = taskBoards.find((item) => item.id === draft.boardId);
   const groups = useMemo(() => groupBoards(taskBoards), [taskBoards]);
 
+  // Anyone in the company can be assigned; someone outside the board then sees only this task.
   useEffect(() => {
-    if (!draft.boardId) return;
     let active = true;
-    setPeople(null);
-    taskBoardConfig.boardUsers(draft.boardId).then((users) => {
-      if (!active) return;
-      setPeople(users);
-      // Keep only assignees who can open the chosen board.
-      setDraft((current) => ({ ...current, assigneeIds: current.assigneeIds.filter((id) => users.some((person) => person.id === id)) }));
-    }).catch(() => { if (active) setPeople([]); });
+    taskBoardConfig.assignableUsers().then((users) => { if (active) setPeople(users); }).catch(() => { if (active) setPeople([]); });
     return () => { active = false; };
-  // taskBoardConfig changes identity with every board list update; the board id is what matters.
+  // taskBoardConfig changes identity with every board list update; the list itself does not depend on it.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft.boardId]);
+  }, []);
+  const outsider = Boolean(task?.viaAssignment);
+  const [query, setQuery] = useState('');
+  const peopleGroups = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    const matching = (people ?? []).filter((person) => draft.assigneeIds.includes(person.id) || !needle
+      || `${person.fullName} ${person.departmentName ?? ''} ${person.jobTitle ?? ''}`.toLowerCase().includes(needle));
+    const groups = new Map<string, BoardUser[]>();
+    for (const person of matching) {
+      const key = person.departmentName ?? 'Без отдела';
+      groups.set(key, [...(groups.get(key) ?? []), person]);
+    }
+    const own = board?.departmentName ?? null;
+    return [...groups.entries()].sort(([a], [b]) => (a === own ? -1 : b === own ? 1 : a.localeCompare(b, 'ru')));
+  }, [people, query, draft.assigneeIds, board]);
+  const stageOptions = outsider ? (task?.boardStages ?? []) : board ? orderedStages(board) : [];
+  const outsideBoard = (person: BoardUser) => Boolean(board) && person.departmentId !== board!.departmentId;
 
   const changeBoard = (next: TaskBoard | undefined) => {
     if (!next) return;
@@ -115,13 +125,23 @@ export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTas
           : <><RichTextView markdown={draft.description} onChange={tickDescription} className="rich-field__view" />
             <button type="button" className="text-button" onClick={() => setEditingDescription(true)}>Изменить описание</button></>}
       </div>
-      <SelectField label="Доска" value={draft.boardId} onChange={(event) => changeBoard(taskBoards.find((item) => item.id === event.target.value))}>{groups.map((group) => <optgroup key={group.label} label={group.label}>{group.boards.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>)}</SelectField>
-      <SelectField label="Этап" value={draft.stageId} onChange={(event) => setDraft({ ...draft, stageId: event.target.value })}>{board && orderedStages(board).map((stage) => <option key={stage.id} value={stage.id}>{stage.name} · {categories[stage.category].label}</option>)}</SelectField>
+      {outsider
+        ? <Field label="Доска"><input value={task!.boardName} readOnly aria-describedby="outsider-note" /></Field>
+        : <SelectField label="Доска" value={draft.boardId} onChange={(event) => changeBoard(taskBoards.find((item) => item.id === event.target.value))}>{groups.map((group) => <optgroup key={group.label} label={group.label}>{group.boards.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>)}</SelectField>}
+      <SelectField label="Этап" value={draft.stageId} onChange={(event) => setDraft({ ...draft, stageId: event.target.value })}>{stageOptions.map((stage) => <option key={stage.id} value={stage.id}>{stage.name} · {categories[stage.category].label}</option>)}</SelectField>
       <Field label="Срок"><input type="date" value={draft.dueAt} onChange={(event) => setDraft({ ...draft, dueAt: event.target.value })} /></Field>
       <SelectField label="Приоритет" value={draft.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })}><option value="LOW">Низкий</option><option value="NORMAL">Обычный</option><option value="HIGH">Высокий</option></SelectField>
-      <fieldset className="check-list field--wide"><legend>Исполнители</legend>
-        {!people ? <small>Загружаем участников доски…</small> : people.map((person) => <label key={person.id}><input type="checkbox" checked={draft.assigneeIds.includes(person.id)} onChange={() => toggle(person.id)} /><span>{person.fullName}{person.id === user.id ? ' (вы)' : ''}<small>{person.departmentName ?? 'Без отдела'}</small></span></label>)}
-      </fieldset>
+      {outsider
+        ? <div className="field--wide"><span className="rich-field__label">Исполнители</span><p>{task!.assignees.map((assignee) => assignee.fullName).join(', ')}</p>
+          <small id="outsider-note" className="form-hint">Вы исполнитель из другого отдела: видите только эту задачу. Перенести её на другую доску или сменить исполнителей может команда доски.</small></div>
+        : <fieldset className="check-list field--wide assignee-picker"><legend>Исполнители</legend>
+          <input type="search" aria-label="Найти исполнителя" placeholder="Найти сотрудника — любой отдел" value={query} onChange={(event) => setQuery(event.target.value)} />
+          {!people ? <small>Загружаем сотрудников…</small> : peopleGroups.map(([department, members]) => <div key={department} className="assignee-picker__group" role="group" aria-label={department}>
+            <h4>{department}{board?.departmentName === department ? ' · доска' : ''}</h4>
+            {members.map((person) => <label key={person.id}><input type="checkbox" checked={draft.assigneeIds.includes(person.id)} onChange={() => toggle(person.id)} /><span>{person.fullName}{person.id === user.id ? ' (вы)' : ''}<small>{person.jobTitle ?? ''}</small></span></label>)}
+          </div>)}
+          {people && draft.assigneeIds.some((id) => { const person = people.find((item) => item.id === id); return person && outsideBoard(person); }) && <small className="form-hint">Исполнители из других отделов увидят только эту задачу, а не всю доску.</small>}
+        </fieldset>}
       {people && !draft.assigneeIds.length && <small className="field--wide form-hint">Выберите хотя бы одного исполнителя</small>}
       {error && <div className="form-error field--wide" role="alert">{error}</div>}
     </form>

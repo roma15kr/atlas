@@ -50,6 +50,13 @@ describe("tasks across departments", () => {
     expect((await as(warehouse).get(`/task-boards/${salesBoard}`)).status).toBe(404);
   });
 
+  it("lists every active colleague for the assignee picker", async () => {
+    const listed = (await as(seller).get("/tasks/assignable-users")).body.data as Array<{ id: string; departmentName: string }>;
+    expect(listed.map((row) => row.id)).toEqual(expect.arrayContaining([seller.id, salesHead.id, warehouse.id]));
+    expect(listed.map((row) => row.id)).not.toContain(disabled.id);
+    expect(listed.find((row) => row.id === warehouse.id)!.departmentName).toBe("Склад");
+  });
+
   it("refuses assignees who are disabled or not in the company", async () => {
     const refused = await as(seller).post("/tasks", { boardId: salesBoard, title: "x", assigneeIds: [disabled.id] });
     expect(refused.status).toBe(400);
