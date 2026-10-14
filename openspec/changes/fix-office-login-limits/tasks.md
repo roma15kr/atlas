@@ -7,12 +7,12 @@
 
 ## 2. Login screen
 
-- [ ] 2.1 Map login errors to Russian with the retry time, and add the phone-or-email, Caps Lock and Cyrillic-username hints. Verify `LoginPage` tests for each message and hint; commit.
+- [x] 2.1 Map login errors to Russian with the retry time, and add the phone-or-email, Caps Lock and Cyrillic-username hints. Verify `LoginPage` tests for each message and hint; commit.
 
 ## 3. Integration checks
 
-- [ ] 3.1 Run `make check` and `npm run build`; verify both pass.
-- [ ] 3.2 Run `npx openspec validate fix-office-login-limits --strict`; verify it passes.
+- [x] 3.1 Run `make check` and `npm run build`; verify both pass.
+- [x] 3.2 Run `npx openspec validate fix-office-login-limits --strict`; verify it passes.
 
 ## Workflow follow-up
 
