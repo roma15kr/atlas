@@ -50,6 +50,8 @@ export function createSocketServer(server: HttpServer): Server {
       if (transition.timedOutAt) await recordPresence(auth, "TIMEOUT", socket.id, transition.timedOutAt);
       await recordPresence(auth, event, socket.id);
       io.to(presenceAudienceRooms(auth)).emit("presence:changed", transition.state);
+      // Everyone in the company sees whether a colleague is online; times stay with the scoped event above.
+      io.to(companyPresenceRoom(auth.companyId)).emit("presence:online", { userId: auth.userId, online: transition.state.online });
     };
 
     // The browser measures idleness itself; this tells it how long a pause still counts as online.
@@ -57,7 +59,7 @@ export function createSocketServer(server: HttpServer): Server {
 
     // Handlers are attached at once so nothing sent during setup is lost; they wait for setup to finish.
     const ready = (async () => {
-      await socket.join([...presenceSubscriptionRooms(auth), userRoom(auth.userId)]);
+      await socket.join([...presenceSubscriptionRooms(auth), companyPresenceRoom(auth.companyId), userRoom(auth.userId)]);
       await touchSocket(auth.userId, socket.id);
       await publish(await applyActivity(auth.userId, true), "ONLINE");
       const userIds = await visibleUserIds(auth);
@@ -83,6 +85,8 @@ export function createSocketServer(server: HttpServer): Server {
 
   return io;
 }
+
+const companyPresenceRoom = (companyId: string) => `presence:company:${companyId}`;
 
 function presenceSubscriptionRooms(auth: AuthContext): string[] {
   const rooms = [`presence:user:${auth.userId}`];

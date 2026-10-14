@@ -185,6 +185,8 @@ export interface DirectoryEntry {
   city?: string | null;
   about?: string | null;
   birthday?: string;
+  /** Online right now; never a last-seen time. */
+  online?: boolean;
   inTeam: boolean;
 }
 

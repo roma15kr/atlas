@@ -22,6 +22,8 @@ const directory = async (who: TestUser) => {
 
 beforeAll(async () => {
   harness = await startDbHarness();
+  const { memoryPresenceStore, setPresenceStore } = await import("../presence");
+  setPresenceStore(memoryPresenceStore());
   app = (await import("../app")).app;
   boss = await harness.user("nikonov", "DIRECTOR", "Руководство", { consent: true });
   salesHead = await harness.user("denysiuk", "MANAGER", "Отдел продаж", { consent: true });
@@ -53,12 +55,21 @@ describe("company directory", () => {
 
   it("returns no performance, monitoring or private data", async () => {
     for (const row of await directory(salesHead)) {
-      for (const key of ["kpis", "rating", "jobDescription", "monitoringConsentAt", "monitoringConsentVersion", "presence", "birthDate", "showBirthday", "status", "username"]) {
+      for (const key of ["kpis", "rating", "jobDescription", "monitoringConsentAt", "monitoringConsentVersion", "presence", "lastSeenAt", "lastSeen", "birthDate", "showBirthday", "status", "username"]) {
         expect(row).not.toHaveProperty(key);
       }
     }
     // A hidden birthday stays hidden, even from its owner here.
     expect((await directory(promoter)).find((row) => row.id === promoter.id)).not.toHaveProperty("birthday");
+  });
+
+  it("says who is online now, for every department", async () => {
+    const { applyActivity, touchSocket } = await import("../presence");
+    await touchSocket(seller.id, "socket-seller");
+    await applyActivity(seller.id, true);
+    const rows = await directory(heatingHead);
+    expect(rows.find((row) => row.id === seller.id)).toMatchObject({ online: true });
+    expect(rows.find((row) => row.id === promoter.id)).toMatchObject({ online: false });
   });
 
   it("marks the caller's team with the usual scope", async () => {
