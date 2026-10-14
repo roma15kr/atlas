@@ -7,12 +7,13 @@
 
 ## 2. Docs
 
-- [ ] 2.1 Update onboarding slide 12 (HTML, then regenerate the PDF), `docs/ARCHITECTURE.md` and `docs/external/README.md`. Verify `rg "5 минут без активности"` finds nothing; commit.
+- [x] 2.1 Update onboarding slide 12 (HTML), `docs/ARCHITECTURE.md` and `docs/external/README.md`. Verify `rg "[^1]5 минут без активности"` finds nothing; commit.
+- [ ] 2.2 Regenerate `Atlas_Onboarding_Employees_RU.pdf` and `rendered/slide-12.png` from the HTML by printing it in Chrome. Blocked in this workspace: the headless Chromium lacks system libraries (`libnss3`) and there is no Docker. Do it on a machine with Chrome, or after the libraries are added to the workspace image.
 
 ## 3. Integration checks
 
-- [ ] 3.1 Run `make check` and `npm run build`; verify both pass.
-- [ ] 3.2 Run `npx openspec validate lengthen-presence-idle-period --strict`; verify it passes.
+- [x] 3.1 Run `make check` and `npm run build`; verify both pass.
+- [x] 3.2 Run `npx openspec validate lengthen-presence-idle-period --strict`; verify it passes.
 
 ## Workflow follow-up
 

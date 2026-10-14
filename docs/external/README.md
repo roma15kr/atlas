@@ -9,6 +9,7 @@ Things outside this repository that agents need to know exist. NAMES only, never
   - `GITHUB_REPOSITORY` — `owner/name` for problem-report issues, for example `roma15kr/atlas` (public: issues hold anonymised English text only).
   - `SOURCE_COMMIT` — set by Coolify at build time; becomes the app version (`APP_VERSION`, `VITE_APP_VERSION`) shown in problem reports and `/health`.
   - `IMAGE_UPLOADS_PER_HOUR` — optional; images a user may paste into formatted text per hour, default `60`.
+  - `PRESENCE_IDLE_MINUTES` — optional; minutes without keyboard or mouse activity before someone is shown «не в сети», 5–120, default `15`.
   - `MAIL_ENCRYPTION_KEY` — encrypts stored mailbox credentials (see `docs/OPERATIONS.md`).
   - `BACKUP_AGE_RECIPIENT` — public age key that backups are encrypted to.
   - `BOOTSTRAP_ADMIN_PASSWORD` — the first director's password on a new installation.
