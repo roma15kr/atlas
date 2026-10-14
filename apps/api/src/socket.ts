@@ -52,6 +52,9 @@ export function createSocketServer(server: HttpServer): Server {
       io.to(presenceAudienceRooms(auth)).emit("presence:changed", transition.state);
     };
 
+    // The browser measures idleness itself; this tells it how long a pause still counts as online.
+    socket.emit("presence:config", { idleMinutes: config.PRESENCE_IDLE_MINUTES });
+
     // Handlers are attached at once so nothing sent during setup is lost; they wait for setup to finish.
     const ready = (async () => {
       await socket.join([...presenceSubscriptionRooms(auth), userRoom(auth.userId)]);

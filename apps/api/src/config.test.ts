@@ -47,6 +47,12 @@ describe("AI and GitHub configuration", () => {
     expect(config.FEEDBACK_MODEL).toBe("gpt-6-luna");
     expect(config.APP_VERSION).toBe("abc123");
     expect(config.IMAGE_UPLOADS_PER_HOUR).toBe(60);
+    expect(config.PRESENCE_IDLE_MINUTES).toBe(15);
+  });
+  it("keeps the presence idle period between 5 and 120 minutes", async () => {
+    expect((await load({ PRESENCE_IDLE_MINUTES: "30" })).PRESENCE_IDLE_MINUTES).toBe(30);
+    await expect(load({ PRESENCE_IDLE_MINUTES: "2" })).rejects.toThrow(/PRESENCE_IDLE_MINUTES/);
+    await expect(load({ PRESENCE_IDLE_MINUTES: "121" })).rejects.toThrow(/PRESENCE_IDLE_MINUTES/);
   });
   it("accepts owner/name and refuses anything else", async () => {
     expect((await load({ GITHUB_REPOSITORY: "roma15kr/atlas" })).GITHUB_REPOSITORY).toBe("roma15kr/atlas");
