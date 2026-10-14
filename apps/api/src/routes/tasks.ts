@@ -26,7 +26,8 @@ export const taskInput = z.object({
   description: z.string().trim().max(10_000).nullable().optional(),
   priority: z.enum(["LOW", "NORMAL", "HIGH"]).default("NORMAL"),
   position: z.coerce.number().int().min(0).max(1_000_000).default(0),
-  dueAt: z.string().datetime().nullable().optional()
+  dueAt: z.string().datetime().nullable().optional(),
+  onBoard: z.boolean().optional()
 });
 export const taskPatch = z.object({
   boardId: z.string().uuid().optional(),
@@ -37,7 +38,8 @@ export const taskPatch = z.object({
   description: z.string().trim().max(10_000).nullable().optional(),
   priority: z.enum(["LOW", "NORMAL", "HIGH"]).optional(),
   position: z.coerce.number().int().min(0).max(1_000_000).optional(),
-  dueAt: z.string().datetime().nullable().optional()
+  dueAt: z.string().datetime().nullable().optional(),
+  onBoard: z.boolean().optional()
 }).refine((value) => value.boardId === undefined || value.stageId !== undefined, {
   path: ["stageId"], message: "Moving a task to another board needs a stage of that board"
 });
@@ -47,7 +49,8 @@ const taskFilters = z.object({
   category: z.enum(STAGE_CATEGORIES).optional(),
   priority: z.enum(["LOW", "NORMAL", "HIGH"]).optional(),
   dealId: z.string().uuid().optional(),
-  assignee: z.union([z.literal("me"), z.string().uuid()]).optional()
+  assignee: z.union([z.literal("me"), z.string().uuid()]).optional(),
+  visibility: z.enum(["board", "personal"]).optional()
 });
 const idSchema = z.string().uuid();
 
@@ -68,6 +71,7 @@ interface TaskRow {
   completed_at: Date | null;
   created_by: string;
   board_department_id: string | null;
+  assignee_ids: string[];
 }
 
 interface StageRow {
@@ -94,6 +98,7 @@ tasksRouter.get("/", asyncHandler(async (req, res) => {
     values.push(filters.assignee === "me" ? auth.userId : filters.assignee);
     clauses.push(`EXISTS (SELECT 1 FROM task_assignees fa WHERE fa.task_id = t.id AND fa.user_id = $${values.length})`);
   }
+  if (filters.visibility) clauses.push(filters.visibility === "board" ? "t.on_board" : "NOT t.on_board");
   const dealAccess = funnelAccessSql(auth, "d.funnel_id", values.length + 1);
   values.push(...dealAccess.values, page.limit, page.offset);
   const result = await query(
@@ -116,14 +121,15 @@ tasksRouter.post("/", asyncHandler(async (req, res) => {
     : await firstTodoStage(auth, input.boardId);
   await assertAssignableUsers(auth.companyId, assigneeIds);
   if (input.dealId) await assertDealVisible(auth, input.dealId);
+  const onBoard = input.onBoard ?? await involvesColleagues(auth.userId, assigneeIds);
   const id = await transaction(async (client) => {
     const result = await client.query<{ id: string }>(
       `INSERT INTO tasks
-        (company_id, department_id, board_id, stage_id, created_by, deal_id, title, description, priority, position, due_at, completed_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
+        (company_id, department_id, board_id, stage_id, created_by, deal_id, title, description, priority, position, due_at, completed_at, on_board)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
       [auth.companyId, stage.department_id, input.boardId, stage.id, auth.userId, input.dealId ?? null,
         input.title, input.description ?? null, input.priority, input.position, asOptionalDate(input.dueAt),
-        stage.category === "DONE" ? new Date() : null]
+        stage.category === "DONE" ? new Date() : null, onBoard]
     );
     const taskId = result.rows[0]!.id;
     await replaceAssignees(client, taskId, assigneeIds);
@@ -131,7 +137,7 @@ tasksRouter.post("/", asyncHandler(async (req, res) => {
   });
   await writeAudit(req, {
     auth, action: "TASK_CREATED", entityType: "task", entityId: id, departmentId: stage.department_id,
-    metadata: { boardId: input.boardId, assignees: assigneeIds.length }
+    metadata: { boardId: input.boardId, assignees: assigneeIds.length, onBoard }
   });
   res.status(201).json({ data: await scopedTask(auth, id) });
 }));
@@ -161,7 +167,7 @@ tasksRouter.patch("/:id", asyncHandler(async (req, res) => {
   if (!Object.values(input).some((value) => value !== undefined)) throw new ApiError(400, "NO_CHANGES", "No fields to update");
   const current = await accessibleTask(auth, id);
   const outsider = !(await canAccessBoard(auth, current.board_id));
-  if (outsider && ((input.boardId && input.boardId !== current.board_id) || input.assigneeIds)) {
+  if (outsider && ((input.boardId && input.boardId !== current.board_id) || input.assigneeIds || input.onBoard !== undefined)) {
     await writeAudit(req, { auth, action: "TASK_UPDATE_DENIED", entityType: "task", entityId: id, departmentId: current.board_department_id,
       metadata: { fields: Object.keys(input).filter((key) => input[key as keyof typeof input] !== undefined) } });
     throw new ApiError(403, "TASK_OUTSIDER_FORBIDDEN", "Only the board's people move a task to another board or change its assignees");
@@ -173,6 +179,10 @@ tasksRouter.patch("/:id", asyncHandler(async (req, res) => {
     : undefined;
   if (input.assigneeIds) await assertAssignableUsers(auth.companyId, input.assigneeIds);
   if (input.dealId) await assertDealVisible(auth, input.dealId);
+  // Adding a colleague shares the task on the board, unless the request says otherwise; nothing hides it implicitly.
+  const shareByAssigning = input.onBoard === undefined && input.assigneeIds
+    ? await involvesColleagues(current.created_by, input.assigneeIds.filter((userId) => !current.assignee_ids.includes(userId)))
+    : false;
 
   const departmentId = await transaction(async (client) => {
     const locked = await client.query<TaskRow>(
@@ -202,6 +212,8 @@ tasksRouter.patch("/:id", asyncHandler(async (req, res) => {
     if (input.priority !== undefined) set("priority", input.priority);
     if (input.position !== undefined) set("position", input.position);
     if (input.dueAt !== undefined) set("due_at", asOptionalDate(input.dueAt));
+    if (input.onBoard !== undefined) set("on_board", input.onBoard);
+    else if (shareByAssigning) set("on_board", true);
     if (assignments.length) {
       values.push(id);
       await client.query(`UPDATE tasks SET ${assignments.join(", ")} WHERE id = $${values.length}`, values);
@@ -234,7 +246,8 @@ tasksRouter.delete("/:id", asyncHandler(async (req, res) => {
 async function accessibleTask(auth: AuthContext, id: string): Promise<TaskRow> {
   const access = taskAccessSql(auth, "t", 2);
   const result = await query<TaskRow>(
-    `SELECT t.id, t.board_id, t.stage_id, s.category, t.completed_at, t.created_by, b.department_id AS board_department_id
+    `SELECT t.id, t.board_id, t.stage_id, s.category, t.completed_at, t.created_by, b.department_id AS board_department_id,
+            ARRAY(SELECT ta.user_id::text FROM task_assignees ta WHERE ta.task_id = t.id) AS assignee_ids
      FROM tasks t JOIN task_board_stages s ON s.id = t.stage_id JOIN task_boards b ON b.id = t.board_id
      WHERE t.id = $1 AND ${access.sql}`,
     [id, ...access.values]
@@ -282,6 +295,14 @@ async function firstTodoStage(auth: AuthContext, boardId: string): Promise<Stage
   if (!row) throw new ApiError(404, "BOARD_NOT_FOUND", "Board not found");
   if (!row.id) throw new ApiError(409, "STAGE_CATEGORY_REQUIRED", "The board has no TODO stage");
   return row;
+}
+
+/** True when someone other than the author and directors works on the task: then it belongs on the board. */
+async function involvesColleagues(authorId: string, assigneeIds: string[]): Promise<boolean> {
+  const others = assigneeIds.filter((userId) => userId !== authorId);
+  if (!others.length) return false;
+  const result = await query("SELECT 1 FROM users WHERE id = ANY($1::uuid[]) AND role <> 'DIRECTOR' LIMIT 1", [others]);
+  return Boolean(result.rowCount);
 }
 
 async function replaceAssignees(client: PoolClient, taskId: string, userIds: string[]): Promise<void> {
@@ -354,7 +375,7 @@ const taskFrom = `tasks t
 
 /** The linked deal summary is hidden from viewers who cannot open the deal's funnel. */
 function taskColumns(dealFunnelAccessSql: string): string {
-  return `t.id, t.title, t.description, t.priority, t.position, t.board_id AS "boardId", b.name AS "boardName",
+  return `t.id, t.title, t.description, t.priority, t.position, t.on_board AS "onBoard", t.board_id AS "boardId", b.name AS "boardName",
     b.department_id AS "boardDepartmentId",
     json_build_object('id', s.id, 'name', s.name, 'color', s.color, 'category', s.category) AS stage,
     COALESCE((

@@ -3,7 +3,7 @@ import { requireAuth } from "../auth";
 import { query } from "../db";
 import { asyncHandler } from "../errors";
 import { presenceFor } from "../presence";
-import { recordScope, scopeDepartments } from "../scope";
+import { taskAccessSql, recordScope, scopeDepartments } from "../scope";
 import { alertVisibility } from "./alerts";
 import { dealScope } from "./deals";
 
@@ -17,7 +17,11 @@ dashboardRouter.get("/", asyncHandler(async (req, res) => {
   const taskScope = auth.role === "DIRECTOR"
     ? { sql: "t.company_id = $1", values: [auth.companyId] }
     : auth.role === "MANAGER"
-      ? { sql: "t.company_id = $1 AND b.department_id = ANY($2::uuid[])", values: [auth.companyId, scopeDepartments(auth)] }
+      ? (() => {
+          // Their departments' boards, without colleagues' personal tasks they don't oversee.
+          const visible = taskAccessSql(auth, "t", 3);
+          return { sql: `t.company_id = $1 AND b.department_id = ANY($2::uuid[]) AND ${visible.sql}`, values: [auth.companyId, scopeDepartments(auth), ...visible.values] };
+        })()
       : { sql: "t.company_id = $1 AND EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.user_id = $2)", values: [auth.companyId, auth.userId] };
   const userScope = recordScope(auth, { company: "u.company_id", department: "u.department_id", owner: "u.id" });
   const alertScope = alertVisibility(auth);
