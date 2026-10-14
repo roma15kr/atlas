@@ -2,7 +2,7 @@
 
 ## 1. Tracer bullet: an employee sees a colleague from another department
 
-- [ ] 1.1 Add `GET /api/v1/team/directory` (all active company users, contact fields only, `inTeam` from `recordScope`). Verify a new `companyDirectory.integration.test.ts`: an employee gets colleagues from every department with `inTeam` only for themselves; no KPIs, rating, job description, consent, presence or `birthDate` in any row; a hidden birthday is absent; another company's users are absent. Commit.
+- [x] 1.1 Add `GET /api/v1/team/directory` (all active company users, contact fields only, `inTeam` from `recordScope`). Verify a new `companyDirectory.integration.test.ts`: an employee gets colleagues from every department with `inTeam` only for themselves; no KPIs, rating, job description, consent, presence or `birthDate` in any row; a hidden birthday is absent; another company's users are absent. Commit.
 
 ## 2. Team page
 

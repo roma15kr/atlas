@@ -173,6 +173,24 @@ const profileColumns: Record<string, string> = {
 };
 
 /**
+ * The company contact directory: every active colleague with contact fields only. `inTeam` marks the
+ * people inside the caller's record scope, whose full card comes from `GET /team`.
+ */
+teamRouter.get("/directory", asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const scope = recordScope(auth, { company: "u.company_id", department: "u.department_id", owner: "u.id" }, 2);
+  // NULL as the viewer: nobody gets the full birth date here, not even the caller.
+  const result = await query<Record<string, unknown>>(
+    `SELECT u.id, u.full_name AS "fullName", u.role, u.department_id AS "departmentId", d.name AS "departmentName",
+            u.job_title AS "jobTitle", u.specialty, ${profileFieldsSql("u", "NULL::uuid")}, (${scope.sql}) AS "inTeam"
+     FROM users u LEFT JOIN departments d ON d.id = u.department_id
+     WHERE u.company_id = $1 AND u.status = 'ACTIVE' ORDER BY u.full_name`,
+    [auth.companyId, ...scope.values]
+  );
+  res.json({ data: result.rows.map(withoutHiddenProfile) });
+}));
+
+/**
  * The personal profile fields of `alias`, as seen by the user whose id is the SQL parameter `viewer`:
  * the full birth date and the visibility setting only for themselves, the day and month for colleagues
  * only while the birthday is shown.
