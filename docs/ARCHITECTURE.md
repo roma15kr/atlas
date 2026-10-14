@@ -168,7 +168,9 @@ Presence tracks connections per user (Redis sorted set `presence:sockets:<id>`,
 or memory without Redis) and an "active" state with a 5-minute expiry. The
 browser reports `presence:heartbeat { active }` every minute, where active means
 keyboard, mouse, scroll or touch input in any Atlas tab (shared through
-`localStorage`) within 5 minutes, and immediately when that flips. A person is
+`localStorage`) within the idle period, and immediately when that flips. The period
+is `PRESENCE_IDLE_MINUTES` (default 15), sent to the browser as `presence:config`
+on connect. A person is
 ONLINE while a connection is open and they are active; closing one of several
 tabs changes nothing. Only real changes are broadcast as `presence:changed` and
 written to `presence_events` (ONLINE, OFFLINE, or TIMEOUT at the last-seen time

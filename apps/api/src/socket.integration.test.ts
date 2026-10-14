@@ -83,6 +83,15 @@ describe("presence over sockets", () => {
     expect(await events(ivan.id)).toEqual([]);
   });
 
+  it("tells a new connection the idle period", async () => {
+    const socket = connect(url, { auth: { token: anna.token }, transports: ["websocket"], forceNew: true });
+    sockets.push(socket);
+    const received = await new Promise((resolve) => socket.once("presence:config", resolve));
+    expect(received).toEqual({ idleMinutes: 15 });
+    socket.disconnect();
+    await settle();
+  });
+
   it("counts older clients without the active flag as active", async () => {
     const socket = await open(anna);
     const state = await new Promise<{ online: boolean }>((resolve) => socket.emit("presence:heartbeat", { at: Date.now() }, resolve));
