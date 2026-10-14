@@ -190,6 +190,20 @@ describe('department structure', () => {
     expect(within(dialog).getByLabelText('Входит в: Продажи')).toBeDisabled();
   });
 
+  it('shows the parent\'s head for a sub-department without its own', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.director));
+    renderAt('/team');
+    await user.click(await screen.findByRole('button', { name: 'Отделы' }));
+    const dialog = screen.getByRole('dialog', { name: 'Отделы' });
+    await user.selectOptions(await within(dialog).findByLabelText('Входит в: Финансы'), 'Продажи');
+    await within(dialog).findByRole('status');
+    const finance = within(dialog).getByText('↳ Финансы').closest('tr')!;
+    expect(finance).toHaveTextContent('Михаил Волков · через «Продажи»');
+    const sales = within(dialog).getByText('Продажи', { selector: 'td' }).closest('tr')!;
+    expect(sales).not.toHaveTextContent('через');
+  });
+
   it('shows no structure button to a head', async () => {
     localStorage.setItem('atlas.session', JSON.stringify(demoSessions.manager));
     renderAt('/team');

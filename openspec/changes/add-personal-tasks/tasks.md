@@ -11,8 +11,8 @@
 
 ## 3. Integration checks
 
-- [ ] 3.1 Run `make check` and `npm run build`; verify both pass.
-- [ ] 3.2 Run `npx openspec validate add-personal-tasks --strict`; verify it passes.
+- [x] 3.1 Run `make check` and `npm run build`; verify both pass.
+- [x] 3.2 Run `npx openspec validate add-personal-tasks --strict`; verify it passes.
 
 ## Workflow follow-up
 
