@@ -1,10 +1,10 @@
 import {
-  BarChart3, Bell, BookOpenCheck, BriefcaseBusiness, ChevronLeft, ChevronRight,
+  BarChart3, BookOpenCheck, BriefcaseBusiness, ChevronLeft, ChevronRight,
   ClipboardList, FileText, Mail, MessageSquareWarning, Gauge, SquareKanban, LayoutDashboard, LogOut, Menu, MessageSquare,
   PanelLeftClose, Search, Send, Settings, ShieldCheck, Trophy, Users, X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth, useWorkspace } from '../context/AppContext';
 import { useChat } from '../context/ChatContext';
 import { useMail } from '../context/MailContext';
@@ -12,6 +12,7 @@ import { useTelegram } from '../context/TelegramContext';
 import { recordDiagnostic } from '../lib/diagnostics';
 import { relativeTime, roleLabel } from '../lib/format';
 import type { Role } from '../types';
+import { NotificationBell } from './NotificationBell';
 import { FeedbackButton } from './FeedbackDialog';
 import { Avatar, Badge, IconButton } from './ui';
 
@@ -48,7 +49,7 @@ const routeNames: Record<string, string> = {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { session, logout } = useAuth();
-  const { alerts, dataStatus } = useWorkspace();
+  const { dataStatus } = useWorkspace();
   const { totals } = useChat();
   const { unread: mailUnread } = useMail();
   const { unread: telegramUnread } = useTelegram();
@@ -56,9 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('atlas.sidebar.collapsed') === 'true');
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
   const user = session!.user;
-  const openAlerts = alerts.filter((alert) => !alert.acknowledged).length;
   useEffect(() => { recordDiagnostic({ type: 'route', path: location.pathname }); }, [location.pathname]);
   const pageName = useMemo(() => location.pathname.startsWith('/crm/') ? 'Карточка клиента' : /^\/boards\/[^/]+\/settings$/.test(location.pathname) ? 'Настройка досок' : location.pathname.startsWith('/mail/oauth') ? 'Почта' : routeNames[location.pathname] ?? 'Atlas', [location.pathname]);
 
@@ -76,7 +75,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="sidebar__user"><Avatar name={user.fullName} src={user.avatarUrl} online size="sm" /><div><strong>{user.fullName}</strong><span>{roleLabel[user.role]}</span></div><IconButton label="Выйти" icon={LogOut} onClick={() => void logout()} /></div>
     </aside>
     <div className="app-main">
-      <header className="topbar"><div className="topbar__left"><IconButton label="Открыть меню" icon={Menu} className="topbar__menu" onClick={() => setMobileOpen(true)} /><div><span>Рабочее пространство</span><strong>{pageName}</strong></div></div><div className="topbar__right"><label className="global-search"><Search size={16} /><input aria-label="Поиск" placeholder="Поиск" /></label>{dataStatus === 'offline' && <Badge tone="warning">Офлайн-данные</Badge>}<FeedbackButton /><button className="topbar__alerts" aria-label={`Уведомления: ${openAlerts}`} onClick={() => navigate('/')}><Bell size={18} />{openAlerts > 0 && <i>{openAlerts}</i>}</button><div className="topbar__presence"><span className="presence presence--online" />В сети · {relativeTime(new Date().toISOString())}</div></div></header>
+      <header className="topbar"><div className="topbar__left"><IconButton label="Открыть меню" icon={Menu} className="topbar__menu" onClick={() => setMobileOpen(true)} /><div><span>Рабочее пространство</span><strong>{pageName}</strong></div></div><div className="topbar__right"><label className="global-search"><Search size={16} /><input aria-label="Поиск" placeholder="Поиск" /></label>{dataStatus === 'offline' && <Badge tone="warning">Офлайн-данные</Badge>}<FeedbackButton /><NotificationBell /><div className="topbar__presence"><span className="presence presence--online" />В сети · {relativeTime(new Date().toISOString())}</div></div></header>
       <main className="page-content">{children}</main>
     </div>
   </div>;
