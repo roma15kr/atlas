@@ -14,7 +14,7 @@
 ## 3. Desktop notifications
 
 - [x] 3.1 Add `web-push`, VAPID config (disabled without keys), subscription and preference endpoints with audit, the async sender (drops 404/410 and repeatedly failing subscriptions), the test endpoint, and ADR `0005-web-push-notifications.md`. Verify the integration cases with a stubbed sender (group preference respected, gone subscription deleted, disabled without keys); commit.
-- [ ] 3.2 Add `public/sw.js` (skip when focused, click opens the link), Nginx `no-cache` for it, and «Профиль → Уведомления» (status, enable/disable, groups, test). Verify the `ProfileNotifications.test.tsx` cases with mocked `Notification`/`PushManager`; commit.
+- [x] 3.2 Add `public/sw.js` (skip when focused, click opens the link), Nginx `no-cache` for it, and «Профиль → Уведомления» (status, enable/disable, groups, test). Verify the `ProfileNotifications.test.tsx` cases with mocked `Notification`/`PushManager`; commit.
 
 ## 4. Integration checks
 

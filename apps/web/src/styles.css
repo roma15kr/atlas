@@ -1279,3 +1279,4 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 .notification-panel li small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notification-panel li time { color: var(--muted); font-size: 11px; }
 .notification-panel .text-button { display: inline-flex; align-items: center; gap: 4px; }
+.notification-settings__actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
