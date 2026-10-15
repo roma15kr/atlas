@@ -33,6 +33,11 @@ beforeAll(async () => {
 afterAll(async () => { await harness?.stop(); });
 
 describe("notification centre", () => {
+  it("reports desktop notifications as unavailable without server keys", async () => {
+    expect((await as(tymoshenko).get("/notifications/push/config")).body.data).toEqual({ enabled: false, publicKey: null });
+    expect((await as(tymoshenko).post("/notifications/push/subscriptions", { endpoint: "https://push.test/x", keys: { p256dh: "B".repeat(87), auth: "a".repeat(22) } })).body.error.code).toBe("PUSH_DISABLED");
+  });
+
   it("notifies a new assignee, not the head who assigned the task", async () => {
     const task = (await as(natalia).post("/tasks", { boardId: salesBoard, title: "Обдзвонити дилерів", assigneeIds: [tymoshenko.id] })).body.data;
     const mine = await inbox(tymoshenko);

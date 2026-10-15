@@ -41,6 +41,10 @@ const envSchema = z.object({
   /** Images pasted into formatted text, per user per hour. */
   IMAGE_UPLOADS_PER_HOUR: z.coerce.number().int().min(1).max(10_000).default(60),
   /** Minutes without keyboard or mouse activity before a person is shown «не в сети». */
+  /** Web Push (desktop notifications). Without the key pair desktop notifications report "disabled". */
+  VAPID_PUBLIC_KEY: z.preprocess((value) => value === "" ? undefined : value, z.string().regex(/^[A-Za-z0-9_-]{80,100}$/).optional()),
+  VAPID_PRIVATE_KEY: z.preprocess((value) => value === "" ? undefined : value, z.string().regex(/^[A-Za-z0-9_-]{40,50}$/).optional()),
+  VAPID_SUBJECT: z.preprocess((value) => value === "" ? undefined : value, z.string().regex(/^(mailto:|https:\/\/)/).default("mailto:admin@atlas.local")),
   PRESENCE_IDLE_MINUTES: z.coerce.number().int().min(5).max(120).default(15),
   OPENAI_API_KEY: z.string().optional(),
   AI_ANALYSIS_MODEL: z.string().default("gpt-6-luna"),
