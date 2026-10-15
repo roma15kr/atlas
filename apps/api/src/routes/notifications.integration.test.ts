@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 let harness: Awaited<ReturnType<typeof startDbHarness>>;
 let app: Express;
-let natalia: TestUser, tymoshenko: TestUser, trubylo: TestUser, babenko: TestUser;
+let natalia: TestUser, tymoshenko: TestUser, trubylo: TestUser, babenko: TestUser, boss: TestUser, olga: TestUser;
 let salesBoard: string;
 
 const as = (who: TestUser) => ({
@@ -25,6 +25,8 @@ beforeAll(async () => {
   tymoshenko = await harness.user("tymoshenko", "EMPLOYEE", "Отдел продаж", { consent: true });
   trubylo = await harness.user("trubylo", "EMPLOYEE", "Отдел продаж", { consent: true });
   babenko = await harness.user("babenko", "EMPLOYEE", "Отдел продаж", { consent: true });
+  boss = await harness.user("nikonov", "DIRECTOR", "Руководство", { consent: true });
+  olga = await harness.user("olga", "MANAGER", "Склад", { consent: true });
   salesBoard = (await harness.query<{ id: string }>("SELECT id FROM task_boards WHERE department_id = $1", [natalia.departmentId])).rows[0]!.id;
 }, 60_000);
 
@@ -139,5 +141,35 @@ describe("notification centre", () => {
     expect(mine.meta.unreadCount).toBe(1);
     expect(mine.data[0]).toMatchObject({ kind: "TELEGRAM_MESSAGE", title: "Telegram: Сергій", body: "Коли доставка?", link: `/telegram?contact=${contact}` });
     expect((await inbox(trubylo)).meta.unreadCount).toBe(0);
+  });
+
+  it("notifies exactly the people who can see a new alert", async () => {
+    const { notifyAlert } = await import("../automation/alerts");
+    for (const who of [tymoshenko, trubylo, natalia, boss, olga]) await as(who).post("/notifications/read-all");
+    const alert = (await harness.query<{ id: string }>(
+      "INSERT INTO alerts (company_id, department_id, user_id, severity, category, title, summary, rule) VALUES ($1, $2, $3, 'WARNING', 'TASK', 'Просрочені задачі', '3 задачі прострочені', 'test-rule') RETURNING id",
+      [harness.company, tymoshenko.departmentId, tymoshenko.id])).rows[0]!.id;
+    await notifyAlert(alert);
+    const got = async (who: TestUser) => (await inbox(who)).data.some((item) => item.kind === "ALERT_CREATED" && !item.readAt);
+    expect({ tymoshenko: await got(tymoshenko), natalia: await got(natalia), boss: await got(boss), trubylo: await got(trubylo), olga: await got(olga) })
+      .toEqual({ tymoshenko: true, natalia: true, boss: true, trubylo: false, olga: false });
+  });
+
+  it("tells the new owner about a deal or client handed over, not about their own", async () => {
+    for (const who of [tymoshenko, trubylo]) await as(who).post("/notifications/read-all");
+    const funnel = (await harness.query<{ id: string }>("INSERT INTO deal_funnels (company_id, name) VALUES ($1, 'Основна') RETURNING id", [harness.company])).rows[0]!.id;
+    await harness.query("INSERT INTO deal_stages (company_id, funnel_id, name, color, sort_order, outcome) VALUES ($1, $2, 'Кваліфікація', '#2563EB', 10, 'OPEN')", [harness.company, funnel]);
+    const client = (await as(natalia).post("/clients", { name: "Нексанс", ownerId: tymoshenko.id })).body.data;
+    expect((await inbox(tymoshenko)).data[0]).toMatchObject({ kind: "CLIENT_ASSIGNED", link: `/crm/${client.id}` });
+    const deal = (await as(natalia).post("/deals", { clientId: client.id, funnelId: funnel, title: "Кабель 2026", ownerId: tymoshenko.id })).body.data;
+    expect((await inbox(tymoshenko)).data[0]).toMatchObject({ kind: "DEAL_ASSIGNED", title: "Вам передана сделка: Кабель 2026", link: `/sales?deal=${deal.id}` });
+
+    await as(natalia).patch(`/clients/${client.id}`, { ownerId: trubylo.id });
+    expect((await inbox(trubylo)).data[0]).toMatchObject({ kind: "CLIENT_ASSIGNED", readAt: null });
+
+    await as(tymoshenko).post("/notifications/read-all");
+    const own = (await as(tymoshenko).post("/clients", { name: "Свій клієнт" })).body.data;
+    expect((await as(tymoshenko).post("/deals", { clientId: own.id, funnelId: funnel, title: "Своя угода" })).status).toBe(201);
+    expect((await inbox(tymoshenko)).meta.unreadCount).toBe(0);
   });
 });

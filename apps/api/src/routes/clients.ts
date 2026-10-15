@@ -1,3 +1,4 @@
+import { notifyNewOwner } from "./deals";
 import { Router, type Request } from "express";
 import { stringify } from "csv-stringify/sync";
 import { z } from "zod";
@@ -103,6 +104,7 @@ export async function createClient(req: Request, auth: AuthContext, raw: unknown
   );
   const id = result.rows[0]?.id as string;
   await writeAudit(req, { auth, action: "CLIENT_CREATED", entityType: "client", entityId: id, departmentId: owner.department_id });
+  await notifyNewOwner(auth, "CLIENT_ASSIGNED", owner.id, id, input.name);
   return id;
 }
 
@@ -117,7 +119,7 @@ clientsRouter.get("/:id", asyncHandler(async (req, res) => {
 clientsRouter.patch("/:id", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
   const id = idSchema.parse(req.params.id);
-  await scopedClient(auth, id);
+  const before = await scopedClient(auth, id) as { ownerId?: string };
   const input = clientPatch.parse(req.body);
   const data: Record<string, unknown> = {
     ...input,
@@ -140,7 +142,9 @@ clientsRouter.patch("/:id", asyncHandler(async (req, res) => {
     update.values
   );
   await writeAudit(req, { auth, action: "CLIENT_UPDATED", entityType: "client", entityId: id, metadata: { fields: Object.keys(input) } });
-  res.json({ data: await scopedClient(auth, id) });
+  const updated = await scopedClient(auth, id) as { name: string };
+  if (data.ownerId && data.ownerId !== before.ownerId) await notifyNewOwner(auth, "CLIENT_ASSIGNED", String(data.ownerId), id, updated.name);
+  res.json({ data: updated });
 }));
 
 clientsRouter.delete("/:id", asyncHandler(async (req, res) => {

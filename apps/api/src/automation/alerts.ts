@@ -1,3 +1,7 @@
+import type { Role } from "../types";
+import { coveredDepartments, SUB_DEPARTMENTS_SQL } from "../auth";
+import { alertVisibility } from "../routes/alerts";
+import { notify } from "../notifications/notify";
 import { query } from "../db";
 
 export const ALERT_RULES = ["TASKS_OVERDUE", "DEAL_CLOSE_OVERDUE", "DEAL_STALLED", "KPI_BEHIND", "INACTIVITY"] as const;
@@ -71,7 +75,7 @@ export interface AlertEvaluation { created: number; updated: number; resolved: n
 export async function evaluateAlerts(): Promise<AlertEvaluation> {
   const totals: AlertEvaluation = { created: 0, updated: 0, resolved: 0 };
   for (const [rule, conditions] of Object.entries(rules)) {
-    const upserted = await query<{ inserted: boolean }>(
+    const upserted = await query<{ id: string; inserted: boolean }>(
       `INSERT INTO alerts (company_id, department_id, user_id, deal_id, severity, category, title, summary, evidence, rule, dedupe_key)
        SELECT c.company_id, c.department_id, c.user_id, c.deal_id, c.severity, c.category, c.title, c.summary, c.evidence, $1, c.dedupe_key
        FROM (${conditions}) c
@@ -80,10 +84,11 @@ export async function evaluateAlerts(): Promise<AlertEvaluation> {
                      title = EXCLUDED.title, department_id = EXCLUDED.department_id
        WHERE alerts.severity IS DISTINCT FROM EXCLUDED.severity OR alerts.evidence IS DISTINCT FROM EXCLUDED.evidence
           OR alerts.summary IS DISTINCT FROM EXCLUDED.summary
-       RETURNING (xmax = 0) AS inserted`,
+       RETURNING id, (xmax = 0) AS inserted`,
       [rule]
     );
     totals.created += upserted.rows.filter((row) => row.inserted).length;
+    for (const row of upserted.rows) if (row.inserted) await notifyAlert(row.id);
     totals.updated += upserted.rows.filter((row) => !row.inserted).length;
     const resolved = await query(
       `UPDATE alerts a SET resolved_at = now()
@@ -94,4 +99,24 @@ export async function evaluateAlerts(): Promise<AlertEvaluation> {
     totals.resolved += resolved.rowCount ?? 0;
   }
   return totals;
+}
+
+/** Everyone who can see a new alert hears about it, by the same rule as the alert list. */
+export async function notifyAlert(alertId: string): Promise<void> {
+  const alert = (await query<{ company_id: string; title: string; summary: string | null; deal_id: string | null }>(
+    "SELECT company_id, title, summary, deal_id FROM alerts WHERE id = $1", [alertId])).rows[0];
+  if (!alert) return;
+  const people = await query<{ id: string; username: string; role: Role; department_id: string | null; sub_departments: string[] }>(
+    `SELECT u.id, u.username, u.role, u.department_id, ${SUB_DEPARTMENTS_SQL} AS sub_departments FROM users u WHERE u.company_id = $1 AND u.status = 'ACTIVE'`,
+    [alert.company_id]);
+  const recipients: string[] = [];
+  for (const person of people.rows) {
+    const visibility = alertVisibility({ userId: person.id, companyId: alert.company_id, departmentId: person.department_id, departmentIds: coveredDepartments(person), username: person.username, role: person.role });
+    const visible = await query(`SELECT 1 FROM alerts a WHERE a.id = $${visibility.values.length + 1} AND ${visibility.sql}`, [...visibility.values, alertId]);
+    if (visible.rowCount) recipients.push(person.id);
+  }
+  await notify(alert.company_id, recipients, null, {
+    kind: "ALERT_CREATED", title: alert.title, body: alert.summary, link: alert.deal_id ? `/sales?deal=${alert.deal_id}` : "/",
+    entityType: "alert", entityId: alertId
+  });
 }
