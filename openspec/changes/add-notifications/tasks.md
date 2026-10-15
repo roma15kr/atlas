@@ -2,7 +2,7 @@
 
 ## 1. Tracer bullet: assigning a task notifies the assignee on the bell
 
-- [ ] 1.1 Add `database/020_notifications.sql` (notifications, push_subscriptions, notification_preferences, task_due_notices), `notifications/notify.ts`, the list/read/read-all endpoints and `notification:new`, and hook `TASK_ASSIGNED` in task create/update. Verify a new `notifications.integration.test.ts`: an assignee gets one unread notification with a link, the actor gets none, another user can't read or mark it (404), read-all clears the count. Commit.
+- [x] 1.1 Add `database/020_notifications.sql` (notifications, push_subscriptions, notification_preferences, task_due_notices), `notifications/notify.ts`, the list/read/read-all endpoints and `notification:new`, and hook `TASK_ASSIGNED` in task create/update. Verify a new `notifications.integration.test.ts`: an assignee gets one unread notification with a link, the actor gets none, another user can't read or mark it (404), read-all clears the count. Commit.
 - [ ] 1.2 Replace the bell's navigation with the notification panel (list, unread marks, click opens the link and marks read, «Прочитать все», live updates) with a demo branch. Verify `NotificationBell.test.tsx` cases; commit.
 
 ## 2. The other events

@@ -9,6 +9,7 @@ import { ApiError, asyncHandler } from "../errors";
 import { asOptionalDate, pagination } from "../http";
 import { boardAccessSql, funnelAccessSql, taskAccessSql } from "../scope";
 import type { AuthContext } from "../types";
+import { notify } from "../notifications/notify";
 import { dealScope } from "./deals";
 import { canManageBoard, STAGE_CATEGORIES, type StageCategory } from "./taskBoards";
 
@@ -139,7 +140,9 @@ tasksRouter.post("/", asyncHandler(async (req, res) => {
     auth, action: "TASK_CREATED", entityType: "task", entityId: id, departmentId: stage.department_id,
     metadata: { boardId: input.boardId, assignees: assigneeIds.length, onBoard }
   });
-  res.status(201).json({ data: await scopedTask(auth, id) });
+  const task = await scopedTask(auth, id);
+  await notifyAssigned(auth, task, assigneeIds);
+  res.status(201).json({ data: task });
 }));
 
 /** `GET /api/v1/tasks/assignable-users`: every active colleague, for the assignee picker (tasks can be assigned across departments). */
@@ -228,7 +231,9 @@ tasksRouter.patch("/:id", asyncHandler(async (req, res) => {
     auth, action: "TASK_UPDATED", entityType: "task", entityId: id, departmentId,
     metadata: { fields: Object.keys(input).filter((key) => input[key as keyof typeof input] !== undefined), ...(boardChanged ? { boardId } : {}) }
   });
-  res.json({ data: await scopedTask(auth, id) });
+  const task = await scopedTask(auth, id);
+  if (input.assigneeIds) await notifyAssigned(auth, task, input.assigneeIds.filter((userId) => !current.assignee_ids.includes(userId)));
+  res.json({ data: task });
 }));
 
 tasksRouter.delete("/:id", asyncHandler(async (req, res) => {
@@ -295,6 +300,16 @@ async function firstTodoStage(auth: AuthContext, boardId: string): Promise<Stage
   if (!row) throw new ApiError(404, "BOARD_NOT_FOUND", "Board not found");
   if (!row.id) throw new ApiError(409, "STAGE_CATEGORY_REQUIRED", "The board has no TODO stage");
   return row;
+}
+
+/** New assignees hear about the task; assignees can always open it, so no further visibility check is needed. */
+async function notifyAssigned(auth: AuthContext, task: Record<string, unknown>, userIds: string[]): Promise<void> {
+  if (!userIds.length) return;
+  const actor = await query<{ full_name: string }>("SELECT full_name FROM users WHERE id = $1", [auth.userId]);
+  await notify(auth.companyId, userIds, auth.userId, {
+    kind: "TASK_ASSIGNED", title: `Новая задача: ${String(task.title)}`, body: `${actor.rows[0]?.full_name ?? "Коллега"} · ${String(task.boardName)}`,
+    link: `/tasks?task=${String(task.id)}`, entityType: "task", entityId: String(task.id)
+  });
 }
 
 /** True when someone other than the author and directors works on the task: then it belongs on the board. */
