@@ -61,4 +61,42 @@ describe("notification centre", () => {
     expect((await as(trubylo).post("/notifications/read-all")).body.data.unreadCount).toBe(0);
     expect((await inbox(trubylo)).meta.unreadCount).toBe(0);
   });
+
+  it("tells the author and assignees about a comment, not the commenter", async () => {
+    await as(trubylo).post("/notifications/read-all");
+    await as(natalia).post("/notifications/read-all");
+    const task = (await as(natalia).post("/tasks", { boardId: salesBoard, title: "Банер для дилерів", assigneeIds: [trubylo.id] })).body.data;
+    await as(trubylo).post("/notifications/read-all");
+    await as(trubylo).post(`/tasks/${task.id}/comments`, { body: "Макет **готовий**" });
+    const head = await inbox(natalia);
+    expect(head.meta.unreadCount).toBe(1);
+    expect(head.data[0]).toMatchObject({ kind: "TASK_COMMENTED", body: "Макет готовий", link: `/tasks?task=${task.id}` });
+    expect((await inbox(trubylo)).meta.unreadCount).toBe(0);
+    expect((await inbox(tymoshenko)).data.some((item) => item.kind === "TASK_COMMENTED")).toBe(false);
+  });
+
+  it("reminds about due and overdue tasks once, after 08:00 Kyiv time, and again for a moved deadline", async () => {
+    const { runTaskReminders } = await import("../automation/taskReminders");
+    const today = (await as(natalia).post("/tasks", { boardId: salesBoard, title: "Відвантажити Нексанс", assigneeIds: [tymoshenko.id], dueAt: "2026-10-16T12:00:00.000Z" })).body.data;
+    const late = (await as(natalia).post("/tasks", { boardId: salesBoard, title: "Рахунок Нанокабель", assigneeIds: [tymoshenko.id], dueAt: "2026-10-14T12:00:00.000Z" })).body.data;
+    const doneStage = (await harness.query<{ id: string }>("SELECT id FROM task_board_stages WHERE board_id = $1 AND category = 'DONE' LIMIT 1", [salesBoard])).rows[0]!.id;
+    await as(natalia).post("/tasks", { boardId: salesBoard, stageId: doneStage, title: "Вже зроблено", assigneeIds: [tymoshenko.id], dueAt: "2026-10-14T12:00:00.000Z" });
+    await as(tymoshenko).post("/notifications/read-all");
+
+    expect(await runTaskReminders(new Date("2026-10-16T04:30:00.000Z"))).toEqual({ due: 0, overdue: 0 }); // 07:30 in Kyiv
+    expect(await runTaskReminders(new Date("2026-10-16T06:00:00.000Z"))).toEqual({ due: 1, overdue: 1 }); // 09:00
+    expect(await runTaskReminders(new Date("2026-10-16T09:00:00.000Z"))).toEqual({ due: 0, overdue: 0 });
+    const kinds = (await inbox(tymoshenko)).data.filter((item) => !item.readAt).map((item) => `${item.kind} ${item.link}`).sort();
+    expect(kinds).toEqual([`TASK_DUE /tasks?task=${today.id}`, `TASK_OVERDUE /tasks?task=${late.id}`].sort());
+
+    await as(natalia).patch(`/tasks/${late.id}`, { dueAt: "2026-10-15T12:00:00.000Z" });
+    expect(await runTaskReminders(new Date("2026-10-16T10:00:00.000Z"))).toEqual({ due: 0, overdue: 1 });
+  });
+
+  it("deletes notifications older than 90 days", async () => {
+    const { runTaskReminders } = await import("../automation/taskReminders");
+    await harness.query("UPDATE notifications SET created_at = '2026-01-01' WHERE user_id = $1", [trubylo.id]);
+    await runTaskReminders(new Date("2026-10-16T04:00:00.000Z"));
+    expect((await inbox(trubylo)).data).toEqual([]);
+  });
 });

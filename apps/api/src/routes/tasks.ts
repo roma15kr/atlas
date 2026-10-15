@@ -361,6 +361,16 @@ tasksRouter.post("/:id/comments", asyncHandler(async (req, res) => {
   );
   const comment = created.rows[0]!;
   await writeAudit(req, { auth, action: "TASK_COMMENT_CREATED", entityType: "task", entityId: id, departmentId: comment.department_id, metadata: { commentId: comment.id } });
+  // The task's author and assignees can always open it, personal or not.
+  const people = await query<{ title: string; created_by: string; author: string; assignee_ids: string[] }>(
+    `SELECT t.title, t.created_by, (SELECT full_name FROM users WHERE id = $2) AS author,
+            ARRAY(SELECT ta.user_id::text FROM task_assignees ta WHERE ta.task_id = t.id) AS assignee_ids
+     FROM tasks t WHERE t.id = $1`, [id, auth.userId]);
+  const task = people.rows[0];
+  if (task) await notify(auth.companyId, [task.created_by, ...task.assignee_ids], auth.userId, {
+    kind: "TASK_COMMENTED", title: `${task.author}: комментарий к «${task.title}»`, body: input.body,
+    link: `/tasks?task=${id}`, entityType: "task", entityId: id
+  });
   const row = await query(`SELECT ${COMMENT_COLUMNS} FROM task_comments c JOIN users u ON u.id = c.author_id WHERE c.id = $1`, [comment.id]);
   res.status(201).json({ data: row.rows[0] });
 }));

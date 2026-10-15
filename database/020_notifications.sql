@@ -40,10 +40,11 @@ CREATE TABLE notification_preferences (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Due and overdue reminders are sent once per task and kind.
+-- Due and overdue reminders are sent once per task, kind and due date (a moved deadline reminds again).
 CREATE TABLE task_due_notices (
   task_id uuid NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   kind text NOT NULL CHECK (kind IN ('TASK_DUE', 'TASK_OVERDUE')),
-  sent_on date NOT NULL DEFAULT CURRENT_DATE,
-  PRIMARY KEY (task_id, kind)
+  due_on date NOT NULL,
+  sent_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (task_id, kind, due_on)
 );
