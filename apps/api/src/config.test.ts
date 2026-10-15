@@ -49,6 +49,13 @@ describe("AI and GitHub configuration", () => {
     expect(config.IMAGE_UPLOADS_PER_HOUR).toBe(60);
     expect(config.PRESENCE_IDLE_MINUTES).toBe(15);
   });
+  it("treats empty push keys as unset and refuses malformed ones", async () => {
+    const config = await load({ VAPID_PUBLIC_KEY: "", VAPID_PRIVATE_KEY: "", VAPID_SUBJECT: "" });
+    expect(config.VAPID_PUBLIC_KEY).toBeUndefined();
+    expect(config.VAPID_SUBJECT).toBe("mailto:admin@atlas.local");
+    await expect(load({ VAPID_PUBLIC_KEY: "not a key" })).rejects.toThrow(/VAPID_PUBLIC_KEY/);
+    await expect(load({ VAPID_SUBJECT: "admin@rdim.ua" })).rejects.toThrow(/VAPID_SUBJECT/);
+  });
   it("keeps the presence idle period between 5 and 120 minutes", async () => {
     expect((await load({ PRESENCE_IDLE_MINUTES: "30" })).PRESENCE_IDLE_MINUTES).toBe(30);
     await expect(load({ PRESENCE_IDLE_MINUTES: "2" })).rejects.toThrow(/PRESENCE_IDLE_MINUTES/);

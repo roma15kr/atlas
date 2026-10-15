@@ -7,6 +7,7 @@ import { requireAuth } from "../auth";
 import { query, transaction } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { chatPostLimiter } from "../middleware";
+import { notify } from "../notifications/notify";
 import { emitToUsers } from "../realtime";
 import { chatAccessSql } from "../scope";
 import type { AuthContext } from "../types";
@@ -563,6 +564,26 @@ async function resolveMentions(auth: AuthContext, conversation: Conversation, bo
   return result.rows.map((row) => row.id);
 }
 
+/**
+ * A mention notifies whoever the mention rules allow (muted or not); a direct message notifies the other member
+ * unless they muted the conversation. A burst of direct messages stays one unread notification.
+ */
+async function notifyChat(auth: AuthContext, conversation: { id: string; kind: string; name: string | null }, body: string, mentioned: string[]): Promise<void> {
+  const author = (await query<{ full_name: string }>("SELECT full_name FROM users WHERE id = $1", [auth.userId])).rows[0]?.full_name ?? "Коллега";
+  const link = `/messages?conversation=${conversation.id}`;
+  await notify(auth.companyId, mentioned, auth.userId, {
+    kind: "CHAT_MENTION", title: conversation.kind === "DM" ? `${author} упомянул(а) вас` : `${author} упомянул(а) вас в «${conversation.name ?? "чате"}»`,
+    body, link, entityType: "chat_conversation", entityId: conversation.id
+  });
+  if (conversation.kind !== "DM") return;
+  const others = await query<{ user_id: string }>(
+    "SELECT user_id FROM chat_members WHERE conversation_id = $1 AND user_id <> $2 AND NOT muted", [conversation.id, auth.userId]);
+  await notify(auth.companyId, others.rows.map((row) => row.user_id).filter((id) => !mentioned.includes(id)), auth.userId, {
+    kind: "CHAT_DIRECT", title: `Сообщение от ${author}`, body, link, entityType: "chat_conversation", entityId: conversation.id,
+    collapseKey: `chat:${conversation.id}`
+  });
+}
+
 chatRouter.post("/conversations/:id/messages", chatPostLimiter, asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
   const conversation = await loadConversation(auth, idSchema.parse(req.params.id));
@@ -603,6 +624,7 @@ chatRouter.post("/conversations/:id/messages", chatPostLimiter, asyncHandler(asy
   emitToUsers(members, "chat:message", { conversationId: conversation.id, message });
   const outsiders = mentioned.filter((user) => !members.includes(user));
   emitToUsers(outsiders, "chat:mention", { conversationId: conversation.id, messageId: id });
+  await notifyChat(auth, conversation, input.body, mentioned);
   res.status(201).json({ data: message });
 }));
 

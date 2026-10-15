@@ -32,4 +32,9 @@ export default tseslint.config(
     files: ['**/*.{js,mjs,cjs}'],
     languageOptions: { globals: globals.node },
   },
+  {
+    // The service worker runs in the browser's worker scope, not in Node.
+    files: ['apps/web/public/sw.js'],
+    languageOptions: { globals: globals.serviceworker },
+  },
 );

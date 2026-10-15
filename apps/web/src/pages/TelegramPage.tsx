@@ -1,6 +1,6 @@
 import { AlertTriangle, ArrowLeft, BriefcaseBusiness, Download, FileUp, Link2, Paperclip, Search, Send, Settings2, UserPlus, UserRoundCog, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { BindClientDialog, CreateClientFromTelegramDialog, CreateDealFromTelegramDialog, ImportDialog, ReassignDialog } from '../components/telegram/TelegramDialogs';
 import { Avatar, Badge, Button, EmptyState, IconButton, LoadingState, PageHeader, Segmented, Surface } from '../components/ui';
 import { useAuth } from '../context/AppContext';
@@ -21,7 +21,15 @@ export function TelegramPage() {
   const [filter, setFilter] = useState<ContactFilter>(me.role === 'EMPLOYEE' ? 'mine' : 'all');
   const [query, setQuery] = useState('');
   const [contacts, setContacts] = useState<TelegramContact[] | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // A notification links here with ?contact=<id>.
+  const [params, setParams] = useSearchParams();
+  const [selectedId, setSelectedId] = useState<string | null>(() => params.get('contact'));
+  const linked = params.get('contact');
+  useEffect(() => {
+    if (!linked) return;
+    setSelectedId(linked);
+    setParams((current) => { current.delete('contact'); return current; }, { replace: true });
+  }, [linked, setParams]);
   const [importing, setImporting] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');

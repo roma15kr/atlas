@@ -1,3 +1,4 @@
+import { notify } from "../notifications/notify";
 import { Router, type Request } from "express";
 import { z } from "zod";
 import { assertOwnerFunnelAccess, canAccessFunnel, manageableUser, type TargetUser } from "../access";
@@ -77,6 +78,7 @@ export async function createDeal(req: Request, auth: AuthContext, raw: unknown):
   );
   const id = result.rows[0]?.id as string;
   await writeAudit(req, { auth, action: "DEAL_CREATED", entityType: "deal", entityId: id, departmentId: owner.department_id, metadata: { funnelId: input.funnelId } });
+  await notifyNewOwner(auth, "DEAL_ASSIGNED", owner.id, id, input.title);
   return id;
 }
 
@@ -124,7 +126,9 @@ dealsRouter.patch("/:id", asyncHandler(async (req, res) => {
     auth, action: "DEAL_UPDATED", entityType: "deal", entityId: id,
     metadata: { fields: Object.keys(input), ...(funnelChanged ? { funnelId, previousFunnelId: existing.funnelId } : {}) }
   });
-  res.json({ data: await scopedDeal(auth, id) });
+  const updated = await scopedDeal(auth, id) as { title: string };
+  if (owner && owner.id !== existing.ownerId) await notifyNewOwner(auth, "DEAL_ASSIGNED", owner.id, id, updated.title);
+  res.json({ data: updated });
 }));
 
 dealsRouter.delete("/:id", asyncHandler(async (req, res) => {
@@ -197,4 +201,12 @@ function dealColumns(): string {
 function stripTotal(row: Record<string, unknown>): Record<string, unknown> {
   const { totalCount: _total, ...rest } = row;
   return rest;
+}
+
+/** A deal or client handed over by someone else notifies its new owner (`notify` skips the actor). */
+export async function notifyNewOwner(auth: AuthContext, kind: "DEAL_ASSIGNED" | "CLIENT_ASSIGNED", ownerId: string, id: string, name: string): Promise<void> {
+  const actor = (await query<{ full_name: string }>("SELECT full_name FROM users WHERE id = $1", [auth.userId])).rows[0]?.full_name ?? "Коллега";
+  await notify(auth.companyId, [ownerId], auth.userId, kind === "DEAL_ASSIGNED"
+    ? { kind, title: `Вам передана сделка: ${name}`, body: `Передал(а) ${actor}`, link: `/sales?deal=${id}`, entityType: "deal", entityId: id }
+    : { kind, title: `Вам передан клиент: ${name}`, body: `Передал(а) ${actor}`, link: `/crm/${id}`, entityType: "client", entityId: id });
 }

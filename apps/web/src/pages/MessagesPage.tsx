@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom';
 import { AtSign, Bell, BellOff, Hash, MessageSquare, Plus, Search, Settings2, Users, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BrowseChannelsDialog, ChannelFormDialog, ConfirmDialog, ConversationSettingsDialog, EditMessageDialog, NewMessageDialog, usePeopleByUsername } from '../components/chat/ChatDialogs';
@@ -27,6 +28,14 @@ export function MessagesPage() {
   const [selection, setSelection] = useState<Selection | null>(() => {
     try { const saved = localStorage.getItem(SELECTED_KEY); return saved ? { kind: 'conversation', id: saved } : null; } catch { return null; }
   });
+  // A notification links here with ?conversation=<id>.
+  const [params, setParams] = useSearchParams();
+  const linked = params.get('conversation');
+  useEffect(() => {
+    if (!linked) return;
+    setSelection({ kind: 'conversation', id: linked });
+    setParams((current) => { current.delete('conversation'); return current; }, { replace: true });
+  }, [linked, setParams]);
   const [preview, setPreview] = useState<ChatConversation | null>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialogs>(null);

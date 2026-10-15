@@ -5,6 +5,7 @@ import { evaluateAlerts } from "./alerts";
 import { processFeedback } from "./feedback";
 import { recomputeKpis } from "./kpis";
 import { runDueReports } from "./reports";
+import { runTaskReminders } from "./taskReminders";
 
 export interface AutomationStep { name: string; run: () => Promise<unknown> }
 
@@ -14,7 +15,8 @@ const steps: AutomationStep[] = [
   { name: "achievements", run: () => awardAchievements() },
   { name: "alerts", run: () => evaluateAlerts() },
   { name: "feedback", run: () => processFeedback() },
-  { name: "reports", run: () => runDueReports() }
+  { name: "reports", run: () => runDueReports() },
+  { name: "task-reminders", run: () => runTaskReminders() }
 ];
 
 export function registerAutomationStep(step: AutomationStep): void {
