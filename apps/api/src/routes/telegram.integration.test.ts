@@ -132,7 +132,8 @@ describe("Telegram inbox", () => {
     expect(calls).toHaveLength(sends);
     expect((await as("alex").get("/telegram/contacts")).body.data).toEqual([]);
     const [event] = await audit("TELEGRAM_MESSAGE_SENT");
-    expect(JSON.stringify(event)).not.toContain("150");
+    // No message text in the audit, checked on the text itself: the digits alone can occur inside a random uuid.
+    expect(JSON.stringify(event)).not.toMatch(/Доставка|150 грн/);
   });
 
   it("creates a deal from the conversation and shows it in the deal's history", async () => {
