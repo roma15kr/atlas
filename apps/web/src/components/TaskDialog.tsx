@@ -1,11 +1,11 @@
 import { Trash2 } from 'lucide-react';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useRef, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth, useWorkspace, type TaskInput } from '../context/AppContext';
 import { boardErrorMessage } from '../lib/boardErrors';
 import { categories, firstStageOf, groupBoards, involvesColleagues, orderedStages } from '../lib/boards';
 import type { BoardUser, TaskBoard, TaskPriority, WorkTask } from '../types';
 import { fitsLimit, RichTextEditor } from './richtext/RichTextEditor';
-import { TaskComments } from './TaskComments';
+import { TaskComments, type TaskCommentsHandle } from './TaskComments';
 import { RichTextView } from './richtext/RichTextView';
 import { Button, Dialog, Field, SelectField } from './ui';
 
@@ -44,6 +44,7 @@ export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTas
     assigneeIds: task ? task.assignees.map((assignee) => assignee.id) : [user.id],
   }));
   const [people, setPeople] = useState<BoardUser[] | null>(null);
+  const comments = useRef<TaskCommentsHandle>(null);
   // «Показать на доске» follows the server's default until the user sets it.
   const [placement, setPlacement] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
@@ -106,8 +107,12 @@ export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTas
     setSaving(true); setError('');
     const input: TaskInput = { boardId: draft.boardId, stageId: draft.stageId, assigneeIds: draft.assigneeIds, title, description: draft.description.trim(), dueAt: fromDateInput(draft.dueAt), priority: draft.priority, onBoard };
     try {
-      if (task) await updateTask(task.id, changes(task, input));
-      else await addTask(input);
+      if (task) {
+        // A comment typed but not added yet is part of what the user saves; keep the dialog open if it fails.
+        if (!(await comments.current?.flush() ?? true)) return;
+        const patch = changes(task, input);
+        if (Object.keys(patch).length) await updateTask(task.id, patch);
+      } else await addTask(input);
       onClose();
     } catch (reason) {
       setError(boardErrorMessage(reason, task ? 'Задача не сохранена' : 'Задача не создана'));
@@ -153,7 +158,7 @@ export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTas
         <small className="form-hint">{onBoard ? 'Задачу видят все участники доски.' : 'Личная задача: её видят автор, исполнители, их руководители и директор.'}</small></span></label>}
       {error && <div className="form-error field--wide" role="alert">{error}</div>}
     </form>
-    {task && <TaskComments taskId={task.id} />}
+    {task && <TaskComments ref={comments} taskId={task.id} />}
   </Dialog>;
 }
 
