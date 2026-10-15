@@ -3,7 +3,7 @@ import { RichTextView } from '../components/richtext/RichTextView';
 import { NotificationSettings } from '../components/NotificationSettings';
 import { AiAnalysisDialog } from '../components/AiAnalysisDialog';
 import { ChangePasswordDialog } from '../components/team/MemberDialogs';
-import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Avatar, Badge, Button, Field, Meter, PageHeader, SectionHeader, Surface } from '../components/ui';
 import { useAuth } from '../context/AppContext';
 import { ApiError } from '../lib/api';
@@ -17,6 +17,9 @@ const serverFieldErrors: Partial<Record<keyof ProfileForm, string>> = {
 };
 
 export function ProfilePage() {
+  // «Сохранено» hides after a moment; the timer must not outlive the page.
+  const savedTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(savedTimer.current), []);
   const { session, consent, updateProfile, uploadAvatar, removeAvatar, changePassword } = useAuth();
   const user = session!.user;
   const saved = useMemo(() => profileFormOf(user), [user]);
@@ -57,7 +60,8 @@ export function ProfilePage() {
       await updateProfile(patch);
       setForm((current) => ({ ...current, ...Object.fromEntries(Object.entries(patch)) }));
       setJustSaved(true);
-      window.setTimeout(() => setJustSaved(false), 1800);
+      window.clearTimeout(savedTimer.current);
+      savedTimer.current = window.setTimeout(() => setJustSaved(false), 1800);
     } catch (reason) {
       const fields = reason instanceof ApiError ? (reason.details as { fieldErrors?: Record<string, string[]> } | undefined)?.fieldErrors : undefined;
       const mapped = Object.fromEntries(Object.keys(fields ?? {}).filter((key) => key in serverFieldErrors).map((key) => [key, serverFieldErrors[key as keyof ProfileForm]]));

@@ -18,8 +18,8 @@
 
 ## 4. Integration checks
 
-- [ ] 4.1 Run `make check` and `npm run build`; verify both pass.
-- [ ] 4.2 Run `npx openspec validate add-notifications --strict`; verify it passes.
+- [x] 4.1 Run `make check` and `npm run build`; verify both pass.
+- [x] 4.2 Run `npx openspec validate add-notifications --strict`; verify it passes.
 
 ## Workflow follow-up
 

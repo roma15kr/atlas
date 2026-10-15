@@ -8,6 +8,7 @@ _Last updated: 2026-10-14 by Claude_
 - Open OpenSpec changes waiting for a live check: `add-email-client` (mailbox), `add-telegram-customer-inbox` (test bot), `add-alert-rules-and-scheduled-reports` (an automatic alert).
 
 ## Done recently
+- Notifications (`add-notifications`, migration 020, built on `feat/notifications`, not yet deployed or archived): the bell opens a notification centre (live, «Прочитать все», links open the item); events: task assigned/commented/due/overdue, direct message and mention, Telegram customer message (collapsed per customer), new alert, deal or client handed over. Desktop pop-ups through Web Push (`web-push`, ADR 0005) set up in «Профиль → Уведомления»; needs `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT` in Coolify (now passed through `compose.yaml`, as is `PRESENCE_IDLE_MINUTES`, which was missing). Next: set the keys, PR into `dev`, check a pop-up with Atlas closed, `dev` → `main`, live check, archive.
 - Fix (2026-10-15, `fix/task-save-comment`): «Сохранить» in a task now also adds a comment that was typed but not added, and closes without a request when nothing changed. Before, Денисюк got «No fields to update» and her typed comment was not saved. `NO_CHANGES` has a Russian message.
 - Sales restructure in production (2026-10-14, by API as the director, audited; before-state saved in the session scratchpad): new «Департамент продаж» (head Денисюк) containing «Отдел продаж» (Тимошенко, Трубило, Бабенко; no own head), «Отдел DIY» (Семенець) and new «Call-центр» (Ковальчук). Both new departments got a default board. Ковальчук's old tasks stay on the «Отдел продаж» board (he sees those assigned to him).
 - Personal tasks (`add-personal-tasks`, migration 019) and the parent's head in «Отделы» (`show-parent-head-in-departments`), built on `feat/personal-tasks`, not yet deployed or archived. A task only for its author (or directors) is personal: seen by its people, the heads covering their departments and directors; adding a colleague shares it on the board; «Показать на доске» switch, «Личная» mark, «Видимость» board filter for heads. Next: PR into `dev`, check, `dev` → `main`, live check with Денисюк, archive.
@@ -35,6 +36,8 @@ _Last updated: 2026-10-14 by Claude_
 - `feat/crm-funnels` merged into `main` and deleted. The Coolify test app now deploys from `main`.
 
 ## Next steps
+- `npm audit` reports older high/critical advisories unrelated to notifications (engine.io, multer, proxy-addr, qs; minimist via the dev-only hoodiecrow-imap): review and upgrade in a separate change.
+- The dashboard's «Команда в сети» count is loaded once and not updated live; small fix pending.
 - `openspec validate --all --strict` reports 13 items with "requirement text is very long" warnings, already on `main` before 2026-10-14; shorten those requirements in a cleanup.
 1. Run the three live checks above, then archive those changes.
 2. Fold `messaging-integrations` into the email and Telegram specs once `add-email-client` is archived.
