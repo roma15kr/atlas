@@ -156,4 +156,9 @@ describe('team chat', () => {
     await within(list()).findByRole('button', { name: /Общий/ });
     expect(within(list()).queryByRole('button', { name: /Продажи/ })).not.toBeInTheDocument();
   });
+
+  it('opens the conversation a notification links to', async () => {
+    renderAs('employee', '/messages?conversation=ch-ideas');
+    expect(await screen.findByRole('region', { name: /Разговор .*Идеи/ })).toBeInTheDocument();
+  });
 });

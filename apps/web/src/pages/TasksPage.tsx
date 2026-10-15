@@ -1,6 +1,6 @@
 import { CheckCircle2, Circle, Clock3, Flag, ListChecks, Plus } from 'lucide-react';
-import { useMemo, useState, type DragEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState, type DragEvent } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { TaskCard } from '../components/TaskCard';
 import { TaskDialog } from '../components/TaskDialog';
 import { Badge, Button, EmptyState, PageHeader } from '../components/ui';
@@ -20,6 +20,16 @@ export function TasksPage() {
   const user = session!.user;
   const [priority, setPriority] = useState('ALL');
   const [dialog, setDialog] = useState<{ task?: WorkTask } | null>(null);
+  // A notification links here with ?task=<id>: open that task once it is loaded, then drop the parameter.
+  const [params, setParams] = useSearchParams();
+  const linkedTask = params.get('task');
+  useEffect(() => {
+    if (!linkedTask) return;
+    const task = tasks.find((item) => item.id === linkedTask);
+    if (!task) return;
+    setDialog({ task });
+    setParams((current) => { current.delete('task'); return current; }, { replace: true });
+  }, [linkedTask, tasks, setParams]);
   const [dragged, setDragged] = useState<string | null>(null);
   const [error, setError] = useState('');
   const mine = useMemo(() => tasks.filter((task) => isAssignedTo(task, user.id) && (priority === 'ALL' || task.priority === priority)), [tasks, user.id, priority]);

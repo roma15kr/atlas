@@ -9,6 +9,7 @@ import { ApiError, asyncHandler } from "../errors";
 import { asOptionalDate, pagination } from "../http";
 import { boardAccessSql, funnelAccessSql, taskAccessSql } from "../scope";
 import type { AuthContext } from "../types";
+import { notify } from "../notifications/notify";
 import { dealScope } from "./deals";
 import { canManageBoard, STAGE_CATEGORIES, type StageCategory } from "./taskBoards";
 
@@ -139,7 +140,9 @@ tasksRouter.post("/", asyncHandler(async (req, res) => {
     auth, action: "TASK_CREATED", entityType: "task", entityId: id, departmentId: stage.department_id,
     metadata: { boardId: input.boardId, assignees: assigneeIds.length, onBoard }
   });
-  res.status(201).json({ data: await scopedTask(auth, id) });
+  const task = await scopedTask(auth, id);
+  await notifyAssigned(auth, task, assigneeIds);
+  res.status(201).json({ data: task });
 }));
 
 /** `GET /api/v1/tasks/assignable-users`: every active colleague, for the assignee picker (tasks can be assigned across departments). */
@@ -228,7 +231,9 @@ tasksRouter.patch("/:id", asyncHandler(async (req, res) => {
     auth, action: "TASK_UPDATED", entityType: "task", entityId: id, departmentId,
     metadata: { fields: Object.keys(input).filter((key) => input[key as keyof typeof input] !== undefined), ...(boardChanged ? { boardId } : {}) }
   });
-  res.json({ data: await scopedTask(auth, id) });
+  const task = await scopedTask(auth, id);
+  if (input.assigneeIds) await notifyAssigned(auth, task, input.assigneeIds.filter((userId) => !current.assignee_ids.includes(userId)));
+  res.json({ data: task });
 }));
 
 tasksRouter.delete("/:id", asyncHandler(async (req, res) => {
@@ -297,6 +302,16 @@ async function firstTodoStage(auth: AuthContext, boardId: string): Promise<Stage
   return row;
 }
 
+/** New assignees hear about the task; assignees can always open it, so no further visibility check is needed. */
+async function notifyAssigned(auth: AuthContext, task: Record<string, unknown>, userIds: string[]): Promise<void> {
+  if (!userIds.length) return;
+  const actor = await query<{ full_name: string }>("SELECT full_name FROM users WHERE id = $1", [auth.userId]);
+  await notify(auth.companyId, userIds, auth.userId, {
+    kind: "TASK_ASSIGNED", title: `Новая задача: ${String(task.title)}`, body: `${actor.rows[0]?.full_name ?? "Коллега"} · ${String(task.boardName)}`,
+    link: `/tasks?task=${String(task.id)}`, entityType: "task", entityId: String(task.id)
+  });
+}
+
 /** True when someone other than the author and directors works on the task: then it belongs on the board. */
 async function involvesColleagues(authorId: string, assigneeIds: string[]): Promise<boolean> {
   const others = assigneeIds.filter((userId) => userId !== authorId);
@@ -346,6 +361,16 @@ tasksRouter.post("/:id/comments", asyncHandler(async (req, res) => {
   );
   const comment = created.rows[0]!;
   await writeAudit(req, { auth, action: "TASK_COMMENT_CREATED", entityType: "task", entityId: id, departmentId: comment.department_id, metadata: { commentId: comment.id } });
+  // The task's author and assignees can always open it, personal or not.
+  const people = await query<{ title: string; created_by: string; author: string; assignee_ids: string[] }>(
+    `SELECT t.title, t.created_by, (SELECT full_name FROM users WHERE id = $2) AS author,
+            ARRAY(SELECT ta.user_id::text FROM task_assignees ta WHERE ta.task_id = t.id) AS assignee_ids
+     FROM tasks t WHERE t.id = $1`, [id, auth.userId]);
+  const task = people.rows[0];
+  if (task) await notify(auth.companyId, [task.created_by, ...task.assignee_ids], auth.userId, {
+    kind: "TASK_COMMENTED", title: `${task.author}: комментарий к «${task.title}»`, body: input.body,
+    link: `/tasks?task=${id}`, entityType: "task", entityId: id
+  });
   const row = await query(`SELECT ${COMMENT_COLUMNS} FROM task_comments c JOIN users u ON u.id = c.author_id WHERE c.id = $1`, [comment.id]);
   res.status(201).json({ data: row.rows[0] });
 }));

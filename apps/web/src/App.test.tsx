@@ -132,4 +132,10 @@ describe('role-aware routing', () => {
     expect(await screen.findByText('Только выбранные отделы и сотрудники')).toBeInTheDocument();
     expect(screen.getAllByText('Ограничен')).toHaveLength(2);
   });
+
+  it('opens the deal a notification links to', async () => {
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.director));
+    renderAt('/sales?deal=d1');
+    expect(await screen.findByRole('dialog', { name: /Стартовый пакет/ })).toBeInTheDocument();
+  });
 });

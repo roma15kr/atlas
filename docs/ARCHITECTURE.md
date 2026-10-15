@@ -313,6 +313,10 @@ Where to look when a task spans several files.
   - `socket.ts`: one authenticated socket per tab. It refuses connections that still need a password change, and attaches its handlers before any await.
   - `presence.ts`: the presence store, Redis or in memory.
   - `realtime.ts`: `disconnectUser`.
+- **Notifications:**
+  - `notifications/notify.ts` `notify(companyId, recipients, actorId, input)` is the only way to create one. Callers pass recipients already limited to people who may open the item; it drops the actor and inactive users, collapses an unread row with the same `collapseKey`, emits `notification:new` and hands the rows to Web Push.
+  - The hooks are in `routes/tasks.ts` (assigned, commented), `routes/chat.ts` (direct, mention), `telegram/handleUpdate.ts` (customer message), `automation/alerts.ts` (new alert), and `routes/deals.ts`/`routes/clients.ts` (handed over). `automation/taskReminders.ts` sends due/overdue reminders after 08:00 Kyiv time and deletes notifications older than 90 days.
+  - `notifications/push.ts` sends Web Push with `web-push` (ADR 0005) when `VAPID_*` is set; gone subscriptions are deleted. The web side is `components/NotificationBell.tsx`, `components/NotificationSettings.tsx`, `lib/notifications.ts` and the service worker `public/sw.js` (served uncached by Nginx).
 - **AI:** `llm/openai.ts` `structuredResponse` (strict JSON schema, typed failures) serves both `ai.ts` (analysis, stored in `ai_analyses`) and `feedback/triage.ts`.
 - **Problem reports:** `routes/feedback.ts` (submit, mine, director inbox, screenshot, retry, status) → `automation/feedback.ts` claims the queue with `FOR UPDATE SKIP LOCKED`, triages (`feedback/triage.ts`, then `feedback/scrub.ts`) and files issues (`feedback/github.ts`). The web side is `components/FeedbackDialog.tsx`, `lib/feedback.ts`, `lib/screenshot.ts` (modern-screenshot) and `lib/diagnostics.ts`, which `lib/api.ts` feeds with every request.
 - **Request ids:** `app.ts` `requestId` sets `X-Request-Id` and the pino `req.id`.

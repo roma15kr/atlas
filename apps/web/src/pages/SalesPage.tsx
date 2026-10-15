@@ -1,6 +1,6 @@
 import { CalendarDays, GripVertical, Layers, MoreHorizontal, NotebookText, Plus, Settings2, SlidersHorizontal, UserRound } from 'lucide-react';
 import { useEffect, useMemo, useState, type DragEvent, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fitsLimit, RichTextEditor } from '../components/richtext/RichTextEditor';
 import { RichTextView } from '../components/richtext/RichTextView';
 import { Badge, Button, Dialog, EmptyState, Field, IconButton, PageHeader, SelectField } from '../components/ui';
@@ -34,6 +34,17 @@ export function SalesPage() {
   const [error, setError] = useState('');
   const isDirector = user.role === 'DIRECTOR';
   const funnel = funnels.find((item) => item.id === selectedId) ?? funnels[0];
+  // A notification links here with ?deal=<id>: show the deal's funnel and open the deal, then drop the parameter.
+  const [params, setParams] = useSearchParams();
+  const linkedDeal = params.get('deal');
+  useEffect(() => {
+    if (!linkedDeal) return;
+    const deal = deals.find((item) => item.id === linkedDeal);
+    if (!deal) return;
+    setSelectedId(deal.funnelId);
+    setNotesDealId(deal.id);
+    setParams((current) => { current.delete('deal'); return current; }, { replace: true });
+  }, [linkedDeal, deals, setParams]);
 
   useEffect(() => { if (funnel) rememberFunnel(user.id, funnel.id); }, [funnel, user.id]);
 

@@ -1,8 +1,9 @@
 import { Camera, Check, LockKeyhole, Save, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
 import { RichTextView } from '../components/richtext/RichTextView';
+import { NotificationSettings } from '../components/NotificationSettings';
 import { AiAnalysisDialog } from '../components/AiAnalysisDialog';
 import { ChangePasswordDialog } from '../components/team/MemberDialogs';
-import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Avatar, Badge, Button, Field, Meter, PageHeader, SectionHeader, Surface } from '../components/ui';
 import { useAuth } from '../context/AppContext';
 import { ApiError } from '../lib/api';
@@ -16,6 +17,9 @@ const serverFieldErrors: Partial<Record<keyof ProfileForm, string>> = {
 };
 
 export function ProfilePage() {
+  // «Сохранено» hides after a moment; the timer must not outlive the page.
+  const savedTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(savedTimer.current), []);
   const { session, consent, updateProfile, uploadAvatar, removeAvatar, changePassword } = useAuth();
   const user = session!.user;
   const saved = useMemo(() => profileFormOf(user), [user]);
@@ -56,7 +60,8 @@ export function ProfilePage() {
       await updateProfile(patch);
       setForm((current) => ({ ...current, ...Object.fromEntries(Object.entries(patch)) }));
       setJustSaved(true);
-      window.setTimeout(() => setJustSaved(false), 1800);
+      window.clearTimeout(savedTimer.current);
+      savedTimer.current = window.setTimeout(() => setJustSaved(false), 1800);
     } catch (reason) {
       const fields = reason instanceof ApiError ? (reason.details as { fieldErrors?: Record<string, string[]> } | undefined)?.fieldErrors : undefined;
       const mapped = Object.fromEntries(Object.keys(fields ?? {}).filter((key) => key in serverFieldErrors).map((key) => [key, serverFieldErrors[key as keyof ProfileForm]]));
@@ -131,6 +136,7 @@ export function ProfilePage() {
           <div className="consent-meta"><ShieldCheck size={18} /><span><strong>Политика 2026-01</strong><small>{user.monitoringConsentAt ? `Согласие дано ${formatDate(user.monitoringConsentAt)}` : 'Ознакомьтесь и подтвердите согласие'}</small></span></div>
           {!user.monitoringConsentAt && <Button icon={Check} disabled={consenting} onClick={() => void accept()}>{consenting ? 'Подтверждаем…' : 'Принять политику'}</Button>}
         </Surface>
+        <NotificationSettings />
         <Surface>
           <SectionHeader title="AI-рекомендации" />
           <div className="security-rows"><div><span className="settings-icon"><Sparkles size={17} /></span><span><strong>Совет, оценка или прогноз</strong><small>По вашим KPI, задачам и воронке. Переписка не анализируется.</small></span><Button variant="secondary" onClick={() => setAiOpen(true)}>Открыть</Button></div></div>
