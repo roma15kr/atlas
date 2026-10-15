@@ -66,6 +66,27 @@ describe('my tasks', () => {
     expect(await within(dialog).findByRole('textbox', { name: 'Описание' })).toHaveTextContent('отправить КП');
   }, 15_000);
 
+  it('saves a typed comment with «Сохранить», and closes without a request when nothing else changed', async () => {
+    const user = userEvent.setup();
+    renderAs('employee', '/tasks');
+    await user.click(await screen.findByRole('button', { name: 'Прайс для партнёров' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Задача' });
+    const comments = within(dialog).getByRole('region', { name: 'Комментарии' });
+    await within(comments).findByText('Комментариев пока нет');
+    await user.click(await within(comments).findByRole('textbox', { name: 'Новый комментарий' }));
+    await user.keyboard('заказ сформирован, ждём доп. инфо');
+    await user.click(within(dialog).getByRole('button', { name: 'Сохранить' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: 'Прайс для партнёров' }));
+    const reopened = await screen.findByRole('dialog', { name: 'Задача' });
+    expect(await within(reopened).findByText('заказ сформирован, ждём доп. инфо')).toBeInTheDocument();
+    // Nothing changed and nothing typed: the dialog just closes, without «Нечего сохранять».
+    await user.click(within(reopened).getByRole('button', { name: 'Сохранить' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('adds a formatted comment to a task', async () => {
     const user = userEvent.setup();
     renderAs('employee', '/tasks');
