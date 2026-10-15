@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 let harness: Awaited<ReturnType<typeof startDbHarness>>;
 let app: Express;
-let natalia: TestUser, tymoshenko: TestUser, trubylo: TestUser;
+let natalia: TestUser, tymoshenko: TestUser, trubylo: TestUser, babenko: TestUser;
 let salesBoard: string;
 
 const as = (who: TestUser) => ({
@@ -24,6 +24,7 @@ beforeAll(async () => {
   natalia = await harness.user("denysiuk", "MANAGER", "Отдел продаж", { consent: true });
   tymoshenko = await harness.user("tymoshenko", "EMPLOYEE", "Отдел продаж", { consent: true });
   trubylo = await harness.user("trubylo", "EMPLOYEE", "Отдел продаж", { consent: true });
+  babenko = await harness.user("babenko", "EMPLOYEE", "Отдел продаж", { consent: true });
   salesBoard = (await harness.query<{ id: string }>("SELECT id FROM task_boards WHERE department_id = $1", [natalia.departmentId])).rows[0]!.id;
 }, 60_000);
 
@@ -98,5 +99,45 @@ describe("notification centre", () => {
     await harness.query("UPDATE notifications SET created_at = '2026-01-01' WHERE user_id = $1", [trubylo.id]);
     await runTaskReminders(new Date("2026-10-16T04:00:00.000Z"));
     expect((await inbox(trubylo)).data).toEqual([]);
+  });
+
+  it("notifies a direct message once per burst, respects muting, and still notifies a mention", async () => {
+    await as(trubylo).post("/notifications/read-all");
+    const dm = (await as(tymoshenko).post("/chat/direct", { userId: trubylo.id })).body.data;
+    await as(tymoshenko).post(`/chat/conversations/${dm.id}/messages`, { body: "Привіт" });
+    await as(tymoshenko).post(`/chat/conversations/${dm.id}/messages`, { body: "Глянь **рахунок**" });
+    const burst = await inbox(trubylo);
+    expect(burst.meta.unreadCount).toBe(1);
+    expect(burst.data[0]).toMatchObject({ kind: "CHAT_DIRECT", body: "Глянь рахунок", link: `/messages?conversation=${dm.id}` });
+
+    await as(trubylo).post("/notifications/read-all");
+    await as(trubylo).patch(`/chat/conversations/${dm.id}/mute`, { muted: true });
+    await as(tymoshenko).post(`/chat/conversations/${dm.id}/messages`, { body: "Ще одне" });
+    expect((await inbox(trubylo)).meta.unreadCount).toBe(0);
+    await as(tymoshenko).post(`/chat/conversations/${dm.id}/messages`, { body: "@trubylo терміново" });
+    expect((await inbox(trubylo)).data[0]).toMatchObject({ kind: "CHAT_MENTION", readAt: null });
+  });
+
+  it("doesn't notify someone mentioned in a group they are not in", async () => {
+    await as(trubylo).post("/notifications/read-all");
+    const group = (await as(natalia).post("/chat/groups", { name: "Керівництво", userIds: [tymoshenko.id, babenko.id] })).body.data;
+    await as(natalia).post(`/chat/conversations/${group.id}/messages`, { body: "@trubylo не бачить цього" });
+    expect((await inbox(trubylo)).meta.unreadCount).toBe(0);
+  });
+
+  it("notifies the responsible person about a customer's Telegram messages, collapsed per customer", async () => {
+    const { handleUpdate } = await import("../telegram/handleUpdate");
+    await as(tymoshenko).post("/notifications/read-all");
+    await as(trubylo).post("/notifications/read-all");
+    const contact = (await harness.query<{ id: string }>(
+      "INSERT INTO telegram_contacts (company_id, telegram_user_id, first_name, responsible_id) VALUES ($1, 7001, 'Сергій', $2) RETURNING id",
+      [harness.company, tymoshenko.id])).rows[0]!.id;
+    const message = (id: number, text: string) => ({ update_id: id, message: { message_id: id, date: Math.floor(Date.now() / 1000), chat: { id: 7001, type: "private" }, from: { id: 7001, first_name: "Сергій" }, text } });
+    await handleUpdate(harness.company, message(1, "Добрий день"));
+    await handleUpdate(harness.company, message(2, "Коли доставка?"));
+    const mine = await inbox(tymoshenko);
+    expect(mine.meta.unreadCount).toBe(1);
+    expect(mine.data[0]).toMatchObject({ kind: "TELEGRAM_MESSAGE", title: "Telegram: Сергій", body: "Коли доставка?", link: `/telegram?contact=${contact}` });
+    expect((await inbox(trubylo)).meta.unreadCount).toBe(0);
   });
 });

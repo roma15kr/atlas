@@ -101,4 +101,9 @@ describe('Telegram inbox', () => {
     await user.click(within(invite).getByRole('button', { name: 'Создать ссылку' }));
     expect((await within(invite).findByLabelText('Ссылка-приглашение') as HTMLInputElement).value).toMatch(/^https:\/\/t\.me\/atlas_demo_bot\?start=/);
   });
+
+  it('opens the customer a notification links to', async () => {
+    renderAs('employee', '/telegram?contact=tg1');
+    expect(await screen.findByRole('region', { name: 'Переписка с София Тёрнер' })).toBeInTheDocument();
+  });
 });

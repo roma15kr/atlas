@@ -8,7 +8,7 @@
 ## 2. The other events
 
 - [x] 2.1 Tasks: `TASK_COMMENTED`, and the scheduler step for `TASK_DUE`/`TASK_OVERDUE` (once, after 08:00 Kyiv) plus 90-day cleanup. Personal-task visibility is respected. Verify the cases; commit.
-- [ ] 2.2 Chat: `CHAT_DIRECT` (not for muted DMs) and `CHAT_MENTION` via the existing mention rules. Telegram: `TELEGRAM_MESSAGE` to the responsible person, collapsed per contact. Verify the cases (an outsider of a chat or a colleague's customer gets nothing); commit.
+- [x] 2.2 Chat: `CHAT_DIRECT` (not for muted DMs) and `CHAT_MENTION` via the existing mention rules. Telegram: `TELEGRAM_MESSAGE` to the responsible person, collapsed per contact. Verify the cases (an outsider of a chat or a colleague's customer gets nothing); commit.
 - [ ] 2.3 `ALERT_CREATED` by `alertVisibility`, `DEAL_ASSIGNED`/`CLIENT_ASSIGNED` to the new owner. Verify the cases; commit.
 
 ## 3. Desktop notifications
