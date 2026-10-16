@@ -1280,3 +1280,5 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 .notification-panel li time { color: var(--muted); font-size: 11px; }
 .notification-panel .text-button { display: inline-flex; align-items: center; gap: 4px; }
 .notification-settings__actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.app-install__steps ol { margin: 6px 0 10px; padding-left: 20px; line-height: 1.7; }
+.app-install .dialog-note svg { vertical-align: -2px; }
