@@ -13,7 +13,7 @@
    - `chat_message_reactions (message_id → chat_messages ON DELETE CASCADE, user_id → users ON DELETE CASCADE, emoji text, created_at)`, primary key `(message_id, user_id, emoji)`;
    - `task_comment_reactions` with the same shape on `task_comments`.
 2. **Emoji allowlist.**
-   - The server accepts only emoji from `reactions/emoji.ts`, a list of about 150 common emoji in categories, each with a Russian name and keywords. The web imports the same list through a JSON file that both build from, so they never drift.
+   - The server accepts only emoji from `reactions/emoji.ts`, a list of about 180 common emoji in categories, each with a Russian name and keywords. The API and the web each keep an identical `emoji.json` (they build separately); an API test asserts the two copies are the same, so they never drift.
    - At most 20 distinct emoji per message or comment (409 `REACTION_LIMIT`).
 3. **API.**
    - `POST /chat/messages/:id/reactions { emoji }` and `DELETE /chat/messages/:id/reactions/:emoji`. Both are idempotent and return the message's reactions.
