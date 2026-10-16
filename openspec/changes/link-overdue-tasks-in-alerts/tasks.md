@@ -2,7 +2,7 @@
 
 ## 1. Overdue tasks in alerts
 
-- [ ] 1.1 Resolve `tasks` (visible to the caller, not done, by due date) and `more` for `TASKS_OVERDUE` alerts in `GET /alerts` and the dashboard. Verify integration cases: the director gets titles and boards of all five; a head sees only tasks they may open; a task moved to done disappears; another rule's alert has no `tasks`. Commit.
+- [x] 1.1 Resolve `tasks` (visible to the caller, not done, by due date) and `more` for `TASKS_OVERDUE` alerts in `GET /alerts` and the dashboard. Verify integration cases: the director gets titles and boards of all five; a head sees only tasks they may open; a task moved to done disappears; another rule's alert has no `tasks`. Commit.
 - [ ] 1.2 Show «Показать задачи (N)» with task links on the dashboard alert row, with the demo shape. Verify a `Dashboard` web test: expand, click a task, its dialog opens. Commit.
 
 ## 2. Integration checks
