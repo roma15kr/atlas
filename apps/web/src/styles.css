@@ -846,8 +846,21 @@ button.dialog-row:hover { background: #f0f6f5; }
   .chat-layout, .chat-layout--thread { height: auto; min-height: 0; grid-template-columns: 1fr; }
   .chat-list { max-height: 320px; }
   .chat-main { height: 70vh; min-height: 420px; }
-  .chat-message__actions { position: static; display: flex; align-self: flex-start; box-shadow: none; }
 }
+/* Touch screens: no hover toolbar; a long press opens the actions sheet, without the system text menu. */
+@media (hover: none) and (pointer: coarse) {
+  .chat-message .chat-message__actions { display: none !important; }
+  .chat-message { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  .chat-message.is-pressed { background: var(--surface-soft); }
+}
+.message-sheet__reactions { display: flex; justify-content: space-between; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid #edf0ef; }
+.message-sheet__reactions button { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); color: var(--muted); font-size: 22px; line-height: 1; }
+.message-sheet__reactions button[aria-pressed="true"] { border-color: var(--primary); background: var(--primary-soft); }
+.message-sheet__actions { display: flex; flex-direction: column; margin-top: 6px; }
+.message-sheet__actions button { min-height: 46px; display: flex; align-items: center; gap: 12px; padding: 0 4px; border: 0; border-bottom: 1px solid #edf0ef; background: transparent; color: var(--text); font-size: 14px; text-align: left; }
+.message-sheet__actions button:last-child { border-bottom: 0; }
+.message-sheet__actions button svg { color: var(--muted); }
+.message-sheet__actions button.is-danger, .message-sheet__actions button.is-danger svg { color: var(--red); }
 .dialog-facts { margin: 0 0 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .dialog-facts div { min-width: 0; padding: 9px 11px; border: 1px solid #edf0ef; border-radius: 5px; background: var(--surface-soft); }
 .dialog-facts dt { color: var(--muted); font-size: 9px; text-transform: uppercase; }
@@ -1288,18 +1301,30 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 .assignee-picker { max-height: 320px; overflow-y: auto; }
 .departments-table__inherited small { color: var(--muted); }
 .notification-bell { position: relative; }
-.notification-panel { position: absolute; top: 40px; right: 0; z-index: 40; width: 380px; max-height: 520px; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 8px; background: var(--surface, #fff); box-shadow: 0 12px 32px rgba(17, 37, 33, .16); }
-.notification-panel header, .notification-panel footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; }
+.notification-panel { position: absolute; top: 40px; right: 0; z-index: 40; width: 380px; max-height: 520px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); box-shadow: 0 20px 60px rgba(17, 29, 27, .25); }
+.notification-panel header, .notification-panel footer { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
 .notification-panel header { border-bottom: 1px solid var(--line); }
+.notification-panel header strong { font-size: 13px; }
+.notification-panel header .text-button { margin-left: auto; font-size: 11px; }
 .notification-panel footer { border-top: 1px solid var(--line); }
+.notification-panel footer .text-button { font-size: 11px; }
 .notification-panel ul { margin: 0; padding: 0; overflow-y: auto; list-style: none; }
-.notification-panel li button { width: 100%; display: flex; gap: 10px; padding: 10px 14px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--text); text-align: left; cursor: pointer; }
-.notification-panel li button:hover { background: #f3f6f5; }
-.notification-panel li button.is-unread { background: #eef5f3; }
-.notification-panel li button.is-unread strong::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: var(--primary); vertical-align: middle; }
-.notification-panel li span { display: grid; gap: 2px; min-width: 0; }
-.notification-panel li small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.notification-panel li time { color: var(--muted); font-size: 11px; }
+.notification-panel li button { width: 100%; min-height: 52px; display: flex; align-items: center; gap: 9px; padding: 8px 12px; border: 0; border-bottom: 1px solid #edf0ef; background: var(--surface); color: var(--text); text-align: left; cursor: pointer; }
+.notification-panel li:last-child button { border-bottom: 0; }
+.notification-panel li button:hover { background: var(--surface-soft); }
+.notification-panel li button.is-unread { background: var(--primary-soft); }
+.notification-icon { width: 30px; height: 30px; flex: 0 0 30px; display: grid; place-items: center; border-radius: 5px; color: var(--primary); background: var(--primary-soft); }
+.notification-panel li button.is-unread .notification-icon--primary { background: var(--surface); }
+.notification-icon--blue { color: var(--blue); background: var(--blue-soft); }
+.notification-icon--amber { color: var(--amber); background: var(--amber-soft); }
+.notification-icon--red { color: var(--red); background: var(--red-soft); }
+.notification-text { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.notification-text strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.notification-text small { margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.notification-panel li button:not(.is-unread) .notification-text strong { font-weight: 600; color: var(--muted); }
+.notification-meta { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; align-self: flex-start; padding-top: 2px; }
+.notification-meta time { color: var(--subtle); font-size: 9px; white-space: nowrap; }
+.notification-meta i { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
 .notification-panel .text-button { display: inline-flex; align-items: center; gap: 4px; }
 .notification-settings__actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
 .app-install__steps ol { margin: 6px 0 10px; padding-left: 20px; line-height: 1.7; }
@@ -1404,11 +1429,6 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
   .report-summary .surface { min-height: 0; padding: 10px; flex-direction: column; align-items: flex-start; gap: 6px; }
   /* Telegram: the CRM line takes a full row, its links the next one. */
   .mail-crm > span { flex-basis: 100%; }
-  /* Chat: message actions appear on tap, under the message, instead of squeezing the text. */
-  .chat-message { flex-wrap: wrap; }
-  .chat-message .chat-message__actions { display: none; }
-  .chat-message.is-open .chat-message__actions { display: flex; position: static; flex-basis: 100%; justify-content: flex-end; border: 0; box-shadow: none; background: transparent; }
-  .chat-message.is-open { background: #f3f6f5; }
   /* The composer's formatting bar shows only while writing, in one scrollable row. */
   .rich-editor__toolbar { flex-wrap: nowrap; overflow-x: auto; }
   .chat-composer .rich-editor:not(:focus-within) .rich-editor__toolbar, .tg-composer .rich-editor:not(:focus-within) .rich-editor__toolbar { display: none; }
