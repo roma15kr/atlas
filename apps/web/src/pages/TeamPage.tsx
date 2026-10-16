@@ -58,11 +58,13 @@ export function TeamPage() {
 
   useEffect(() => { if (!selectedId && users[0]) setSelectedId(users[0].id); }, [users, selectedId]);
   const visible = useMemo(() => users.filter((user) => (scope === 'all' || scope === 'disabled' || (scope === 'online') === user.online) && `${user.fullName} ${user.jobTitle} ${user.department}`.toLowerCase().includes(query.toLowerCase())), [users, scope, query]);
+  const isOnline = (row: { user?: User; entry?: DirectoryEntry }) => Boolean(row.user ? row.user.online : row.entry?.online);
   const rows = useMemo(() => [
     ...visible.map((user) => ({ id: user.id, fullName: user.fullName, user, entry: undefined })),
     ...(scope === 'disabled' ? [] : colleagues).filter((entry) => (scope === 'all' || (scope === 'online') === Boolean(entry.online)) && `${entry.fullName} ${entry.jobTitle ?? ''} ${entry.departmentName ?? ''}`.toLowerCase().includes(query.toLowerCase()))
       .map((entry) => ({ id: entry.id, fullName: entry.fullName, user: undefined, entry })),
-  ].sort((a, b) => a.fullName.localeCompare(b.fullName, 'ru')), [visible, colleagues, scope, query]);
+  // Online first, then offline; each group alphabetically.
+  ].sort((a, b) => Number(isOnline(b)) - Number(isOnline(a)) || a.fullName.localeCompare(b.fullName, 'ru')), [visible, colleagues, scope, query]);
   // The detail follows the list: someone filtered out by the tab or the search gives way to the first row.
   const current = rows.find((row) => row.id === selectedId) ?? rows[0];
   const selected = current?.user;
