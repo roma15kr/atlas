@@ -3,9 +3,10 @@ import { useEffect, useMemo, useState, type DragEvent } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { TaskCard } from '../components/TaskCard';
 import { TaskDialog } from '../components/TaskDialog';
-import { Badge, Button, EmptyState, PageHeader } from '../components/ui';
+import { Segmented, Badge, Button, EmptyState, PageHeader } from '../components/ui';
 import { useAuth, useWorkspace } from '../context/AppContext';
 import { boardErrorMessage } from '../lib/boardErrors';
+import { useIsPhone } from '../lib/useIsPhone';
 import { categories, categoryOrder, defaultBoard, firstStageOf, isAssignedTo, isOverdue, onBoards, rememberedBoard, TASKS } from '../lib/boards';
 import { plural } from '../lib/format';
 import type { TaskCategory, WorkTask } from '../types';
@@ -20,6 +21,16 @@ export function TasksPage() {
   const user = session!.user;
   const [priority, setPriority] = useState('ALL');
   const [dialog, setDialog] = useState<{ task?: WorkTask } | null>(null);
+  // On a phone one status column is shown at a time; the chosen one is remembered on this device.
+  const phone = useIsPhone();
+  const categoryKey = `atlas.tasks.phoneCategory.${user.id}`;
+  const [phoneCategory, setPhoneCategory] = useState<TaskCategory>(() => {
+    try { const saved = localStorage.getItem(categoryKey); return categoryOrder.includes(saved as TaskCategory) ? saved as TaskCategory : 'TODO'; } catch { return 'TODO'; }
+  });
+  const choosePhoneCategory = (category: TaskCategory) => {
+    setPhoneCategory(category);
+    try { localStorage.setItem(categoryKey, category); } catch { /* the choice is a convenience only */ }
+  };
   // A notification links here with ?task=<id>: open that task once it is loaded, then drop the parameter.
   const [params, setParams] = useSearchParams();
   const linkedTask = params.get('task');
@@ -59,7 +70,8 @@ export function TasksPage() {
     </>} />
     {error && <div className="notice notice--danger" role="alert">{error}<button onClick={() => setError('')}>Закрыть</button></div>}
     {!taskBoards.length ? <EmptyState title="Нет доступных досок" description="Попросите руководителя отдела добавить вас на доску задач" icon={ListChecks} />
-      : <div className="kanban kanban--tasks">{categoryOrder.map((category) => {
+      : <>{phone && <div className="phone-tabs"><Segmented value={phoneCategory} label="Статус задач" options={categoryOrder.map((category) => ({ value: category, label: `${categories[category].label} · ${mine.filter((task) => task.stage.category === category).length}` }))} onChange={choosePhoneCategory} /></div>}
+      <div className={`kanban kanban--tasks${phone ? ' kanban--single' : ''}`}>{(phone ? [phoneCategory] : categoryOrder).map((category) => {
         const items = mine.filter((task) => task.stage.category === category);
         const Icon = icons[category];
         return <section className="kanban-column task-column" key={category} aria-label={categories[category].label} onDragOver={(event) => event.preventDefault()} onDrop={(event) => drop(event, category)}>
@@ -72,7 +84,7 @@ export function TasksPage() {
             {category === 'TODO' && <button className="kanban-add" onClick={() => setDialog({})}><Plus size={15} />Добавить задачу</button>}
           </div>
         </section>;
-      })}</div>}
+      })}</div></>}
     {taskBoards.length > 0 && !mine.length && <p className="page-hint">Задачи коллег по отделу — на странице <button className="text-button" onClick={() => navigate('/boards')}>Доски</button></p>}
     {dialog && <TaskDialog task={dialog.task} boardId={defaultBoard(taskBoards, user, rememberedBoard(user.id))?.id} onClose={() => setDialog(null)} />}
   </>;

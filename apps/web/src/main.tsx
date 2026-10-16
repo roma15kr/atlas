@@ -4,9 +4,16 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { AuthProvider, WorkspaceProvider } from './context/AppContext';
 import { installDiagnostics } from './lib/diagnostics';
+import { watchInstallPrompt } from './lib/install';
 import './styles.css';
 
 installDiagnostics();
+watchInstallPrompt();
+
+// The service worker shows the offline page and desktop notifications; registering it also makes Atlas installable.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => { void navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => undefined); });
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

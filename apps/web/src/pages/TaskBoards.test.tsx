@@ -6,6 +6,7 @@ import App from '../App';
 import { AuthProvider, WorkspaceProvider } from '../context/AppContext';
 import { demoSessions } from '../data/demo';
 import { resetDemoTaskComments } from '../lib/taskComments';
+import { phoneViewport } from '../test/phone';
 
 const renderAs = (username: keyof typeof demoSessions, path: string) => {
   localStorage.setItem('atlas.session', JSON.stringify(demoSessions[username]));
@@ -230,5 +231,22 @@ describe('personal tasks', () => {
     renderAs('employee', '/boards');
     await screen.findByRole('button', { name: 'Обновить недельный прогноз' });
     expect(screen.queryByLabelText('Видимость')).not.toBeInTheDocument();
+  });
+});
+
+describe('my tasks on a phone', () => {
+  it('shows one status at a time, chosen with tabs', async () => {
+    const restore = phoneViewport();
+    try {
+      const user = userEvent.setup();
+      renderAs('employee', '/tasks');
+      await screen.findByRole('heading', { name: 'Мои задачи' });
+      expect(columnNames()).toEqual(['Не начато']);
+      expect(screen.getByRole('button', { name: 'Обновить недельный прогноз' })).toBeInTheDocument();
+      await user.click(within(screen.getByRole('group', { name: 'Статус задач' })).getByRole('button', { name: /^В работе · \d+$/ }));
+      expect(columnNames()).toEqual(['В работе']);
+      expect(screen.queryByRole('button', { name: 'Обновить недельный прогноз' })).not.toBeInTheDocument();
+      expect(within(column('В работе')).getAllByRole('article').length).toBeGreaterThan(0);
+    } finally { restore(); }
   });
 });

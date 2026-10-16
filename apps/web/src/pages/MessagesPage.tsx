@@ -1,5 +1,6 @@
+import { useIsPhone } from '../lib/useIsPhone';
 import { useSearchParams } from 'react-router-dom';
-import { AtSign, Bell, BellOff, Hash, MessageSquare, Plus, Search, Settings2, Users, X } from 'lucide-react';
+import { ArrowLeft, AtSign, Bell, BellOff, Hash, MessageSquare, Plus, Search, Settings2, Users, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BrowseChannelsDialog, ChannelFormDialog, ConfirmDialog, ConversationSettingsDialog, EditMessageDialog, NewMessageDialog, usePeopleByUsername } from '../components/chat/ChatDialogs';
 import { Composer, ConversationIcon, MessageItem } from '../components/chat/ChatParts';
@@ -30,10 +31,13 @@ export function MessagesPage() {
   });
   // A notification links here with ?conversation=<id>.
   const [params, setParams] = useSearchParams();
+  const phone = useIsPhone();
+  const [phoneList, setPhoneList] = useState(() => !params.get('conversation'));
   const linked = params.get('conversation');
   useEffect(() => {
     if (!linked) return;
     setSelection({ kind: 'conversation', id: linked });
+    setPhoneList(false);
     setParams((current) => { current.delete('conversation'); return current; }, { replace: true });
   }, [linked, setParams]);
   const [preview, setPreview] = useState<ChatConversation | null>(null);
@@ -60,7 +64,7 @@ export function MessagesPage() {
     setThreadId(null);
   }, [selectedId]);
 
-  const open = (id: string) => { setSelection({ kind: 'conversation', id }); setDialog(null); };
+  const open = (id: string) => { setSelection({ kind: 'conversation', id }); setDialog(null); setPhoneList(false); };
   const filtered = conversations.filter((item) => conversationTitle(item, me.id).toLowerCase().includes(query.toLowerCase()));
   const channels = filtered.filter((item) => item.kind === 'CHANNEL');
   const direct = filtered.filter((item) => item.kind !== 'CHANNEL');
@@ -72,14 +76,17 @@ export function MessagesPage() {
     {item.mentions > 0 ? <Badge tone="danger">@{item.mentions}</Badge> : item.unread > 0 ? <Badge tone={item.muted ? 'neutral' : 'info'}>{item.unread}</Badge> : item.muted ? <BellOff size={13} className="chat-row__muted" aria-label="Без уведомлений" /> : null}
   </button>;
 
+  // On a phone the list and a conversation take turns; a conversation opened from a notification shows at once.
+  const showList = !phone || phoneList;
+  const showConversation = !phone || !phoneList;
   return <>
-    <PageHeader title="Сообщения" description={`${plural(totals.unread, UNREAD)} · ${plural(totals.mentions, MENTIONS)}`} action={<Button icon={Plus} onClick={() => setDialog({ type: 'new' })}>Новое сообщение</Button>} />
+    {showList && <PageHeader title="Сообщения" description={`${plural(totals.unread, UNREAD)} · ${plural(totals.mentions, MENTIONS)}`} action={<Button icon={Plus} onClick={() => setDialog({ type: 'new' })}>Новое сообщение</Button>} />}
     {error && <div className="notice notice--danger" role="alert">{error}<button onClick={() => setError('')}>Закрыть</button></div>}
-    <div className={`chat-layout ${threadId ? 'chat-layout--thread' : ''}`}>
-      <Surface className="chat-list" aria-label="Разговоры">
+    <div className={`chat-layout ${threadId ? 'chat-layout--thread' : ''} ${phone ? 'chat-layout--phone' : ''}`}>
+      {showList && <Surface className="chat-list" aria-label="Разговоры">
         <label className="table-search"><Search size={16} /><input aria-label="Поиск разговоров" placeholder="Поиск" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
         <div className="chat-list__rows">
-          <button type="button" className={selection?.kind === 'mentions' ? 'is-active' : ''} onClick={() => setSelection({ kind: 'mentions' })}>
+          <button type="button" className={selection?.kind === 'mentions' ? 'is-active' : ''} onClick={() => { setSelection({ kind: 'mentions' }); setPhoneList(false); }}>
             <span className="chat-icon"><AtSign size={15} /></span><span><strong>Упоминания</strong><small>Сообщения, где упомянули вас</small></span>{unreadMentions > 0 && <Badge tone="danger">{unreadMentions}</Badge>}
           </button>
           <div className="chat-list__section"><span>Каналы</span><button type="button" className="text-button" onClick={() => setDialog({ type: 'browse' })}>Все каналы</button></div>
@@ -88,8 +95,9 @@ export function MessagesPage() {
           {direct.map(row)}
           {loaded && !direct.length && <p className="chat-list__empty">Напишите коллеге — нажмите «Новое сообщение»</p>}
         </div>
-      </Surface>
-      {selection?.kind === 'mentions' ? <MentionsView onOpen={open} /> : current ? <ConversationView key={current.id} conversation={current} threadId={threadId} onThread={setThreadId} onSettings={() => setDialog({ type: 'settings' })} onEdit={(message) => setDialog({ type: 'edit', message })} onDelete={(message) => setDialog({ type: 'delete', message })} onError={setError} />
+      </Surface>}
+      {showConversation && phone && <IconButton label="К списку" icon={ArrowLeft} className="phone-back" onClick={() => { setPhoneList(true); setThreadId(null); }} />}
+      {!showConversation || (phone && threadId) ? null : selection?.kind === 'mentions' ? <MentionsView onOpen={open} /> : current ? <ConversationView key={current.id} conversation={current} threadId={threadId} onThread={setThreadId} onSettings={() => setDialog({ type: 'settings' })} onEdit={(message) => setDialog({ type: 'edit', message })} onDelete={(message) => setDialog({ type: 'delete', message })} onError={setError} />
         : <Surface className="chat-main">{loaded ? <EmptyState title="Выберите разговор" description="Каналы, группы и личные сообщения появятся слева" icon={MessageSquare} /> : <LoadingState label="Загружаем разговоры" />}</Surface>}
       {threadId && current && <ThreadPanel key={threadId} conversation={current} rootId={threadId} onClose={() => setThreadId(null)} onEdit={(message) => setDialog({ type: 'edit', message })} onDelete={(message) => setDialog({ type: 'delete', message })} />}
     </div>
