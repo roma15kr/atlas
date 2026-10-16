@@ -4,7 +4,7 @@ import { query } from "../db";
 import { asyncHandler } from "../errors";
 import { presenceFor } from "../presence";
 import { taskAccessSql, recordScope, scopeDepartments } from "../scope";
-import { alertVisibility } from "./alerts";
+import { alertVisibility, withOverdueTasks } from "./alerts";
 import { dealScope } from "./deals";
 
 export const dashboardRouter = Router();
@@ -45,7 +45,7 @@ dashboardRouter.get("/", asyncHandler(async (req, res) => {
       taskScope.values
     ),
     query(
-      `SELECT a.id, a.severity, a.category, a.rule, a.title, a.summary, a.deal_id AS "dealId", a.created_at AS "createdAt",
+      `SELECT a.id, a.severity, a.category, a.rule, a.title, a.summary, a.evidence, a.deal_id AS "dealId", a.created_at AS "createdAt",
               a.acknowledged_at AS "acknowledgedAt"
        FROM alerts a WHERE ${alertScope.sql} AND a.resolved_at IS NULL ORDER BY a.created_at DESC LIMIT 5`,
       alertScope.values
@@ -73,7 +73,7 @@ dashboardRouter.get("/", asyncHandler(async (req, res) => {
         ...user,
         presence: presence[user.id] ?? { userId: user.id, status: "OFFLINE", lastSeenAt: null }
       })),
-      alerts: alerts.rows
+      alerts: await withOverdueTasks(auth, alerts.rows)
     }
   });
 }));

@@ -1366,3 +1366,9 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 .chat-main__start { margin: 4px 0 10px; color: var(--subtle); font-size: 11px; text-align: center; }
 .chat-main, .chat-thread, .tg-chat { position: relative; }
 .new-messages { position: absolute; left: 50%; bottom: 76px; z-index: 5; transform: translateX(-50%); min-height: 32px; padding: 0 14px; border: 0; border-radius: 16px; background: var(--primary); color: #fff; font: inherit; font-size: 12px; font-weight: 700; box-shadow: 0 6px 18px rgba(17, 37, 33, .22); cursor: pointer; }
+.alert-tasks ul { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.alert-tasks li { display: grid; }
+.alert-tasks li a { color: var(--primary); font-weight: 600; text-decoration: none; }
+.alert-tasks li a:hover { text-decoration: underline; }
+.alert-tasks li small { color: var(--muted); font-size: 11px; }
+.alert-tasks__more { color: var(--muted); font-size: 12px; }

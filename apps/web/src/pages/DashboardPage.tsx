@@ -1,6 +1,6 @@
 import { Activity, ArrowUpRight, ShieldCheck, Banknote, Bot, CalendarDays, Check, Clock3, FileWarning, Plus, Target, TrendingUp, UserCheck, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { TaskDialog } from '../components/TaskDialog';
 import { Avatar, Badge, Button, EmptyState, PageHeader, SectionHeader, Surface } from '../components/ui';
 import { hasMonitoringConsent, useAuth, useWorkspace } from '../context/AppContext';
@@ -55,7 +55,7 @@ export function DashboardPage() {
       </Surface>
       <Surface className="alerts-panel">
         <SectionHeader title="AI-наблюдения" meta={<Badge tone={openAlerts.some((alert) => alert.severity === 'CRITICAL') ? 'danger' : 'warning'}>{openAlerts.length} новых</Badge>} action={<span className="ai-label"><Bot size={15} /> Системные метрики</span>} />
-        <div className="alert-list">{openAlerts.length ? openAlerts.slice(0, 4).map((alert) => <article className={`alert-row alert-row--${alert.severity.toLowerCase()}`} key={alert.id}><span className="alert-row__icon">{alert.severity === 'CRITICAL' ? <FileWarning size={17} /> : alert.severity === 'WARNING' ? <Clock3 size={17} /> : <Activity size={17} />}</span><div><span><Badge tone={alert.severity === 'CRITICAL' ? 'danger' : alert.severity === 'WARNING' ? 'warning' : 'info'}>{alertLabel(alert)}</Badge><time>{relativeTime(alert.createdAt)}</time></span><strong>{alert.title}</strong><p>{alert.summary}</p>{alert.userName && <small>{alert.userName}</small>}{alert.clientId && <button className="text-button" onClick={() => navigate(`/crm/${alert.clientId}`)}>Открыть клиента <ArrowUpRight size={13} /></button>}</div>{user.role !== 'EMPLOYEE' && <button aria-label="Отметить просмотренным" title="Отметить просмотренным" onClick={() => void acknowledgeAlert(alert.id)}><Check size={16} /></button>}</article>) : <EmptyState title="Всё спокойно" description="Новых системных наблюдений нет" icon={Bot} />}</div>
+        <div className="alert-list">{openAlerts.length ? openAlerts.slice(0, 4).map((alert) => <article className={`alert-row alert-row--${alert.severity.toLowerCase()}`} key={alert.id}><span className="alert-row__icon">{alert.severity === 'CRITICAL' ? <FileWarning size={17} /> : alert.severity === 'WARNING' ? <Clock3 size={17} /> : <Activity size={17} />}</span><div><span><Badge tone={alert.severity === 'CRITICAL' ? 'danger' : alert.severity === 'WARNING' ? 'warning' : 'info'}>{alertLabel(alert)}</Badge><time>{relativeTime(alert.createdAt)}</time></span><strong>{alert.title}</strong><p>{alert.summary}</p>{alert.userName && <small>{alert.userName}</small>}{alert.clientId && <button className="text-button" onClick={() => navigate(`/crm/${alert.clientId}`)}>Открыть клиента <ArrowUpRight size={13} /></button>}{alert.tasks && alert.tasks.length > 0 && <OverdueTasks tasks={alert.tasks} more={alert.more ?? 0} />}</div>{user.role !== 'EMPLOYEE' && <button aria-label="Отметить просмотренным" title="Отметить просмотренным" onClick={() => void acknowledgeAlert(alert.id)}><Check size={16} /></button>}</article>) : <EmptyState title="Всё спокойно" description="Новых системных наблюдений нет" icon={Bot} />}</div>
       </Surface>
       <Surface className="today-panel">
         <SectionHeader title="Сегодня" meta={<CalendarDays size={16} />} action={<button className="text-button" onClick={() => navigate('/tasks')}>Все задачи</button>} />
@@ -87,3 +87,16 @@ export function dashboardTasks(tasks: WorkTask[], boards: TaskBoard[], user: Use
   const own = new Set(boards.filter((board) => board.departmentId && board.departmentId === user.departmentId).map((board) => board.id));
   return tasks.filter((task) => own.has(task.boardId));
 }
+
+/** The overdue tasks of a «Просроченные задачи» signal, folded until asked for; each opens the task. */
+function OverdueTasks({ tasks, more }: { tasks: NonNullable<Alert['tasks']>; more: number }) {
+  const [open, setOpen] = useState(false);
+  return <div className="alert-tasks">
+    <button type="button" className="text-button" aria-expanded={open} onClick={() => setOpen((value) => !value)}>{open ? 'Скрыть задачи' : `Показать задачи (${tasks.length + more})`}</button>
+    {open && <ul>
+      {tasks.map((task) => <li key={task.id}><Link to={`/tasks?task=${task.id}`}>{task.title}</Link><small>{task.boardName} · срок {formatDate(task.dueAt)}</small></li>)}
+      {more > 0 && <li className="alert-tasks__more">и ещё {more}</li>}
+    </ul>}
+  </div>;
+}
+

@@ -106,6 +106,8 @@ export const demoAlerts: Alert[] = [
   { id: 'a1', severity: 'WARNING', category: 'DEADLINE_RISK', title: 'Риск по следующим шагам', summary: 'У двух активных сделок задачи подходят к сроку.', userName: 'Анна Петрова', createdAt: ago(2), acknowledged: false },
   { id: 'a2', severity: 'INFO', category: 'CONSENT', title: 'Нет согласия на мониторинг', summary: 'Сотрудник ещё не принял актуальную политику.', userName: 'Алексей Ким', createdAt: ago(24), acknowledged: false },
   { id: 'a3', severity: 'CRITICAL', category: 'EXPORT', title: 'Отклонена массовая выгрузка', summary: 'Роль сотрудника не позволяет экспортировать всю клиентскую базу.', userName: 'Алексей Ким', createdAt: ago(43), acknowledged: true },
+  { id: 'a4', severity: 'WARNING', category: 'TASKS', rule: 'TASKS_OVERDUE', title: 'Просроченные задачи', summary: 'Алексей Ким: просрочено задач — 3', userName: 'Алексей Ким', createdAt: ago(60), acknowledged: false,
+    tasks: [{ id: 't3', title: 'Согласовать дату демонстрации', boardName: 'Задачи отдела', dueAt: ago(48) }, { id: 't5', title: 'Проверить договор пилота', boardName: 'Задачи отдела', dueAt: ago(24) }], more: 1 },
 ];
 
 export const demoReports: Report[] = [
