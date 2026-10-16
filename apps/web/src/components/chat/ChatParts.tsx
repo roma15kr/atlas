@@ -1,7 +1,7 @@
 import { ReactionBar } from '../reactions/ReactionBar';
 import { ReactionPicker } from '../reactions/ReactionPicker';
 import { Hash, Lock, MessageSquareReply, Pencil, Send, Trash2, Users } from 'lucide-react';
-import { useState } from 'react';
+import { useState , type MouseEvent } from 'react';
 import { conversationTitle, type ChatConversation, type ChatMessage, type ChatPerson } from '../../lib/chat';
 import { formatDateTime, plural } from '../../lib/format';
 import { fitsLimit, RichTextEditor } from '../richtext/RichTextEditor';
@@ -33,7 +33,10 @@ export function MessageItem({ message, people, me, canModerate, onReply, onEdit,
 }) {
   const own = message.author.id === me.id;
   const deleted = Boolean(message.deletedAt);
-  return <article className={`chat-message ${message.mentionedUserIds.includes(me.id) ? 'chat-message--mentioned' : ''}`} aria-label={`Сообщение ${message.author.fullName}`}>
+  // Phones have no hover: a tap on the message shows its actions (taps on links, buttons and images do their own thing).
+  const [open, setOpen] = useState(false);
+  const toggle = (event: MouseEvent<HTMLElement>) => { if (!(event.target as Element).closest('a, button, input, label')) setOpen((value) => !value); };
+  return <article className={`chat-message ${message.mentionedUserIds.includes(me.id) ? 'chat-message--mentioned' : ''}${open ? ' is-open' : ''}`} aria-label={`Сообщение ${message.author.fullName}`} onClick={toggle}>
     <Avatar name={message.author.fullName} src={message.author.avatarUrl ?? undefined} size="sm" />
     <div className="chat-message__main">
       <header><strong>{message.author.fullName}{!message.author.active && <small> · деактивирован</small>}</strong><time dateTime={message.createdAt} title={formatDateTime(message.createdAt)}>{time(message.createdAt)}</time>{message.editedAt && !deleted && <small>изменено</small>}</header>

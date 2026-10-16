@@ -64,7 +64,7 @@ describe('client card on a phone', () => {
     try {
       renderClient();
       expect(await screen.findByRole('link', { name: 'Позвонить' })).toHaveAttribute('href', 'tel:+1555010220');
-      expect(screen.getByRole('link', { name: 'Написать' })).toHaveAttribute('href', 'mailto:sofia@northstar.example');
+      expect(screen.getByRole('link', { name: 'Email' })).toHaveAttribute('href', 'mailto:sofia@northstar.example');
     } finally { restore(); }
   });
 
