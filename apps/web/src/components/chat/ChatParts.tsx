@@ -1,7 +1,7 @@
 import { ReactionBar } from '../reactions/ReactionBar';
 import { ReactionPicker } from '../reactions/ReactionPicker';
 import { Copy, Hash, Lock, MessageSquareReply, Pencil, Plus, Send, Trash2, Users } from 'lucide-react';
-import { useRef, useState, type TouchEvent } from 'react';
+import { useEffect, useRef, useState, type TouchEvent } from 'react';
 import { conversationTitle, type ChatConversation, type ChatMessage, type ChatPerson } from '../../lib/chat';
 import { formatDateTime, plural } from '../../lib/format';
 import { fitsLimit, RichTextEditor } from '../richtext/RichTextEditor';
@@ -80,6 +80,8 @@ export function MessageItem({ message, people, me, canModerate, onReply, onEdit,
 
 /** How long a finger rests on a message before its actions open. */
 export const LONG_PRESS_MS = 450;
+/** After the finger lifts, how long the sheet waits before it takes taps (the browser's tap from the lift lands first). */
+export const SHEET_READY_MS = 350;
 
 /** A message's actions on a touch screen: reactions first, then reply, copy, edit and delete. */
 function MessageSheet({ onClose, onReact, mine, onReply, onCopy, onEdit, onDelete }: {
@@ -87,10 +89,25 @@ function MessageSheet({ onClose, onReact, mine, onReply, onCopy, onEdit, onDelet
   onReply?: () => void; onCopy: () => void; onEdit?: () => void; onDelete?: () => void;
 }) {
   const [all, setAll] = useState(false);
-  return <Dialog open title="Сообщение" size="sm" onClose={onClose}>
+  // It opens under a finger that is still down: lifting it must neither close the sheet nor pick what is under it.
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let timer = 0;
+    const lifted = () => { window.clearTimeout(timer); timer = window.setTimeout(() => setReady(true), SHEET_READY_MS); };
+    window.addEventListener('touchend', lifted, true);
+    window.addEventListener('touchcancel', lifted, true);
+    return () => { window.clearTimeout(timer); window.removeEventListener('touchend', lifted, true); window.removeEventListener('touchcancel', lifted, true); };
+  }, []);
+  const when = <T extends unknown[]>(run: (...args: T) => void) => (...args: T) => { if (ready) run(...args); };
+  onReact = onReact && when(onReact);
+  onReply = onReply && when(onReply);
+  onCopy = when(onCopy);
+  onEdit = onEdit && when(onEdit);
+  onDelete = onDelete && when(onDelete);
+  return <Dialog open title="Сообщение" size="sm" onClose={onClose} className={`message-sheet${ready ? '' : ' is-inert'}`}>
     {onReact && <div className="message-sheet__reactions" role="group" aria-label="Реакции">
       {QUICK_REACTIONS.map((emoji) => <button key={emoji} type="button" aria-label={emojiName(emoji)} aria-pressed={mine(emoji)} onClick={() => onReact(emoji)}>{emoji}</button>)}
-      <button type="button" aria-label="Все эмодзи" aria-pressed={all} onClick={() => setAll((value) => !value)}><Plus size={18} aria-hidden /></button>
+      <button type="button" aria-label="Все эмодзи" aria-pressed={all} onClick={when(() => setAll((value) => !value))}><Plus size={18} aria-hidden /></button>
     </div>}
     {onReact && all && <EmojiPicker onPick={onReact} />}
     <div className="message-sheet__actions">
