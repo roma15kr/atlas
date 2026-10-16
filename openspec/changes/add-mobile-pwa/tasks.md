@@ -7,7 +7,7 @@
 
 ## 2. Phone shell
 
-- [ ] 2.1 Add `useIsPhone()`, the bottom bar (5 items, «Ещё» opens the menu, unread badges), safe-area padding and the phone rules in `styles.css` (40px targets, 16px inputs, dialogs as sheets, notification panel full-width). Verify `PhoneShell.test.tsx` cases with a mocked phone `matchMedia`, and that desktop renders no bottom bar; commit.
+- [x] 2.1 Add `useIsPhone()`, the bottom bar (5 items, «Ещё» opens the menu, unread badges), safe-area padding and the phone rules in `styles.css` (40px targets, 16px inputs, dialogs as sheets, notification panel full-width). Verify `PhoneShell.test.tsx` cases with a mocked phone `matchMedia`, and that desktop renders no bottom bar; commit.
 
 ## 3. Phone screens
 

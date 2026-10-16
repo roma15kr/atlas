@@ -1282,3 +1282,21 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 .notification-settings__actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
 .app-install__steps ol { margin: 6px 0 10px; padding-left: 20px; line-height: 1.7; }
 .app-install .dialog-note svg { vertical-align: -2px; }
+
+/* Phones (640px and less): a bottom bar, touch-sized controls, no zoom on focus, room for the notch and home bar. */
+.bottom-nav { display: none; }
+@media (max-width: 640px) {
+  .bottom-nav { position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(5, 1fr); padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: #fff; box-shadow: 0 -4px 16px rgba(17, 37, 33, .06); }
+  .bottom-nav a, .bottom-nav button { min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font: inherit; font-size: 11px; font-weight: 600; text-decoration: none; }
+  .bottom-nav a.is-active { color: var(--primary); background: var(--primary-soft); }
+  .bottom-nav__icon { position: relative; display: grid; place-items: center; }
+  .bottom-nav__icon i { position: absolute; top: -6px; right: -12px; min-width: 17px; height: 17px; padding: 0 4px; display: grid; place-items: center; border: 2px solid #fff; border-radius: 9px; background: #b54a4a; color: #fff; font-size: 9px; font-style: normal; font-weight: 800; }
+  .page-content { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .topbar { padding-top: env(safe-area-inset-top); padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+  .button, .icon-button, .topbar__alerts, select, input:not([type="checkbox"]):not([type="radio"]) { min-height: 40px; }
+  .icon-button, .topbar__alerts { min-width: 40px; }
+  input, select, textarea, .ProseMirror { font-size: 16px; }
+  .dialog-backdrop { padding: 0; align-items: end; }
+  .dialog { width: 100%; max-height: calc(100vh - env(safe-area-inset-top)); border-radius: 10px 10px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+  .notification-panel { position: fixed; top: calc(58px + env(safe-area-inset-top)); left: 8px; right: 8px; width: auto; max-height: calc(100vh - 160px); }
+}
