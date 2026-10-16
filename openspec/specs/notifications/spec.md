@@ -1,7 +1,7 @@
 # notifications Specification
 
 ## Purpose
-TBD - created by archiving change add-notifications. Update Purpose after archive.
+Tell staff about events that concern them (tasks, chat, Telegram customers, alerts and handed-over records) on the bell in Atlas and, when they allow it, as desktop and phone pop-ups even while Atlas is closed.
 
 ## Requirements
 
@@ -35,7 +35,7 @@ The system SHALL notify users added as assignees of a task (`TASK_ASSIGNED`), th
 - **THEN** its assignees get one `TASK_OVERDUE` notification, not one a day
 
 ### Requirement: Chat and Telegram notifications
-The system SHALL notify the other members of a direct conversation who have not muted it (`CHAT_DIRECT`), the users the chat mention rules notify (`CHAT_MENTION`), and the person responsible for a Telegram customer who writes in (`TELEGRAM_MESSAGE`), keeping one unread notification per customer.
+The system SHALL notify about chat messages: the other members of a direct conversation, every other member of a group conversation, every member of a channel for a top-level message, and the author and earlier repliers for a thread reply, skipping anyone who muted that conversation (`CHAT_DIRECT`, `CHAT_MESSAGE`). Users the chat mention rules notify get `CHAT_MENTION` instead. Chat SHALL keep one unread notification per conversation and Telegram one per customer.
 
 #### Scenario: Customer writes several times
 - **WHEN** a customer sends three Telegram messages before the responsible manager reads the notification
@@ -44,6 +44,18 @@ The system SHALL notify the other members of a direct conversation who have not 
 #### Scenario: Muted direct conversation
 - **WHEN** a user has muted a direct conversation and gets a message there without a mention
 - **THEN** no notification is created
+
+#### Scenario: Several messages in a channel
+- **WHEN** two messages are posted in «Общий» before Семенець reads their notifications
+- **THEN** he has one unread `CHAT_MESSAGE` notification for «Общий», showing the latest message, and their phone shows one pop-up for it
+
+#### Scenario: Reply in a channel thread
+- **WHEN** Тимошенко replies in a thread started by Семенець in «Общий»
+- **THEN** Семенець is notified and channel members who took no part in the thread are not
+
+#### Scenario: Muted channel with a mention
+- **WHEN** a user has muted «Общий» and is mentioned there
+- **THEN** they get only the `CHAT_MENTION` notification
 
 ### Requirement: Alert and CRM notifications
 The system SHALL notify the users who can see a new AI alert (`ALERT_CREATED`), and the new owner of a deal or client when someone else hands it over (`DEAL_ASSIGNED`, `CLIENT_ASSIGNED`).
