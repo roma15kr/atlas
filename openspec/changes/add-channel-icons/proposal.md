@@ -4,24 +4,28 @@
 
 **Problem.** Every channel shows the same «#» tile, so «Общий», «Маркетинг» and the department channels look alike in the list and in notifications. People find a channel by reading its name.
 
-**Evidence.** The director, 2026-10-16: «icon changing for channels», chosen from a library of icons the way an emoji is picked, not uploaded.
+**Evidence.** The director, 2026-10-16: «icon changing for channels», chosen from a library «like in ClickUp», not uploaded.
 
 **Success metric.** A channel admin gives «Общий» an icon in a few seconds, and every member sees it in the chat list and the channel header right away.
 
 ## What Changes
 
-- **Choosing an icon:** a channel admin or a director picks an icon for a channel in «Настройки канала» from a built-in library of about 80 line icons (megaphone, briefcase, truck, chart, cart and so on). The picker works like the emoji picker: groups, search in Russian, and «Без иконки».
-- **Where it shows:** the icon replaces «#» in the chat list, the channel header and «Все каналы», on the usual tinted tile.
+- **Choosing an icon, as in ClickUp:** a channel admin or a director opens a picker in «Настройки канала», or by clicking the channel's tile in its header. It has two tabs:
+  - «Иконки»: about 80 line icons (megaphone, briefcase, truck, chart, cart and so on) and a row of 10 colours for the icon's tile;
+  - «Эмодзи»: the same emoji library as reactions.
+
+  Both tabs have Russian search, and «Убрать иконку» is always available.
+- **Where it shows:** the chosen icon (on its colour) or emoji replaces «#» in the chat list, the channel header and «Все каналы».
 - **No icon:** a channel without one keeps «#» (or the lock for a private channel).
 - **Audit and live updates:** changing the icon is audited with ids only, and reaches open screens live.
 
 ## Announcement
 
-Channels can now have their own icon. A channel admin opens «Настройки канала» → «Иконка» and picks one from the library; everyone sees it in the chat list straight away.
+Channels can now have their own icon. A channel admin clicks the channel's icon and picks an icon with a colour, or an emoji, like in ClickUp. Everyone sees it in the chat list straight away.
 
 ## Non-goals
 
-- Uploaded images, emoji or custom colours as channel icons.
+- Uploaded images or free colour choice (the palette is fixed).
 - Icons for group conversations, which show their members.
 
 ## Capabilities
@@ -32,16 +36,16 @@ None.
 
 ### Modified Capabilities
 
-- `team-chat`: channels can have an icon from the built-in library.
+- `team-chat`: channels can have an icon (library icon with a colour, or an emoji).
 
 ## Impact
 
-- **Data:** migration `023_channel_icons.sql` adds `chat_conversations.icon` (an icon key or null).
+- **Data:** migration `023_channel_icons.sql` adds `chat_conversations.icon` (`icon:<key>:<colour>`, `emoji:<emoji>`, or null).
 - **API:**
   - the channel update accepts `icon`, validated against the library's keys;
   - conversations carry `icon`.
 - **Web:**
   - `ConversationIcon`;
   - an icon picker in channel settings;
-  - the icon library (keys, Russian names, groups) shared with the API's list of keys.
+  - the icon library (keys, Russian names, groups) and the colour palette, whose keys the API shares.
   - The demo mirrors it.
