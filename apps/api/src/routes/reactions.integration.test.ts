@@ -87,3 +87,28 @@ describe("chat reactions", () => {
     expect((await react(seller, "👍", other)).body.error.code).toBe("CONVERSATION_ARCHIVED");
   });
 });
+
+describe("task comment reactions", () => {
+  it("lets anyone who can see the task react, and hides comments on tasks out of sight", async () => {
+    const board = (await harness.query<{ id: string }>("SELECT id FROM task_boards WHERE department_id = $1", [head.departmentId])).rows[0]!.id;
+    const task = (await as(head).post("/tasks", { boardId: board, title: "КП для Нексанс", assigneeIds: [seller.id] })).body.data;
+    const comment = (await as(seller).post(`/tasks/${task.id}/comments`, { body: "КП відправлено" })).body.data;
+    const thanked = await as(head).post(`/tasks/comments/${comment.id}/reactions`, { emoji: "🙏" });
+    expect(thanked.status).toBe(200);
+    expect(thanked.body.data).toEqual([{ emoji: "🙏", count: 1, users: [{ id: head.id, fullName: expect.any(String) }] }]);
+    const listed = (await as(seller).get(`/tasks/${task.id}/comments`)).body.data;
+    expect(listed[0].reactions).toEqual(thanked.body.data);
+    // A colleague on the board sees the shared task and may react too.
+    expect((await as(colleague).post(`/tasks/comments/${comment.id}/reactions`, { emoji: "👍" })).status).toBe(200);
+    expect((await as(colleague).delete(`/tasks/comments/${comment.id}/reactions/${encodeURIComponent("👍")}`)).body.data).toHaveLength(1);
+
+    const personal = (await as(seller).post("/tasks", { boardId: board, title: "Особисте" })).body.data;
+    const note = (await as(seller).post(`/tasks/${personal.id}/comments`, { body: "Нагадування" })).body.data;
+    const hidden = await as(colleague).post(`/tasks/comments/${note.id}/reactions`, { emoji: "👍" });
+    expect(hidden.status).toBe(404);
+    expect(hidden.body.error.code).toBe("TASK_NOT_FOUND");
+    expect((await as(outsider).post(`/tasks/comments/${comment.id}/reactions`, { emoji: "👍" })).status).toBe(404);
+    expect((await as(seller).post(`/tasks/comments/${comment.id}/reactions`, { emoji: "привіт" })).status).toBe(400);
+  });
+});
+

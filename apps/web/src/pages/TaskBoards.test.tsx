@@ -88,6 +88,24 @@ describe('my tasks', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('reacts to a task comment and takes the reaction back', async () => {
+    const user = userEvent.setup();
+    renderAs('employee', '/tasks');
+    await user.click(await screen.findByRole('button', { name: 'Прайс для партнёров' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Задача' });
+    const comments = within(dialog).getByRole('region', { name: 'Комментарии' });
+    await user.click(await within(comments).findByRole('textbox', { name: 'Новый комментарий' }));
+    await user.keyboard('Скидки согласованы');
+    await user.click(within(comments).getByRole('button', { name: 'Добавить комментарий' }));
+    const comment = (await within(comments).findByText('Скидки согласованы')).closest('li')!;
+    await user.click(within(comment).getByRole('button', { name: 'Добавить реакцию' }));
+    await user.click(within(screen.getByRole('dialog', { name: 'Выбор реакции' })).getByRole('button', { name: 'нравится' }));
+    const chip = await within(comment).findByRole('button', { name: /^👍 1\./ });
+    expect(chip).toHaveAttribute('title', 'нравится: Вы');
+    await user.click(chip);
+    expect(within(comment).queryByRole('button', { name: /^👍/ })).not.toBeInTheDocument();
+  });
+
   it('adds a formatted comment to a task', async () => {
     const user = userEvent.setup();
     renderAs('employee', '/tasks');

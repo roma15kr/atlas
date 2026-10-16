@@ -1361,3 +1361,5 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
   .emoji-picker { width: 100%; }
   .reaction-chip { min-height: 32px; }
 }
+.task-comments__reactions { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.task-comments__reactions .reaction-bar { margin-top: 0; }

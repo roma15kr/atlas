@@ -7,7 +7,7 @@
 
 ## 2. Task comment reactions
 
-- [ ] 2.1 Task comment reaction endpoints with `scopedTask` access and `reactions` in comment payloads; use the reaction components in `TaskComments`. Verify API cases (someone who can't see the task gets 404) and a `TaskBoards.test.tsx` case; commit.
+- [x] 2.1 Task comment reaction endpoints with `scopedTask` access and `reactions` in comment payloads; use the reaction components in `TaskComments`. Verify API cases (someone who can't see the task gets 404) and a `TaskBoards.test.tsx` case; commit.
 
 ## 3. Scrolling back
 

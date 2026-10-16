@@ -10,6 +10,7 @@ import { asOptionalDate, pagination } from "../http";
 import { boardAccessSql, funnelAccessSql, taskAccessSql } from "../scope";
 import type { AuthContext } from "../types";
 import { notify } from "../notifications/notify";
+import { addReaction, COMMENT_REACTIONS, reactionEmoji, reactionInput, reactionsSql, removeReaction } from "../reactions/reactions";
 import { dealScope } from "./deals";
 import { canManageBoard, STAGE_CATEGORIES, type StageCategory } from "./taskBoards";
 
@@ -331,7 +332,30 @@ async function assertDealVisible(auth: AuthContext, id: string): Promise<void> {
 }
 
 const COMMENT_COLUMNS = `c.id, c.body, c.created_at AS "createdAt",
-  json_build_object('id', u.id, 'fullName', u.full_name, 'avatarUrl', u.avatar_url) AS author`;
+  json_build_object('id', u.id, 'fullName', u.full_name, 'avatarUrl', u.avatar_url) AS author,
+  ${reactionsSql(COMMENT_REACTIONS, "c.id")} AS reactions`;
+
+/** A comment on a task the caller can see; anything else is 404, like the task itself. */
+async function visibleComment(auth: AuthContext, commentId: string): Promise<string> {
+  const comment = await query<{ task_id: string }>("SELECT task_id FROM task_comments WHERE id = $1 AND company_id = $2", [commentId, auth.companyId]);
+  if (!comment.rows[0]) throw new ApiError(404, "TASK_NOT_FOUND", "Task not found");
+  await scopedTask(auth, comment.rows[0].task_id);
+  return commentId;
+}
+
+/** `POST /api/v1/tasks/comments/:id/reactions` and `DELETE …/:emoji`: anyone who can see the task. Not audited (not sensitive). */
+tasksRouter.post("/comments/:id/reactions", asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const id = await visibleComment(auth, idSchema.parse(req.params.id));
+  const { emoji } = reactionInput.parse(req.body);
+  res.json({ data: await addReaction(COMMENT_REACTIONS, id, auth.userId, emoji) });
+}));
+
+tasksRouter.delete("/comments/:id/reactions/:emoji", asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const id = await visibleComment(auth, idSchema.parse(req.params.id));
+  res.json({ data: await removeReaction(COMMENT_REACTIONS, id, auth.userId, reactionEmoji.parse(req.params.emoji)) });
+}));
 
 /** `GET /api/v1/tasks/:id/comments`: oldest first, for everyone who can open the task's board. */
 tasksRouter.get("/:id/comments", asyncHandler(async (req, res) => {
