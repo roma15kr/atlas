@@ -1,3 +1,4 @@
+import { aggregateReactions, toggleDemoReaction, type Reaction, type ReactionRow } from './reactions';
 import { apiRequest } from './api';
 import type { Role, User } from '../types';
 
@@ -19,6 +20,7 @@ export interface ChatMessage {
   createdAt: string;
   author: ChatAuthor;
   mentionedUserIds: string[];
+  reactions?: Reaction[];
 }
 export interface ChatConversation {
   id: string;
@@ -57,6 +59,8 @@ export interface ChatBackend {
   post(conversationId: string, body: string, parentId?: string | null): Promise<ChatMessage>;
   edit(messageId: string, body: string): Promise<ChatMessage>;
   remove(messageId: string): Promise<void>;
+  /** Adds or removes the caller's reaction; resolves the message's reactions. */
+  react(messageId: string, emoji: string, add: boolean): Promise<Reaction[]>;
   direct(userId: string): Promise<ChatConversation>;
   group(userIds: string[], name?: string | null): Promise<ChatConversation>;
   renameGroup(id: string, name: string | null): Promise<void>;
@@ -86,6 +90,7 @@ export const remoteChat: ChatBackend = {
   post: (conversationId, body, parentId) => apiRequest(`/chat/conversations/${conversationId}/messages`, { method: 'POST', body: { body, parentId: parentId ?? null } }),
   edit: (messageId, body) => apiRequest(`/chat/messages/${messageId}`, { method: 'PATCH', body: { body } }),
   remove: (messageId) => apiRequest(`/chat/messages/${messageId}`, { method: 'DELETE' }),
+  react: (messageId, emoji, add) => apiRequest<Reaction[]>(add ? `/chat/messages/${messageId}/reactions` : `/chat/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`, add ? { method: 'POST', body: { emoji } } : { method: 'DELETE' }),
   direct: (userId) => apiRequest('/chat/direct', { method: 'POST', body: { userId } }),
   group: (userIds, name) => apiRequest('/chat/groups', { method: 'POST', body: { userIds, name: name || null } }),
   renameGroup: (id, name) => apiRequest(`/chat/groups/${id}`, { method: 'PATCH', body: { name } }),
@@ -191,6 +196,7 @@ export function createDemoChat(users: User[], me: User): ChatBackend {
       replyCount: replies.length, lastReplyAt: replies.at(-1)?.createdAt ?? null, editedAt: message.editedAt, deletedAt: message.deletedAt,
       createdAt: message.createdAt, author: person(message.authorId),
       mentionedUserIds: store.mentions.filter((item) => item.messageId === message.id).map((item) => item.userId),
+      reactions: aggregateReactions(store.reactions, message.id),
     };
   };
   const summary = (conversation: DemoConversation): ChatConversation => {
@@ -268,6 +274,15 @@ export function createDemoChat(users: User[], me: User): ChatBackend {
       store.mentions = store.mentions.filter((item) => item.messageId !== messageId || ids.includes(item.userId));
       ids.filter((id) => !store.mentions.some((item) => item.messageId === messageId && item.userId === id)).forEach((userId) => store.mentions.push({ messageId, userId, readAt: null }));
       return toMessage(message);
+    },
+    react: async (messageId, emoji, add) => {
+      const message = store.messages.find((item) => item.id === messageId);
+      if (!message) throw new ChatError('MESSAGE_NOT_FOUND', 'Сообщение не найдено');
+      const { conversation, isMember } = find(message.conversationId);
+      if (!isMember) throw new ChatError('CHAT_JOIN_REQUIRED', 'Вступите в канал, чтобы ставить реакции');
+      if (conversation.archivedAt) throw new ChatError('CONVERSATION_ARCHIVED', 'Разговор в архиве');
+      store.reactions = toggleDemoReaction(store.reactions, { targetId: messageId, userId: me.id, fullName: me.fullName, emoji }, add);
+      return aggregateReactions(store.reactions, messageId);
     },
     remove: async (messageId) => {
       const message = store.messages.find((item) => item.id === messageId);
@@ -406,7 +421,7 @@ function parseDemoMentions(body: string): { usernames: string[]; channel: boolea
 }
 
 /** One shared store per page load, keyed by the user list, so switching demo users keeps the conversation history. */
-let sharedStore: { conversations: DemoConversation[]; members: DemoMember[]; messages: DemoMessage[]; mentions: DemoMentionRow[] } | null = null;
+let sharedStore: { conversations: DemoConversation[]; members: DemoMember[]; messages: DemoMessage[]; mentions: DemoMentionRow[]; reactions: ReactionRow[] } | null = null;
 
 export function resetDemoChat(): void { sharedStore = null; }
 
@@ -445,6 +460,6 @@ function demoStore(users: User[]) {
     { id: 'm7', conversationId: 'dm-director-employee', authorId: director, parentId: null, body: 'Анна, как прошла встреча с клиентом?', createdAt: minutesAgo(30), editedAt: null, deletedAt: null },
   ];
   const mentions: DemoMentionRow[] = [{ messageId: 'm3', userId: employee, readAt: null }];
-  sharedStore = { conversations, members, messages, mentions };
+  sharedStore = { conversations, members, messages, mentions, reactions: [] };
   return sharedStore;
 }

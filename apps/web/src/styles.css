@@ -1254,6 +1254,28 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 .rich-editor__error { color: var(--red); font-weight: 600; }
 .rich-editor__image { display: block; margin: 6px 0; }
 .rich-editor__image img, .rich-image { max-width: 100%; max-height: 360px; border-radius: 6px; }
+.rich-image-button { display: inline-block; max-width: 100%; padding: 0; border: 0; background: transparent; cursor: zoom-in; vertical-align: top; }
+.rich-image-button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 6px; }
+.rich-image--thumb { display: block; max-width: min(320px, 100%); max-height: 240px; object-fit: contain; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-soft); }
+.image-viewer { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: calc(56px + env(safe-area-inset-top)) 56px calc(24px + env(safe-area-inset-bottom)); background: rgba(10, 16, 15, .86); }
+.image-viewer__image { max-width: 92vw; max-height: 86vh; border-radius: 6px; box-shadow: 0 18px 60px rgba(0, 0, 0, .45); cursor: default; }
+.image-viewer__bar { position: absolute; top: calc(10px + env(safe-area-inset-top)); right: 12px; left: 12px; display: flex; align-items: center; justify-content: flex-end; gap: 6px; color: #fff; }
+.image-viewer__count { margin-right: auto; font-size: 14px; font-weight: 600; }
+.image-viewer__action, .image-viewer__nav { min-width: 40px; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; border: 0; border-radius: 8px; background: rgba(255, 255, 255, .12); color: #fff; font: inherit; font-size: 13px; text-decoration: none; cursor: pointer; }
+.image-viewer__action:hover, .image-viewer__nav:hover { background: rgba(255, 255, 255, .22); }
+.image-viewer__nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 64px; padding: 0; }
+.image-viewer__nav--prev { left: 8px; }
+.image-viewer__nav--next { right: 8px; }
+.image-viewer__missing { color: #fff; }
+.image-viewer__loading { width: 64px; height: 64px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, .25); border-top-color: #fff; animation: image-viewer-spin .8s linear infinite; }
+@keyframes image-viewer-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .image-viewer__loading { animation: none; } }
+@media (max-width: 640px) {
+  .image-viewer { padding-left: 8px; padding-right: 8px; }
+  .image-viewer__image { max-width: 100vw; max-height: 78vh; border-radius: 0; }
+  .image-viewer__nav { display: none; }
+  .image-viewer__action span { display: none; }
+}
 .rich-image--loading { display: inline-block; width: 160px; height: 90px; border-radius: 6px; background: var(--surface-soft); }
 .rich-image--missing { color: var(--subtle); font-size: 12px; }
 .departments-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -1315,3 +1337,32 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 }
 .phone-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 14px; }
 .phone-actions .button { min-height: 48px; justify-content: center; text-decoration: none; font-size: 15px; }
+/* Reactions */
+.reaction-bar { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.reaction-chip { display: inline-flex; align-items: center; gap: 4px; min-height: 26px; padding: 0 8px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface-soft); color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
+.reaction-chip b { font-size: 11px; font-weight: 700; color: var(--muted); }
+.reaction-chip.is-mine { border-color: var(--primary); background: var(--primary-soft); }
+.reaction-chip.is-mine b { color: var(--primary); }
+.reaction-chip:disabled { cursor: default; }
+.reaction-picker { position: relative; display: inline-flex; }
+.reaction-picker__panel { position: absolute; z-index: 45; right: 0; bottom: calc(100% + 6px); width: max-content; max-width: min(340px, 92vw); border: 1px solid var(--line); border-radius: 10px; background: #fff; box-shadow: 0 12px 32px rgba(17, 37, 33, .18); }
+.reaction-picker__quick { display: flex; gap: 2px; padding: 6px; }
+.reaction-picker__quick button, .emoji-picker__grid button { width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; font-size: 20px; cursor: pointer; }
+.reaction-picker__quick button:hover, .emoji-picker__grid button:hover, .reaction-picker__quick button[aria-pressed="true"] { background: var(--surface-soft); }
+.emoji-picker { width: min(340px, 92vw); border-top: 1px solid var(--line); }
+.emoji-picker__search { display: flex; align-items: center; gap: 6px; margin: 8px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); }
+.emoji-picker__search input { flex: 1; min-height: 32px; border: 0; outline: none; background: transparent; }
+.emoji-picker__groups { max-height: 240px; overflow-y: auto; padding: 0 6px 8px; }
+.emoji-picker__groups h4 { margin: 6px 4px 2px; color: var(--muted); font-size: 10px; text-transform: uppercase; }
+.emoji-picker__grid { display: grid; grid-template-columns: repeat(8, 1fr); }
+.emoji-picker__empty { margin: 10px; color: var(--muted); font-size: 12px; }
+@media (max-width: 640px) {
+  .reaction-picker__panel { position: fixed; left: 8px; right: 8px; bottom: calc(76px + env(safe-area-inset-bottom)); max-width: none; }
+  .emoji-picker { width: 100%; }
+  .reaction-chip { min-height: 32px; }
+}
+.task-comments__reactions { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.task-comments__reactions .reaction-bar { margin-top: 0; }
+.chat-main__start { margin: 4px 0 10px; color: var(--subtle); font-size: 11px; text-align: center; }
+.chat-main, .chat-thread, .tg-chat { position: relative; }
+.new-messages { position: absolute; left: 50%; bottom: 76px; z-index: 5; transform: translateX(-50%); min-height: 32px; padding: 0 14px; border: 0; border-radius: 16px; background: var(--primary); color: #fff; font: inherit; font-size: 12px; font-weight: 700; box-shadow: 0 6px 18px rgba(17, 37, 33, .22); cursor: pointer; }

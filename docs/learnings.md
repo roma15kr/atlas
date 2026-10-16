@@ -14,5 +14,5 @@ Seen: 2026-10 (rich text change), 2026-10-15 (`fix/task-save-comment`)  Count: 2
 Why: twice a failing `make check` was committed and pushed because the commit ran after `;` or a log redirect.
 
 ## Check that a text is absent by the text itself, never by a short number a random uuid may contain
-Seen: 2026-10-15 (`telegram.integration.test.ts`, `not.toContain("150")`)  Count: 1
+Seen: 2026-10-15 (`telegram.integration.test.ts`, `not.toContain("150")`), 2026-10-16 (`mail.integration.test.ts` `150`; `profile.integration.test.ts` `1994` fixed pre-emptively)  Count: 2
 Why: the audit metadata held a uuid with «150» in it, so the test failed at random; check `/Доставка|150 грн/`.
