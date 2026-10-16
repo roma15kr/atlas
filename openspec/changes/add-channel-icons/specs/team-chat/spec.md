@@ -1,16 +1,16 @@
 ## ADDED Requirements
 
 ### Requirement: Channel icon
-A channel admin or a DIRECTOR SHALL be able to set a PNG, JPEG or WebP image of up to 2 MB as a channel's icon, and to remove it. The icon SHALL replace the channel's «#» or lock tile wherever the channel is listed or opened, as a rounded square. It SHALL be served only to signed-in users of the same company. Changes SHALL be audited with ids only, and reach open screens live; attempts by others SHALL return 403 `CHAT_FORBIDDEN` and be audited.
+A channel admin or a DIRECTOR SHALL be able to choose a channel's icon from Atlas's built-in icon library, searchable by Russian names, or clear it. The chosen icon SHALL replace the channel's «#» or lock tile wherever the channel is listed or opened. An icon outside the library SHALL be rejected with 400 `CHAT_INVALID_ICON`. Changes SHALL be audited with ids only and reach open screens live; attempts by others SHALL return 403 `CHAT_FORBIDDEN` and be audited.
 
-#### Scenario: Admin sets an icon
-- **WHEN** the admin of «Общий» uploads a logo in «Настройки канала»
-- **THEN** every member sees the logo instead of «#» next to «Общий» in the chat list and in the channel header
+#### Scenario: Admin picks an icon
+- **WHEN** the admin of «Общий» types «мег» in the icon picker and chooses «Мегафон»
+- **THEN** every member sees a megaphone instead of «#» next to «Общий» in the chat list and in the channel header
 
 #### Scenario: Member without admin rights
 - **WHEN** a member who is not an admin of the channel tries to change its icon
 - **THEN** the response is 403 `CHAT_FORBIDDEN` and the attempt is audited
 
-#### Scenario: Icon removed
-- **WHEN** an admin removes the icon
+#### Scenario: Icon cleared
+- **WHEN** an admin chooses «Без иконки»
 - **THEN** the channel shows «#» again

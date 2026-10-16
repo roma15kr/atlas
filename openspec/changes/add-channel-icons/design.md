@@ -2,19 +2,16 @@
 
 ## Decisions
 
-1. **Storage.**
-   - Reuse the avatar pipeline: `avatarUpload` (2 MB) and `detectImageType` for PNG, JPEG and WebP. The object goes to `objectStorage` under the company.
-   - A row in a new `chat_channel_icons (id, company_id, conversation_id, storage_key, mime_type)` is served by `GET /api/v1/chat/icons/:id` to signed-in users of the same company, with `Cache-Control: private, immutable`.
-   - `chat_conversations.icon_url` holds `/api/v1/chat/icons/<id>`. A new upload gets a new id, so caches never show the old image.
-   - Replacing or removing the icon deletes the previous object after commit.
-2. **Access.**
-   - Same as other channel management: channel admin or DIRECTOR, otherwise 403 `CHAT_FORBIDDEN`, audited `CHAT_CHANNEL_ICON_DENIED`.
-   - Success is audited `CHAT_CHANNEL_ICON_UPDATED` / `CHAT_CHANNEL_ICON_REMOVED` with the channel id.
-   - An archived channel answers 409 `CONVERSATION_ARCHIVED`.
-   - A channel outside the caller's view answers 404.
-3. **Display.** `ConversationIcon` renders `<img>` in the 30px `.chat-icon` tile (radius 5px, `object-fit: cover`) when `iconUrl` is set. If the image fails to load, it falls back to «#».
-4. **Live.** The existing `chat:conversation-updated` event carries the new `iconUrl`.
-
-## Risks / Trade-offs
-
-- **Unused objects:** an icon left when a channel is deleted stays in storage. Channels are archived, not deleted, so this is rare and acceptable.
+1. **Library.**
+   - A curated list of about 80 `lucide-react` icons. Atlas already uses this icon set.
+   - Each entry has a stable key (e.g. `megaphone`), a Russian name and search words, and a group: «Работа», «Продажи», «Склад и доставка», «Общение», «Люди», «Разное».
+   - The web holds the components. The API holds only the list of keys (`CHANNEL_ICON_KEYS`), and a unit test keeps the two lists equal.
+2. **Storage.** `chat_conversations.icon text NULL` stores the key. An unknown key is rejected with 400 `CHAT_INVALID_ICON`. A key that a later version drops falls back to «#» on display.
+3. **Access.**
+   - Part of the existing channel update (`PATCH /chat/channels/:id`), so channel admins and DIRECTORs only, and archived channels are read-only.
+   - Others get 403 `CHAT_FORBIDDEN`, audited as other management attempts.
+   - A change is audited with the field name `icon` among the changed fields, never the value of other fields.
+4. **Display.**
+   - `ConversationIcon` draws the chosen icon in the existing 30px `.chat-icon` tile (primary tint).
+   - The picker is a popover like the reaction picker: a grid of icons by group, a search field, and «Без иконки».
+5. **Live.** The existing `chat:conversation-updated` event carries `icon`.

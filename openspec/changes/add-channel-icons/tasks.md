@@ -2,8 +2,8 @@
 
 ## 1. Channel icons
 
-- [ ] 1.1 Add migration `023_channel_icons.sql` and the upload, remove and serve endpoints with access, audit and `iconUrl` on conversations. Verify integration cases: an admin uploads and everyone in the company can load it; a member who isn't an admin gets 403 (audited); an outsider of another company gets 404; replacing deletes the old object; removing restores no icon. Commit.
-- [ ] 1.2 Show the icon in the chat list, the header and «Все каналы», and add «Загрузить иконку» / «Убрать иконку» to channel settings (the demo mirrors it). Verify `Chat.test.tsx` cases: an admin sets an icon and the list shows it, and a member sees no upload control. Commit.
+- [ ] 1.1 Add migration `023_channel_icons.sql`, accept and validate `icon` in the channel update, and return it on conversations. Verify integration cases: an admin sets and clears an icon; an unknown key gets 400; a member who isn't an admin gets 403 (audited); the list shows `icon` to members. Commit.
+- [ ] 1.2 Add the icon library and picker, show the icon in the chat list, header and «Все каналы», and add «Иконка» to channel settings (the demo mirrors it). Verify cases: a unit test that the web and API key lists match; `Chat.test.tsx`: an admin picks «Мегафон» via search and the list shows it, and a member has no picker. Commit.
 
 ## 2. Integration checks
 
