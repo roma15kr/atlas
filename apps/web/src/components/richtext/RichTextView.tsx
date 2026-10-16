@@ -2,6 +2,7 @@ import { createElement, Fragment, useMemo, useState, type ReactNode } from 'reac
 import type { ChatPerson } from '../../lib/chat';
 import { renderMarkdown, toggleTask } from '../../lib/markdown';
 import { AuthImage } from './AuthImage';
+import { ImageViewer } from './ImageViewer';
 
 /** Same rule as chat mentions: `@username` not inside a word or an email address. */
 const MENTION = /(^|[^\p{L}\p{N}._@-])@([a-z0-9._-]{2,50})/giu;
@@ -10,7 +11,11 @@ const MENTION = /(^|[^\p{L}\p{N}._@-])@([a-z0-9._-]{2,50})/giu;
 const TAGS = new Set(['p', 'br', 'strong', 'em', 'del', 's', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre',
   'a', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'hr', 'input']);
 
-interface Context { people?: Map<string, ChatPerson>; myUsername?: string; interactive: boolean; onToggle: (index: number) => void }
+interface Context {
+  people?: Map<string, ChatPerson>; myUsername?: string; interactive: boolean; onToggle: (index: number) => void;
+  /** The text's images in order, for browsing them in the enlarged view. */
+  images: Array<{ src: string; alt: string }>; onOpenImage: (index: number, trigger: HTMLButtonElement) => void;
+}
 
 function mentionChip(username: string, key: number, context: Context): ReactNode {
   if (username === 'channel') return <span key={key} className="mention mention--all">@канал</span>;
@@ -49,7 +54,11 @@ function toReact(node: Node, key: number, context: Context, inCode: boolean): Re
       aria-label={element.hasAttribute('checked') ? 'Выполнено' : 'Не выполнено'} onChange={() => context.onToggle(index)} />;
   }
   if (tag === 'a') return <a key={key} href={element.getAttribute('href') ?? undefined} target="_blank" rel="noopener noreferrer">{children}</a>;
-  if (tag === 'img') return <AuthImage key={key} src={element.getAttribute('src') ?? ''} alt={element.getAttribute('alt') ?? ''} />;
+  if (tag === 'img') {
+    const image = { src: element.getAttribute('src') ?? '', alt: element.getAttribute('alt') ?? '' };
+    const index = context.images.push(image) - 1;
+    return <AuthImage key={key} src={image.src} alt={image.alt} onOpen={(trigger) => context.onOpenImage(index, trigger)} />;
+  }
   const props: Record<string, unknown> = { key };
   if (tag === 'ol' && element.getAttribute('start')) props.start = Number(element.getAttribute('start'));
   if ((tag === 'th' || tag === 'td') && element.getAttribute('align')) props.style = { textAlign: element.getAttribute('align') };
@@ -64,11 +73,13 @@ export function RichTextView({ markdown, people, myUsername, onChange, className
   markdown: string; people?: Map<string, ChatPerson>; myUsername?: string; onChange?: (markdown: string) => Promise<void>; className?: string;
 }) {
   const [saving, setSaving] = useState(false);
+  const [viewer, setViewer] = useState<{ index: number; trigger: HTMLButtonElement } | null>(null);
   const html = useMemo(() => renderMarkdown(markdown), [markdown]);
-  const content = useMemo(() => {
+  const { content, images } = useMemo(() => {
     const box = document.createElement('div');
     box.innerHTML = html;
     const context: Context = {
+      images: [], onOpenImage: (index, trigger) => setViewer({ index, trigger }),
       people, myUsername, interactive: Boolean(onChange) && !saving,
       onToggle: (index) => {
         if (!onChange) return;
@@ -76,7 +87,9 @@ export function RichTextView({ markdown, people, myUsername, onChange, className
         void onChange(toggleTask(markdown, index)).finally(() => setSaving(false));
       }
     };
-    return [...box.childNodes].map((child, index) => toReact(child, index, context, false));
+    return { content: [...box.childNodes].map((child, index) => toReact(child, index, context, false)), images: context.images };
   }, [html, markdown, people, myUsername, onChange, saving]);
-  return <div className={`rich-text${className ? ` ${className}` : ''}`}>{content}</div>;
+  return <div className={`rich-text${className ? ` ${className}` : ''}`}>{content}
+    {viewer && <ImageViewer images={images} index={viewer.index} origin={viewer.trigger} onClose={() => { const trigger = viewer.trigger; setViewer(null); trigger.focus(); }} />}
+  </div>;
 }

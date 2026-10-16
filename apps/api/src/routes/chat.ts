@@ -8,6 +8,7 @@ import { query, transaction } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { chatPostLimiter } from "../middleware";
 import { notify } from "../notifications/notify";
+import { addReaction, CHAT_REACTIONS, reactionEmoji, reactionInput, reactionsSql, removeReaction, type Reaction } from "../reactions/reactions";
 import { emitToUsers } from "../realtime";
 import { chatAccessSql } from "../scope";
 import type { AuthContext } from "../types";
@@ -141,7 +142,8 @@ const messageColumns = `x.id, x.conversation_id AS "conversationId", x.parent_id
   CASE WHEN x.deleted_at IS NULL THEN x.body END AS body,
   x.reply_count AS "replyCount", x.last_reply_at AS "lastReplyAt", x.edited_at AS "editedAt",
   x.deleted_at AS "deletedAt", x.created_at AS "createdAt", ${authorJson} AS author,
-  ARRAY(SELECT mm.user_id FROM chat_mentions mm WHERE mm.message_id = x.id) AS "mentionedUserIds"`;
+  ARRAY(SELECT mm.user_id FROM chat_mentions mm WHERE mm.message_id = x.id) AS "mentionedUserIds",
+  ${reactionsSql(CHAT_REACTIONS, "x.id")} AS reactions`;
 
 async function messageById(id: string): Promise<Record<string, unknown>> {
   const result = await query(`SELECT ${messageColumns} FROM chat_messages x JOIN users u ON u.id = x.author_id WHERE x.id = $1`, [id]);
@@ -535,6 +537,36 @@ async function messageContext(auth: AuthContext, id: string): Promise<{ message:
   });
   return { message, conversation };
 }
+
+/** Reactions need the same right as posting: a member of an active conversation, on a message that still exists. */
+async function reactableMessage(auth: AuthContext, id: string): Promise<{ id: string; conversationId: string }> {
+  const { message, conversation } = await messageContext(auth, id);
+  if (!conversation.isMember) throw new ApiError(409, "CHAT_JOIN_REQUIRED", "Join the channel to react");
+  assertActive(conversation);
+  if (message.deleted_at) throw new ApiError(409, "CHAT_MESSAGE_DELETED", "The message was deleted");
+  return { id: message.id, conversationId: conversation.id };
+}
+
+async function publishReactions(message: { id: string; conversationId: string }, reactions: Reaction[]): Promise<void> {
+  emitToUsers(await memberIds(message.conversationId), "chat:reactions", { conversationId: message.conversationId, messageId: message.id, reactions });
+}
+
+chatRouter.post("/messages/:id/reactions", asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const message = await reactableMessage(auth, idSchema.parse(req.params.id));
+  const { emoji } = reactionInput.parse(req.body);
+  const reactions = await addReaction(CHAT_REACTIONS, message.id, auth.userId, emoji);
+  await publishReactions(message, reactions);
+  res.json({ data: reactions });
+}));
+
+chatRouter.delete("/messages/:id/reactions/:emoji", asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const message = await reactableMessage(auth, idSchema.parse(req.params.id));
+  const reactions = await removeReaction(CHAT_REACTIONS, message.id, auth.userId, reactionEmoji.parse(req.params.emoji));
+  await publishReactions(message, reactions);
+  res.json({ data: reactions });
+}));
 
 chatRouter.get("/messages/:id/replies", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);

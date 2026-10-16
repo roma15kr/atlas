@@ -1,3 +1,5 @@
+import { ReactionBar } from './reactions/ReactionBar';
+import { ReactionPicker } from './reactions/ReactionPicker';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import { useAuth } from '../context/AppContext';
 import { boardErrorMessage } from '../lib/boardErrors';
@@ -44,6 +46,13 @@ export const TaskComments = forwardRef<TaskCommentsHandle, { taskId: string }>(f
     } catch (reason) { setError(boardErrorMessage(reason, 'Комментарий не добавлен')); return false; } finally { setSaving(false); }
   };
   useImperativeHandle(ref, () => ({ flush: add }));
+  const react = async (commentId: string, emoji: string, adding: boolean) => {
+    setError('');
+    try {
+      const reactions = await backend.react(commentId, emoji, adding);
+      setComments((current) => current?.map((comment) => comment.id === commentId ? { ...comment, reactions } : comment) ?? current);
+    } catch (reason) { setError(boardErrorMessage(reason, 'Реакция не сохранена')); }
+  };
 
   return <section className="task-comments field--wide" aria-label="Комментарии">
     <div className="task-comments__header"><h3>Комментарии</h3>{comments && <Badge>{comments.length}</Badge>}</div>
@@ -51,7 +60,11 @@ export const TaskComments = forwardRef<TaskCommentsHandle, { taskId: string }>(f
       : <ol className="task-comments__list">{comments.map((comment) => <li key={comment.id}>
         <Avatar name={comment.author.fullName} src={comment.author.avatarUrl ?? undefined} size="sm" />
         <div><header><strong>{comment.author.fullName}</strong> <time dateTime={comment.createdAt} title={formatDateTime(comment.createdAt)}>{relativeTime(comment.createdAt)}</time></header>
-          <RichTextView markdown={comment.body} /></div>
+          <RichTextView markdown={comment.body} />
+          <div className="task-comments__reactions">
+            <ReactionBar reactions={comment.reactions} meId={user.id} onToggle={(emoji, add) => void react(comment.id, emoji, add)} />
+            <ReactionPicker onPick={(emoji) => void react(comment.id, emoji, !comment.reactions?.some((reaction) => reaction.emoji === emoji && reaction.users.some((person) => person.id === user.id)))} />
+          </div></div>
       </li>)}</ol>}
     <RichTextEditor value={draft} onChange={setDraft} maxLength={TASK_COMMENT_LIMIT} label="Новый комментарий" placeholder="Написать комментарий…" minRows={2} />
     {error && <div className="form-error" role="alert">{error}</div>}

@@ -1,0 +1,1088 @@
+[
+ {
+  "emoji": "👍",
+  "name": "нравится",
+  "keywords": "лайк ок да класс палец",
+  "category": "Частые"
+ },
+ {
+  "emoji": "❤️",
+  "name": "сердце",
+  "keywords": "любовь спасибо",
+  "category": "Частые"
+ },
+ {
+  "emoji": "😂",
+  "name": "смешно",
+  "keywords": "смех ржу слёзы",
+  "category": "Частые"
+ },
+ {
+  "emoji": "🎉",
+  "name": "ура",
+  "keywords": "праздник поздравляю",
+  "category": "Частые"
+ },
+ {
+  "emoji": "👀",
+  "name": "смотрю",
+  "keywords": "вижу глаза посмотрю",
+  "category": "Частые"
+ },
+ {
+  "emoji": "✅",
+  "name": "готово",
+  "keywords": "сделано выполнено галочка",
+  "category": "Частые"
+ },
+ {
+  "emoji": "🙏",
+  "name": "спасибо",
+  "keywords": "пожалуйста благодарю молитва",
+  "category": "Частые"
+ },
+ {
+  "emoji": "🔥",
+  "name": "огонь",
+  "keywords": "круто горит срочно",
+  "category": "Частые"
+ },
+ {
+  "emoji": "👏",
+  "name": "аплодисменты",
+  "keywords": "браво хлопаю",
+  "category": "Частые"
+ },
+ {
+  "emoji": "💯",
+  "name": "сто процентов",
+  "keywords": "точно полностью",
+  "category": "Частые"
+ },
+ {
+  "emoji": "🚀",
+  "name": "ракета",
+  "keywords": "запуск быстро старт",
+  "category": "Частые"
+ },
+ {
+  "emoji": "👌",
+  "name": "окей",
+  "keywords": "хорошо отлично",
+  "category": "Частые"
+ },
+ {
+  "emoji": "😀",
+  "name": "улыбка",
+  "keywords": "радость",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😃",
+  "name": "радость",
+  "keywords": "улыбка",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😄",
+  "name": "смеюсь",
+  "keywords": "радость",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😁",
+  "name": "широкая улыбка",
+  "keywords": "радость",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😅",
+  "name": "фух",
+  "keywords": "облегчение пот",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🤣",
+  "name": "катаюсь от смеха",
+  "keywords": "смех",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🙂",
+  "name": "улыбаюсь",
+  "keywords": "нормально",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😉",
+  "name": "подмигиваю",
+  "keywords": "шутка",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😊",
+  "name": "доволен",
+  "keywords": "приятно",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😍",
+  "name": "влюблён",
+  "keywords": "восторг",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🥰",
+  "name": "обожаю",
+  "keywords": "любовь",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😘",
+  "name": "поцелуй",
+  "keywords": "чмок",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😎",
+  "name": "круто",
+  "keywords": "очки",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🤩",
+  "name": "восхищение",
+  "keywords": "звёзды вау",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🤔",
+  "name": "думаю",
+  "keywords": "хм размышляю",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🧐",
+  "name": "изучаю",
+  "keywords": "внимательно",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🤨",
+  "name": "сомневаюсь",
+  "keywords": "подозрительно",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😐",
+  "name": "без эмоций",
+  "keywords": "нейтрально",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😶",
+  "name": "нет слов",
+  "keywords": "молчу",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🙄",
+  "name": "закатываю глаза",
+  "keywords": "ну да",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😏",
+  "name": "ухмылка",
+  "keywords": "хитро",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😴",
+  "name": "сплю",
+  "keywords": "устал",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🤤",
+  "name": "мечтаю",
+  "keywords": "вкусно",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😪",
+  "name": "сонный",
+  "keywords": "устал",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😌",
+  "name": "спокойно",
+  "keywords": "облегчение",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😛",
+  "name": "язык",
+  "keywords": "шучу",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😜",
+  "name": "прикол",
+  "keywords": "шучу",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🤪",
+  "name": "безумно",
+  "keywords": "весело",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😒",
+  "name": "недоволен",
+  "keywords": "скучно",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😔",
+  "name": "грустно",
+  "keywords": "печаль",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😕",
+  "name": "озадачен",
+  "keywords": "непонятно",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🙃",
+  "name": "перевёрнутый",
+  "keywords": "ирония",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😲",
+  "name": "удивлён",
+  "keywords": "ого",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😮",
+  "name": "ого",
+  "keywords": "удивление",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😯",
+  "name": "тихо удивлён",
+  "keywords": "вау",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😳",
+  "name": "смущён",
+  "keywords": "неловко",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🥺",
+  "name": "прошу",
+  "keywords": "пожалуйста",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😢",
+  "name": "плачу",
+  "keywords": "грустно слёзы",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😭",
+  "name": "рыдаю",
+  "keywords": "очень грустно",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😤",
+  "name": "возмущён",
+  "keywords": "злюсь",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😠",
+  "name": "злюсь",
+  "keywords": "сердит",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😡",
+  "name": "в ярости",
+  "keywords": "гнев",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🤬",
+  "name": "ругаюсь",
+  "keywords": "злость",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🤯",
+  "name": "взрыв мозга",
+  "keywords": "шок",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😱",
+  "name": "ужас",
+  "keywords": "страх шок",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😨",
+  "name": "испуг",
+  "keywords": "страх",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😰",
+  "name": "тревога",
+  "keywords": "волнуюсь",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😓",
+  "name": "тяжело",
+  "keywords": "пот",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🤗",
+  "name": "обнимаю",
+  "keywords": "объятия",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🤭",
+  "name": "упс",
+  "keywords": "хихикаю",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🤫",
+  "name": "тихо",
+  "keywords": "секрет",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🤐",
+  "name": "молчу",
+  "keywords": "секрет",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🥳",
+  "name": "празднуем",
+  "keywords": "вечеринка",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😇",
+  "name": "ангел",
+  "keywords": "невинно",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🤓",
+  "name": "ботаник",
+  "keywords": "умник",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😷",
+  "name": "болею",
+  "keywords": "маска",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🤒",
+  "name": "температура",
+  "keywords": "болею",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🥶",
+  "name": "холодно",
+  "keywords": "мёрзну",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "🥵",
+  "name": "жарко",
+  "keywords": "жара",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "😵",
+  "name": "голова кругом",
+  "keywords": "устал",
+  "category": "Эмоции"
+ },
+ {
+  "emoji": "👎",
+  "name": "не нравится",
+  "keywords": "дизлайк нет",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "👋",
+  "name": "привет",
+  "keywords": "пока машу",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "🤝",
+  "name": "договорились",
+  "keywords": "рукопожатие сделка",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "✌️",
+  "name": "мир",
+  "keywords": "победа",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "🤞",
+  "name": "скрещённые пальцы",
+  "keywords": "удачи надеюсь",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "🤙",
+  "name": "созвонимся",
+  "keywords": "позвони",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "💪",
+  "name": "сила",
+  "keywords": "могу справимся",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "🙌",
+  "name": "ура",
+  "keywords": "руки вверх",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "🫡",
+  "name": "есть",
+  "keywords": "так точно слушаюсь",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "👊",
+  "name": "кулак",
+  "keywords": "давай",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "✊",
+  "name": "держись",
+  "keywords": "сила",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "🤌",
+  "name": "итальянский жест",
+  "keywords": "что",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "👉",
+  "name": "смотри",
+  "keywords": "туда указываю",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "👆",
+  "name": "выше",
+  "keywords": "наверх",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "👇",
+  "name": "ниже",
+  "keywords": "вниз",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "☝️",
+  "name": "внимание",
+  "keywords": "важно один",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "✍️",
+  "name": "пишу",
+  "keywords": "записываю",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "🤷",
+  "name": "не знаю",
+  "keywords": "пожимаю плечами",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "🤦",
+  "name": "фейспалм",
+  "keywords": "ну как так",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "🙋",
+  "name": "я",
+  "keywords": "вопрос можно",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "🙅",
+  "name": "нет",
+  "keywords": "нельзя",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "🙆",
+  "name": "хорошо",
+  "keywords": "ок",
+  "category": "Жесты"
+ },
+ {
+  "emoji": "📌",
+  "name": "закреплено",
+  "keywords": "важно",
+  "category": "Работа"
+ },
+ {
+  "emoji": "📎",
+  "name": "вложение",
+  "keywords": "скрепка",
+  "category": "Работа"
+ },
+ {
+  "emoji": "📝",
+  "name": "заметка",
+  "keywords": "записать",
+  "category": "Работа"
+ },
+ {
+  "emoji": "📋",
+  "name": "задача",
+  "keywords": "список",
+  "category": "Работа"
+ },
+ {
+  "emoji": "📊",
+  "name": "отчёт",
+  "keywords": "график статистика",
+  "category": "Работа"
+ },
+ {
+  "emoji": "📈",
+  "name": "рост",
+  "keywords": "продажи вверх",
+  "category": "Работа"
+ },
+ {
+  "emoji": "📉",
+  "name": "падение",
+  "keywords": "вниз",
+  "category": "Работа"
+ },
+ {
+  "emoji": "📅",
+  "name": "дата",
+  "keywords": "календарь срок",
+  "category": "Работа"
+ },
+ {
+  "emoji": "⏰",
+  "name": "срок",
+  "keywords": "будильник время",
+  "category": "Работа"
+ },
+ {
+  "emoji": "⏳",
+  "name": "ждём",
+  "keywords": "в процессе время",
+  "category": "Работа"
+ },
+ {
+  "emoji": "⌛",
+  "name": "время вышло",
+  "keywords": "ожидание",
+  "category": "Работа"
+ },
+ {
+  "emoji": "🕐",
+  "name": "час",
+  "keywords": "время",
+  "category": "Работа"
+ },
+ {
+  "emoji": "💼",
+  "name": "работа",
+  "keywords": "портфель дело",
+  "category": "Работа"
+ },
+ {
+  "emoji": "💰",
+  "name": "деньги",
+  "keywords": "оплата",
+  "category": "Работа"
+ },
+ {
+  "emoji": "💵",
+  "name": "оплата",
+  "keywords": "деньги наличные",
+  "category": "Работа"
+ },
+ {
+  "emoji": "💳",
+  "name": "карта",
+  "keywords": "оплата безнал",
+  "category": "Работа"
+ },
+ {
+  "emoji": "🧾",
+  "name": "счёт",
+  "keywords": "чек накладная",
+  "category": "Работа"
+ },
+ {
+  "emoji": "📦",
+  "name": "посылка",
+  "keywords": "доставка товар отгрузка",
+  "category": "Работа"
+ },
+ {
+  "emoji": "🚚",
+  "name": "доставка",
+  "keywords": "грузовик отгрузка",
+  "category": "Работа"
+ },
+ {
+  "emoji": "🏭",
+  "name": "склад",
+  "keywords": "производство завод",
+  "category": "Работа"
+ },
+ {
+  "emoji": "📞",
+  "name": "звонок",
+  "keywords": "телефон позвонить",
+  "category": "Работа"
+ },
+ {
+  "emoji": "📱",
+  "name": "телефон",
+  "keywords": "мобильный",
+  "category": "Работа"
+ },
+ {
+  "emoji": "💻",
+  "name": "компьютер",
+  "keywords": "ноутбук",
+  "category": "Работа"
+ },
+ {
+  "emoji": "📧",
+  "name": "письмо",
+  "keywords": "почта email",
+  "category": "Работа"
+ },
+ {
+  "emoji": "✉️",
+  "name": "конверт",
+  "keywords": "письмо",
+  "category": "Работа"
+ },
+ {
+  "emoji": "🔍",
+  "name": "поиск",
+  "keywords": "ищу проверить",
+  "category": "Работа"
+ },
+ {
+  "emoji": "🔑",
+  "name": "доступ",
+  "keywords": "ключ пароль",
+  "category": "Работа"
+ },
+ {
+  "emoji": "🔒",
+  "name": "закрыто",
+  "keywords": "замок",
+  "category": "Работа"
+ },
+ {
+  "emoji": "🛠️",
+  "name": "инструменты",
+  "keywords": "ремонт настройка",
+  "category": "Работа"
+ },
+ {
+  "emoji": "⚙️",
+  "name": "настройки",
+  "keywords": "шестерёнка",
+  "category": "Работа"
+ },
+ {
+  "emoji": "🧠",
+  "name": "идея",
+  "keywords": "мозг думаю",
+  "category": "Работа"
+ },
+ {
+  "emoji": "💡",
+  "name": "идея",
+  "keywords": "лампочка мысль",
+  "category": "Работа"
+ },
+ {
+  "emoji": "🎯",
+  "name": "цель",
+  "keywords": "точно мишень",
+  "category": "Работа"
+ },
+ {
+  "emoji": "🏆",
+  "name": "победа",
+  "keywords": "кубок лучший",
+  "category": "Работа"
+ },
+ {
+  "emoji": "🥇",
+  "name": "первое место",
+  "keywords": "золото",
+  "category": "Работа"
+ },
+ {
+  "emoji": "📣",
+  "name": "объявление",
+  "keywords": "внимание рупор",
+  "category": "Работа"
+ },
+ {
+  "emoji": "🆕",
+  "name": "новое",
+  "keywords": "новинка",
+  "category": "Работа"
+ },
+ {
+  "emoji": "🆗",
+  "name": "ок",
+  "keywords": "хорошо",
+  "category": "Работа"
+ },
+ {
+  "emoji": "✔️",
+  "name": "верно",
+  "keywords": "галочка",
+  "category": "Символы"
+ },
+ {
+  "emoji": "❌",
+  "name": "нет",
+  "keywords": "отмена ошибка",
+  "category": "Символы"
+ },
+ {
+  "emoji": "❗",
+  "name": "важно",
+  "keywords": "восклицание",
+  "category": "Символы"
+ },
+ {
+  "emoji": "❓",
+  "name": "вопрос",
+  "keywords": "непонятно",
+  "category": "Символы"
+ },
+ {
+  "emoji": "⚠️",
+  "name": "внимание",
+  "keywords": "предупреждение",
+  "category": "Символы"
+ },
+ {
+  "emoji": "🚫",
+  "name": "запрещено",
+  "keywords": "нельзя",
+  "category": "Символы"
+ },
+ {
+  "emoji": "⛔",
+  "name": "стоп",
+  "keywords": "нельзя",
+  "category": "Символы"
+ },
+ {
+  "emoji": "🔴",
+  "name": "красный",
+  "keywords": "стоп",
+  "category": "Символы"
+ },
+ {
+  "emoji": "🟠",
+  "name": "оранжевый",
+  "keywords": "внимание",
+  "category": "Символы"
+ },
+ {
+  "emoji": "🟡",
+  "name": "жёлтый",
+  "keywords": "в процессе",
+  "category": "Символы"
+ },
+ {
+  "emoji": "🟢",
+  "name": "зелёный",
+  "keywords": "готово",
+  "category": "Символы"
+ },
+ {
+  "emoji": "🔵",
+  "name": "синий",
+  "keywords": "инфо",
+  "category": "Символы"
+ },
+ {
+  "emoji": "⭐",
+  "name": "звезда",
+  "keywords": "избранное",
+  "category": "Символы"
+ },
+ {
+  "emoji": "✨",
+  "name": "блеск",
+  "keywords": "красота новое",
+  "category": "Символы"
+ },
+ {
+  "emoji": "💥",
+  "name": "бум",
+  "keywords": "взрыв",
+  "category": "Символы"
+ },
+ {
+  "emoji": "💤",
+  "name": "сон",
+  "keywords": "скучно",
+  "category": "Символы"
+ },
+ {
+  "emoji": "➕",
+  "name": "плюс",
+  "keywords": "добавить согласен",
+  "category": "Символы"
+ },
+ {
+  "emoji": "➖",
+  "name": "минус",
+  "keywords": "против",
+  "category": "Символы"
+ },
+ {
+  "emoji": "🔁",
+  "name": "повтор",
+  "keywords": "ещё раз",
+  "category": "Символы"
+ },
+ {
+  "emoji": "🔄",
+  "name": "обновить",
+  "keywords": "обновление",
+  "category": "Символы"
+ },
+ {
+  "emoji": "💬",
+  "name": "комментарий",
+  "keywords": "сообщение",
+  "category": "Символы"
+ },
+ {
+  "emoji": "💭",
+  "name": "мысль",
+  "keywords": "думаю",
+  "category": "Символы"
+ },
+ {
+  "emoji": "🧡",
+  "name": "оранжевое сердце",
+  "keywords": "спасибо",
+  "category": "Символы"
+ },
+ {
+  "emoji": "💛",
+  "name": "жёлтое сердце",
+  "keywords": "дружба",
+  "category": "Символы"
+ },
+ {
+  "emoji": "💚",
+  "name": "зелёное сердце",
+  "keywords": "поддержка",
+  "category": "Символы"
+ },
+ {
+  "emoji": "💙",
+  "name": "синее сердце",
+  "keywords": "спокойствие",
+  "category": "Символы"
+ },
+ {
+  "emoji": "💜",
+  "name": "фиолетовое сердце",
+  "keywords": "любовь",
+  "category": "Символы"
+ },
+ {
+  "emoji": "🖤",
+  "name": "чёрное сердце",
+  "keywords": "грусть",
+  "category": "Символы"
+ },
+ {
+  "emoji": "💔",
+  "name": "разбитое сердце",
+  "keywords": "жаль",
+  "category": "Символы"
+ },
+ {
+  "emoji": "☕",
+  "name": "кофе",
+  "keywords": "перерыв утро",
+  "category": "Разное"
+ },
+ {
+  "emoji": "🍕",
+  "name": "пицца",
+  "keywords": "обед",
+  "category": "Разное"
+ },
+ {
+  "emoji": "🍰",
+  "name": "торт",
+  "keywords": "праздник",
+  "category": "Разное"
+ },
+ {
+  "emoji": "🎂",
+  "name": "день рождения",
+  "keywords": "торт поздравляю",
+  "category": "Разное"
+ },
+ {
+  "emoji": "🎁",
+  "name": "подарок",
+  "keywords": "сюрприз",
+  "category": "Разное"
+ },
+ {
+  "emoji": "🎈",
+  "name": "шарик",
+  "keywords": "праздник",
+  "category": "Разное"
+ },
+ {
+  "emoji": "🍾",
+  "name": "шампанское",
+  "keywords": "отмечаем",
+  "category": "Разное"
+ },
+ {
+  "emoji": "🥂",
+  "name": "тост",
+  "keywords": "отмечаем",
+  "category": "Разное"
+ },
+ {
+  "emoji": "🌞",
+  "name": "солнце",
+  "keywords": "утро хорошо",
+  "category": "Разное"
+ },
+ {
+  "emoji": "🌧️",
+  "name": "дождь",
+  "keywords": "плохо",
+  "category": "Разное"
+ },
+ {
+  "emoji": "⚡",
+  "name": "молния",
+  "keywords": "быстро",
+  "category": "Разное"
+ },
+ {
+  "emoji": "🌱",
+  "name": "росток",
+  "keywords": "начало рост",
+  "category": "Разное"
+ },
+ {
+  "emoji": "🌍",
+  "name": "мир",
+  "keywords": "глобально",
+  "category": "Разное"
+ },
+ {
+  "emoji": "🐢",
+  "name": "черепаха",
+  "keywords": "медленно",
+  "category": "Разное"
+ },
+ {
+  "emoji": "🦄",
+  "name": "единорог",
+  "keywords": "чудо",
+  "category": "Разное"
+ },
+ {
+  "emoji": "🐱",
+  "name": "кот",
+  "keywords": "котик",
+  "category": "Разное"
+ },
+ {
+  "emoji": "🐶",
+  "name": "собака",
+  "keywords": "пёс",
+  "category": "Разное"
+ },
+ {
+  "emoji": "🎶",
+  "name": "музыка",
+  "keywords": "песня",
+  "category": "Разное"
+ },
+ {
+  "emoji": "⚽",
+  "name": "футбол",
+  "keywords": "спорт",
+  "category": "Разное"
+ },
+ {
+  "emoji": "🏁",
+  "name": "финиш",
+  "keywords": "конец готово",
+  "category": "Разное"
+ }
+]

@@ -1,3 +1,5 @@
+import { useScrollBack } from '../lib/useScrollBack';
+import { useIsPhone } from '../lib/useIsPhone';
 import { AlertTriangle, ArrowLeft, BriefcaseBusiness, Download, FileUp, Link2, Paperclip, Search, Send, Settings2, UserPlus, UserRoundCog, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -23,6 +25,7 @@ export function TelegramPage() {
   const [contacts, setContacts] = useState<TelegramContact[] | null>(null);
   // A notification links here with ?contact=<id>.
   const [params, setParams] = useSearchParams();
+  const phone = useIsPhone();
   const [selectedId, setSelectedId] = useState<string | null>(() => params.get('contact'));
   const linked = params.get('contact');
   useEffect(() => {
@@ -51,16 +54,18 @@ export function TelegramPage() {
     </>;
   }
 
+  // On a phone the customer list and one conversation take turns.
+  const phoneConversation = phone && Boolean(selected);
   return <>
-    <PageHeader title="Telegram" description={`${telegram.status?.botUsername ? `@${telegram.status.botUsername} · ` : ''}${plural(telegram.unread, UNREAD)}`} action={<>
+    {!phoneConversation && <PageHeader title="Telegram" description={`${telegram.status?.botUsername ? `@${telegram.status.botUsername} · ` : ''}${plural(telegram.unread, UNREAD)}`} action={<>
       <label className="table-search tg-search"><Search size={16} /><input aria-label="Поиск по клиентам" placeholder="Поиск" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
       {me.role !== 'EMPLOYEE' && <Button variant="secondary" icon={FileUp} onClick={() => setImporting(true)}>Импорт контактов</Button>}
       {me.role === 'DIRECTOR' && <IconButton label="Настройки Telegram" icon={Settings2} onClick={() => navigate('/telegram/settings')} />}
-    </>}><Segmented value={filter} label="Какие переписки показать" options={filters} onChange={(value) => { setFilter(value); setSelectedId(null); }} /></PageHeader>
+    </>}><Segmented value={filter} label="Какие переписки показать" options={filters} onChange={(value) => { setFilter(value); setSelectedId(null); }} /></PageHeader>}
     {error && <div className="notice notice--danger" role="alert">{error}<button onClick={() => setError('')}>Закрыть</button></div>}
     {notice && <div className="notice notice--info" role="status">{notice}<button onClick={() => setNotice('')}>Закрыть</button></div>}
-    <div className={`tg-layout ${selected ? 'tg-layout--open' : ''}`}>
-      <Surface className="tg-list" aria-label="Клиенты в Telegram">
+    <div className={`tg-layout ${selected ? 'tg-layout--open' : ''} ${phone ? 'tg-layout--phone' : ''}`}>
+      {!phoneConversation && <Surface className="tg-list" aria-label="Клиенты в Telegram">
         <div className="tg-list__rows">
           {!contacts ? <LoadingState label="Загружаем переписки" /> : contacts.length ? contacts.map((contact) => <button key={contact.id} type="button" className={`${selectedId === contact.id ? 'is-active' : ''} ${contact.unread ? 'is-unread' : ''}`} onClick={() => setSelectedId(contact.id)} aria-current={selectedId === contact.id ? 'true' : undefined}>
             <Avatar name={contact.displayName} size="sm" />
@@ -69,9 +74,9 @@ export function TelegramPage() {
             <span className="tg-list__meta">{contact.lastMessageAt && <time dateTime={contact.lastMessageAt}>{relativeTime(contact.lastMessageAt)}</time>}{contact.unread > 0 && <Badge tone="info">{contact.unread}</Badge>}</span>
           </button>) : <EmptyState title={filter === 'unassigned' ? 'Неразобранных нет' : 'Переписок нет'} description={filter === 'mine' ? 'Когда клиент, за которого вы отвечаете, напишет боту, переписка появится здесь' : 'Сообщения клиентов боту появятся здесь'} icon={Send} />}
         </div>
-      </Surface>
+      </Surface>}
       {selected ? <Conversation key={selected.id} contact={selected} onBack={() => setSelectedId(null)} onChanged={() => void load()} />
-        : <Surface className="tg-chat"><EmptyState title="Выберите переписку" description="Сообщения клиента и ваши ответы появятся здесь" icon={Send} /></Surface>}
+        : phone ? null : <Surface className="tg-chat"><EmptyState title="Выберите переписку" description="Сообщения клиента и ваши ответы появятся здесь" icon={Send} /></Surface>}
     </div>
     {importing && <ImportDialog onClose={() => setImporting(false)} onDone={(summary) => { setImporting(false); setNotice(summary); void load(); }} />}
   </>;
@@ -114,18 +119,36 @@ function Conversation({ contact, onBack, onChanged }: { contact: TelegramContact
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [dialog, setDialog] = useState<'bind' | 'reassign' | 'client' | 'deal' | null>(null);
-  const end = useRef<HTMLDivElement>(null);
+  const [hasMore, setHasMore] = useState(false);
   const files = useRef<HTMLInputElement>(null);
+  // The newest page; earlier pages the user already scrolled back to are kept, not replaced.
   const load = useCallback(async () => {
     try {
-      setMessages((await backend.messages(contact.id)).items);
+      const page = await backend.messages(contact.id);
+      setMessages((current) => {
+        if (!current?.length || !page.items.length) { setHasMore(page.hasMore); return page.items; }
+        const ids = new Set(page.items.map((item) => item.id));
+        const earlier = current.filter((item) => !ids.has(item.id) && item.createdAt < page.items[0]!.createdAt);
+        if (!earlier.length) setHasMore(page.hasMore);
+        return [...earlier, ...page.items];
+      });
       await backend.read(contact.id);
       void refresh();
-    } catch (reason) { setError(telegramErrorMessage(reason, 'Сообщения не загружены')); setMessages([]); }
+    } catch (reason) { setError(telegramErrorMessage(reason, 'Сообщения не загружены')); setMessages((current) => current ?? []); }
   }, [backend, refresh, contact.id]);
+  const loadOlder = useCallback(async () => {
+    const first = messages?.[0];
+    if (!first) return;
+    try {
+      const page = await backend.messages(contact.id, first.id);
+      setMessages((current) => [...page.items.filter((item) => !current?.some((existing) => existing.id === item.id)), ...(current ?? [])]);
+      setHasMore(page.hasMore);
+    } catch (reason) { setError(telegramErrorMessage(reason, 'Ранние сообщения не загружены')); }
+  }, [backend, contact.id, messages]);
   useEffect(() => { void load(); }, [load]);
   useEffect(() => subscribe((event) => { if (!event.contactId || event.contactId === contact.id) void load(); }), [subscribe, contact.id, load]);
-  useEffect(() => { end.current?.scrollIntoView?.({ block: 'end' }); }, [messages?.length]);
+  const last = messages?.at(-1);
+  const history = useScrollBack({ firstId: messages?.[0]?.id, lastId: last?.id, lastIsMine: last?.direction === 'OUT' && last.sentBy?.id === me.id, hasMore, loadOlder });
 
   const send = async () => {
     if ((!text.trim() && !file) || sending) return;
@@ -156,12 +179,15 @@ function Conversation({ contact, onBack, onChanged }: { contact: TelegramContact
       {canReassign && <button type="button" className="text-button" onClick={() => setDialog('reassign')}><UserRoundCog size={13} />Ответственный</button>}
       {contact.client ? <Button variant="secondary" icon={BriefcaseBusiness} onClick={() => setDialog('deal')}>Создать сделку</Button> : <Button variant="secondary" icon={UserPlus} onClick={() => setDialog('client')}>Создать клиента</Button>}
     </div>
-    <div className="tg-chat__messages">
+    <div className="tg-chat__messages" ref={history.container} onScroll={history.onScroll}>
+      <div ref={history.sentinel} aria-hidden />
+      {hasMore ? <button type="button" className="text-button chat-main__older" disabled={history.busy} onClick={() => void history.older()}>{history.busy ? 'Загружаем ранние сообщения…' : 'Показать более ранние'}</button>
+        : messages && messages.length > 0 && <div className="chat-main__start">Начало переписки</div>}
       {!messages ? <LoadingState label="Загружаем сообщения" /> : messages.length ? messages.map((message) => <MessageBubble key={message.id} message={message} onReply={contact.status !== 'BLOCKED' ? () => setReplyTo(message) : undefined} />)
         : <EmptyState title="Сообщений пока нет" description={contact.status === 'UNVERIFIED' ? 'Контакт импортирован. Написать можно после того, как клиент запустит бота.' : 'Напишите клиенту первым'} icon={Send} />}
-      <div ref={end} />
     </div>
     {error && <div className="notice notice--danger tg-chat__notice" role="alert"><AlertTriangle size={15} />{error}<button onClick={() => setError('')}>Закрыть</button></div>}
+    {history.newBelow && <button type="button" className="new-messages" onClick={history.scrollToEnd}>Новые сообщения ↓</button>}
     {contact.status === 'BLOCKED' ? <div className="chat-main__notice">Клиент заблокировал бота — сообщения ему не доходят</div> : <div className="tg-composer">
       {(replyTo || file) && <div className="tg-composer__context">
         {replyTo && <span>Ответ на: {replyTo.text ?? replyTo.summary}<IconButton label="Отменить ответ" icon={X} onClick={() => setReplyTo(null)} /></span>}

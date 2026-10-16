@@ -1,7 +1,24 @@
-/* Atlas service worker: shows desktop notifications pushed by the API and opens their link on click.
-   It holds no session data; the push payload is { id, title, body, link, tag }. */
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+/* Atlas service worker: shows notifications pushed by the API and opens their link on click, and shows an
+   offline page when a page can't load. It holds no session data; the push payload is { id, title, body, link, tag }. */
+const OFFLINE_CACHE = 'atlas-offline-v1';
+const OFFLINE_PAGE = '/offline.html';
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(caches.open(OFFLINE_CACHE).then((cache) => cache.add(new Request(OFFLINE_PAGE, { cache: 'reload' }))).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    for (const name of await caches.keys()) if (name !== OFFLINE_CACHE) await caches.delete(name);
+    await self.clients.claim();
+  })());
+});
+
+// Only page loads are handled: network first, the offline page when there is no connection. API, realtime and
+// asset requests never pass through here, and no workspace data is cached.
+self.addEventListener('fetch', (event) => {
+  if (event.request.mode !== 'navigate') return;
+  event.respondWith(fetch(event.request).catch(async () => (await caches.match(OFFLINE_PAGE)) || Response.error()));
+});
 
 self.addEventListener('push', (event) => {
   let data = {};

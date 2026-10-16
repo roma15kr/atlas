@@ -5,9 +5,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import App from '../App';
 import { AuthProvider, WorkspaceProvider } from '../context/AppContext';
 import { demoSessions } from '../data/demo';
+import { phoneViewport } from '../test/phone';
 import { resetDemoChat } from '../lib/chat';
 import { resetDemoMail } from '../lib/mail';
-import { resetDemoTelegram } from '../lib/telegram';
+import { resetDemoTelegram, seedDemoTelegramHistory } from '../lib/telegram';
 
 const renderAs = (username: keyof typeof demoSessions, path = '/telegram') => {
   localStorage.setItem('atlas.session', JSON.stringify(demoSessions[username]));
@@ -105,5 +106,39 @@ describe('Telegram inbox', () => {
   it('opens the customer a notification links to', async () => {
     renderAs('employee', '/telegram?contact=tg1');
     expect(await screen.findByRole('region', { name: 'Переписка с София Тёрнер' })).toBeInTheDocument();
+  });
+});
+
+describe('Telegram on a phone', () => {
+  it('shows the customer list or one conversation, with a way back', async () => {
+    const restore = phoneViewport();
+    try {
+      const user = userEvent.setup();
+      renderAs('employee');
+      await user.click(await within(list()).findByRole('button', { name: /София Тёрнер/ }));
+      expect(await screen.findByRole('region', { name: 'Переписка с София Тёрнер' })).toBeInTheDocument();
+      expect(screen.queryByRole('region', { name: 'Клиенты в Telegram' })).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'К списку' }));
+      expect(await screen.findByRole('region', { name: 'Клиенты в Telegram' })).toBeInTheDocument();
+    } finally { restore(); }
+  });
+});
+
+describe('long Telegram history', () => {
+  it('opens on the newest messages and loads earlier pages until the beginning', async () => {
+    seedDemoTelegramHistory('tg1', 120);
+    const user = userEvent.setup();
+    renderAs('employee', '/telegram?contact=tg1');
+    const chat = await screen.findByRole('region', { name: 'Переписка с София Тёрнер' });
+    expect(await within(chat).findByText('Отлично, спасибо!')).toBeInTheDocument();
+    expect(within(chat).queryByText('Старое сообщение 1')).not.toBeInTheDocument();
+    await user.click(within(chat).getByRole('button', { name: 'Показать более ранние' }));
+    await user.click(await within(chat).findByRole('button', { name: 'Показать более ранние' }));
+    expect(await within(chat).findByText('Старое сообщение 1')).toBeInTheDocument();
+    expect(within(chat).getByText('Начало переписки')).toBeInTheDocument();
+    expect(within(chat).queryByRole('button', { name: 'Показать более ранние' })).not.toBeInTheDocument();
+    // Every message is there exactly once, in order.
+    expect(within(chat).getAllByText(/^Старое сообщение \d+$/)).toHaveLength(120);
+    expect(within(chat).getByText('Отлично, спасибо!')).toBeInTheDocument();
   });
 });

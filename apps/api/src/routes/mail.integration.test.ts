@@ -130,7 +130,8 @@ describe("mail API", () => {
     expect(harness.delivered.at(-1)!.raw).not.toMatch(/^Bcc:/mi);
     const [event] = await audit("MAIL_SENT");
     expect(event!.metadata).toMatchObject({ accountId, recipientCount: 2, clientId: ids.client });
-    expect(JSON.stringify(event)).not.toMatch(/sofia@|Предложение|150/);
+    // Checked on the actual values: a bare number could occur inside a random uuid.
+    expect(JSON.stringify(event)).not.toMatch(/sofia@|Предложение|Цена 150 грн/);
     const ownerView = (await as("anna").get(`/mail/threads/${threadId}`)).body.data.messages.at(-1);
     expect(ownerView.bcc).toEqual([{ address: "boss@atlas.example" }]);
     const headView = (await as("head").get(`/communications/mail/${threadId}`)).body.data.messages.at(-1);

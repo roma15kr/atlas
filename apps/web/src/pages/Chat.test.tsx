@@ -1,3 +1,4 @@
+import { phoneViewport } from '../test/phone';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -160,5 +161,30 @@ describe('team chat', () => {
   it('opens the conversation a notification links to', async () => {
     renderAs('employee', '/messages?conversation=ch-ideas');
     expect(await screen.findByRole('region', { name: /Разговор .*Идеи/ })).toBeInTheDocument();
+  });
+});
+
+describe('chat on a phone', () => {
+  it('shows the list or one conversation, with a way back', async () => {
+    const restore = phoneViewport();
+    try {
+      const user = userEvent.setup();
+      renderAs('employee');
+      await user.click(await within(list()).findByRole('button', { name: /Общий/ }));
+      expect(await screen.findByRole('region', { name: /Разговор .*Общий/ })).toBeInTheDocument();
+      expect(screen.queryByRole('region', { name: 'Разговоры' })).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'К списку' }));
+      expect(await screen.findByRole('region', { name: 'Разговоры' })).toBeInTheDocument();
+      expect(screen.queryByRole('region', { name: /Разговор .*Общий/ })).not.toBeInTheDocument();
+    } finally { restore(); }
+  });
+
+  it('opens a linked conversation directly', async () => {
+    const restore = phoneViewport();
+    try {
+      renderAs('employee', '/messages?conversation=ch-ideas');
+      expect(await screen.findByRole('region', { name: /Разговор .*Идеи/ })).toBeInTheDocument();
+      expect(screen.queryByRole('region', { name: 'Разговоры' })).not.toBeInTheDocument();
+    } finally { restore(); }
   });
 });

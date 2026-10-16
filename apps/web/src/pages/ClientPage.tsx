@@ -1,3 +1,4 @@
+import { useIsPhone } from '../lib/useIsPhone';
 import { ArrowLeft, Send, BriefcaseBusiness, CalendarDays, ExternalLink, FileText, Mail, MessageSquare, Pencil, Phone, Plus, UserRound } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
@@ -12,6 +13,7 @@ import { formatDate, formatMoney } from '../lib/format';
 import type { Client } from '../types';
 
 export function ClientPage() {
+  const phone = useIsPhone();
   const { id } = useParams(); const navigate = useNavigate();
   const { clients, users, deals, documents, updateClient } = useWorkspace();
   const [editOpen, setEditOpen] = useState(false); const [inviteOpen, setInviteOpen] = useState(false); const [saving, setSaving] = useState(false); const [formError, setFormError] = useState(''); const [notesDraft, setNotesDraft] = useState('');
@@ -26,6 +28,10 @@ export function ClientPage() {
   return <>
     <button className="back-link" onClick={() => navigate('/crm')}><ArrowLeft size={15} />К базе клиентов</button>
     <PageHeader title={client.companyName} description={`Карточка клиента · ${client.name}`} action={<><Button variant="secondary" icon={Send} onClick={() => setInviteOpen(true)}>Пригласить в Telegram</Button><Button variant="secondary" icon={MessageSquare} onClick={() => navigate(`/mail?compose=1&to=${encodeURIComponent(client.email)}&name=${encodeURIComponent(client.name)}&client=${client.id}`)}>Написать</Button><Button icon={Pencil} onClick={openEdit}>Редактировать</Button></>} />
+    {phone && (client.phone || client.email) && <div className="phone-actions">
+      {client.phone && <a className="button button--primary" href={`tel:${client.phone.replace(/[^+\d]/g, '')}`}><Phone size={17} aria-hidden />Позвонить</a>}
+      {client.email && <a className="button button--secondary" href={`mailto:${client.email}`}><Mail size={17} aria-hidden />Написать</a>}
+    </div>}
     <div className="client-detail-grid">
       <Surface className="client-overview"><div className="client-hero"><span className="company-avatar company-avatar--lg"><BriefcaseBusiness size={24} /></span><div><h2>{client.companyName}</h2><span><Badge tone={client.status === 'ACTIVE' ? 'success' : client.status === 'NEW' ? 'info' : 'neutral'}>{client.status === 'ACTIVE' ? 'Активный' : client.status === 'NEW' ? 'Новый' : 'На паузе'}</Badge><small>Источник: {client.source}</small></span></div></div><dl className="detail-list"><div><dt><UserRound size={15} />Контакт</dt><dd>{client.name}</dd></div><div><dt><Mail size={15} />Email</dt><dd><a href={`mailto:${client.email}`}>{client.email}</a></dd></div><div><dt><Phone size={15} />Телефон</dt><dd><a href={`tel:${client.phone}`}>{client.phone}</a></dd></div><div><dt><UserRound size={15} />Ответственный</dt><dd><Avatar name={client.ownerName} size="sm" />{client.ownerName}</dd></div></dl><div className="notes-block"><span>Заметка</span>{client.notes ? <RichTextView markdown={client.notes} onChange={tickNotes} /> : <p>Нет заметок</p>}</div></Surface>
       <Surface className="client-deals"><SectionHeader title="Сделки" meta={<Badge tone="info">{clientDeals.length}</Badge>} action={<Button variant="secondary" icon={Plus} onClick={() => navigate('/sales')}>Новая</Button>} />{clientDeals.length ? <div className="deal-list">{clientDeals.map((deal) => <button key={deal.id} onClick={() => navigate('/sales')}><span><strong>{deal.title}</strong><small><i className="stage-dot" style={{ background: deal.stage.color }} />{deal.stage.name} · <CalendarDays size={13} /> до {formatDate(deal.expectedCloseAt)}</small></span><span><strong>{formatMoney(deal.value, deal.currency)}</strong><Badge tone={deal.probability >= 80 ? 'success' : 'warning'}>{deal.probability}%</Badge></span></button>)}</div> : <EmptyState title="Сделок пока нет" description="Создайте первую сделку для этого клиента" icon={BriefcaseBusiness} />}</Surface>

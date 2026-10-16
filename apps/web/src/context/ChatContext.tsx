@@ -1,3 +1,4 @@
+import type { Reaction } from '../lib/reactions';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createDemoChat, remoteChat, type ChatBackend, type ChatConversation, type ChatMention, type ChatMessage, type ChatPerson } from '../lib/chat';
 import { demoUsers } from '../data/demo';
@@ -6,6 +7,7 @@ import { useAuth } from './AppContext';
 export type ChatEvent =
   | { type: 'message'; conversationId: string; message: ChatMessage }
   | { type: 'message-updated'; conversationId: string; message: ChatMessage }
+  | { type: 'reactions'; conversationId: string; messageId: string; reactions: Reaction[] }
   | { type: 'changed'; conversationId?: string }
   | { type: 'reconnect' };
 
@@ -107,6 +109,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       } else if (event === 'chat:message-updated' && payload.message) {
         emit({ type: 'message-updated', conversationId: payload.message.conversationId, message: payload.message });
         scheduleRefresh();
+      } else if (event === 'chat:reactions' && payload.conversationId) {
+        const { messageId, reactions } = payload as unknown as { messageId: string; reactions: Reaction[] };
+        emit({ type: 'reactions', conversationId: payload.conversationId, messageId, reactions });
       } else if (event.startsWith('chat:')) {
         emit({ type: 'changed', conversationId: payload?.conversationId });
         scheduleRefresh();

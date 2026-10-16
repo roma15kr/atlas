@@ -1,5 +1,6 @@
 import { Camera, Check, LockKeyhole, Save, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
 import { RichTextView } from '../components/richtext/RichTextView';
+import { AppInstall } from '../components/AppInstall';
 import { NotificationSettings } from '../components/NotificationSettings';
 import { AiAnalysisDialog } from '../components/AiAnalysisDialog';
 import { ChangePasswordDialog } from '../components/team/MemberDialogs';
@@ -136,6 +137,7 @@ export function ProfilePage() {
           <div className="consent-meta"><ShieldCheck size={18} /><span><strong>Политика 2026-01</strong><small>{user.monitoringConsentAt ? `Согласие дано ${formatDate(user.monitoringConsentAt)}` : 'Ознакомьтесь и подтвердите согласие'}</small></span></div>
           {!user.monitoringConsentAt && <Button icon={Check} disabled={consenting} onClick={() => void accept()}>{consenting ? 'Подтверждаем…' : 'Принять политику'}</Button>}
         </Surface>
+        <AppInstall />
         <NotificationSettings />
         <Surface>
           <SectionHeader title="AI-рекомендации" />

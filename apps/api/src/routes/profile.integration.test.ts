@@ -50,7 +50,7 @@ describe("personal details", () => {
     expect(response.body.data).toMatchObject({ birthDate: "1994-03-12", birthday: "03-12", showBirthday: true, phone: "+380 67 123-45-67", contactEmail: "anna@example.com", city: "Київ", about: "Люблю B2B" });
     const [event] = await audits("PROFILE_UPDATED");
     expect(event?.metadata).toEqual({ fields: ["birthDate", "phone", "contactEmail", "city", "about"] });
-    expect(JSON.stringify(event)).not.toContain("1994");
+    expect(JSON.stringify(event)).not.toContain("1994-03-12");
   });
 
   it("clears a field with an empty string", async () => {

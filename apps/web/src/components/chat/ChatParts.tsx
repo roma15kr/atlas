@@ -1,3 +1,5 @@
+import { ReactionBar } from '../reactions/ReactionBar';
+import { ReactionPicker } from '../reactions/ReactionPicker';
 import { Hash, Lock, MessageSquareReply, Pencil, Send, Trash2, Users } from 'lucide-react';
 import { useState } from 'react';
 import { conversationTitle, type ChatConversation, type ChatMessage, type ChatPerson } from '../../lib/chat';
@@ -23,9 +25,11 @@ export function MessageText({ body, people, myUsername }: { body: string; people
   return <RichTextView markdown={body} people={people} myUsername={myUsername} />;
 }
 
-export function MessageItem({ message, people, me, canModerate, onReply, onEdit, onDelete, onOpenThread }: {
+export function MessageItem({ message, people, me, canModerate, onReply, onEdit, onDelete, onOpenThread, onReact }: {
   message: ChatMessage; people: Map<string, ChatPerson>; me: { id: string; username: string }; canModerate: boolean;
   onReply?: () => void; onEdit: () => void; onDelete: () => void; onOpenThread?: () => void;
+  /** Present when the viewer may react (a member of an active conversation). */
+  onReact?: (emoji: string, add: boolean) => void;
 }) {
   const own = message.author.id === me.id;
   const deleted = Boolean(message.deletedAt);
@@ -34,9 +38,11 @@ export function MessageItem({ message, people, me, canModerate, onReply, onEdit,
     <div className="chat-message__main">
       <header><strong>{message.author.fullName}{!message.author.active && <small> · деактивирован</small>}</strong><time dateTime={message.createdAt} title={formatDateTime(message.createdAt)}>{time(message.createdAt)}</time>{message.editedAt && !deleted && <small>изменено</small>}</header>
       <div className={`chat-message__text${deleted ? ' chat-message__deleted' : ''}`}>{deleted ? 'Сообщение удалено' : <MessageText body={message.body ?? ''} people={people} myUsername={me.username} />}</div>
+      {!deleted && <ReactionBar reactions={message.reactions} meId={me.id} onToggle={onReact} />}
       {onOpenThread && message.replyCount > 0 && <button type="button" className="text-button chat-message__thread" onClick={onOpenThread}><MessageSquareReply size={13} />{plural(message.replyCount, REPLIES)}{message.lastReplyAt && <span> · {time(message.lastReplyAt)}</span>}</button>}
     </div>
-    {!deleted && (onReply || own || canModerate) && <div className="chat-message__actions">
+    {!deleted && (onReply || own || canModerate || onReact) && <div className="chat-message__actions">
+      {onReact && <ReactionPicker onPick={(emoji) => onReact(emoji, !message.reactions?.some((reaction) => reaction.emoji === emoji && reaction.users.some((user) => user.id === me.id)))} />}
       {onReply && <IconButton label="Ответить в обсуждении" icon={MessageSquareReply} onClick={onReply} />}
       {own && <IconButton label="Изменить сообщение" icon={Pencil} onClick={onEdit} />}
       {(own || canModerate) && <IconButton label="Удалить сообщение" icon={Trash2} onClick={onDelete} />}

@@ -12,6 +12,7 @@ import { useTelegram } from '../context/TelegramContext';
 import { recordDiagnostic } from '../lib/diagnostics';
 import { relativeTime, roleLabel } from '../lib/format';
 import type { Role } from '../types';
+import { useIsPhone } from '../lib/useIsPhone';
 import { NotificationBell } from './NotificationBell';
 import { FeedbackButton } from './FeedbackDialog';
 import { Avatar, Badge, IconButton } from './ui';
@@ -56,6 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const badges: Record<string, number> = { '/messages': totals.badge, '/mail': mailUnread, '/telegram': telegramUnread };
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('atlas.sidebar.collapsed') === 'true');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const phone = useIsPhone();
   const location = useLocation();
   const user = session!.user;
   useEffect(() => { recordDiagnostic({ type: 'route', path: location.pathname }); }, [location.pathname]);
@@ -78,5 +80,22 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="topbar"><div className="topbar__left"><IconButton label="Открыть меню" icon={Menu} className="topbar__menu" onClick={() => setMobileOpen(true)} /><div><span>Рабочее пространство</span><strong>{pageName}</strong></div></div><div className="topbar__right"><label className="global-search"><Search size={16} /><input aria-label="Поиск" placeholder="Поиск" /></label>{dataStatus === 'offline' && <Badge tone="warning">Офлайн-данные</Badge>}<FeedbackButton /><NotificationBell /><div className="topbar__presence"><span className="presence presence--online" />В сети · {relativeTime(new Date().toISOString())}</div></div></header>
       <main className="page-content">{children}</main>
     </div>
+    {phone && <BottomNav badges={badges} onMore={() => setMobileOpen(true)} />}
   </div>;
+}
+
+/** The phone's bottom bar: the screens used on the go, and «Ещё» for the full menu. */
+function BottomNav({ badges, onMore }: { badges: Record<string, number>; onMore: () => void }) {
+  const items = [
+    { label: 'Задачи', to: '/tasks', icon: ClipboardList },
+    { label: 'Сообщения', to: '/messages', icon: MessageSquare },
+    { label: 'Telegram', to: '/telegram', icon: Send },
+    { label: 'CRM', to: '/crm', icon: BriefcaseBusiness },
+  ];
+  return <nav className="bottom-nav" aria-label="Быстрая навигация">
+    {items.map(({ label, to, icon: Icon }) => <NavLink key={to} to={to} className={({ isActive }) => isActive ? 'is-active' : ''}>
+      <span className="bottom-nav__icon"><Icon size={20} aria-hidden />{badges[to] > 0 && <i aria-label={`непрочитанных: ${badges[to]}`}>{badges[to] > 99 ? '99+' : badges[to]}</i>}</span>{label}
+    </NavLink>)}
+    <button type="button" onClick={onMore}><span className="bottom-nav__icon"><Menu size={20} aria-hidden /></span>Ещё</button>
+  </nav>;
 }
