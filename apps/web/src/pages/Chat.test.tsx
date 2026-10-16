@@ -7,7 +7,7 @@ import App from '../App';
 import { AuthProvider, WorkspaceProvider } from '../context/AppContext';
 import { demoSessions, demoUsers } from '../data/demo';
 import { resetDemoChat } from '../lib/chat';
-import { LONG_PRESS_MS } from '../components/chat/ChatParts';
+import { LONG_PRESS_MS, SHEET_READY_MS } from '../components/chat/ChatParts';
 
 const renderAs = (username: keyof typeof demoSessions, path = '/messages') => {
   localStorage.setItem('atlas.session', JSON.stringify(demoSessions[username]));
@@ -196,7 +196,26 @@ describe('message actions on touch screens', () => {
     if (move) fireEvent.touchMove(element, { touches: [{ clientX: 40, clientY: 90 }] });
     await act(() => new Promise((resolve) => setTimeout(resolve, LONG_PRESS_MS + 50)));
     fireEvent.touchEnd(element);
+    await act(() => new Promise((resolve) => setTimeout(resolve, SHEET_READY_MS + 50)));
   };
+
+  it('keeps the sheet open when the finger lifts, and ignores the tap that lift makes', async () => {
+    renderAs('director', '/messages?conversation=ch-general');
+    const message = (await screen.findAllByRole('article', { name: /^Сообщение / }))[0]!;
+    const text = within(message).getByText(/общая встреча/);
+    fireEvent.touchStart(text, { touches: [{ clientX: 40, clientY: 40 }] });
+    await act(() => new Promise((resolve) => setTimeout(resolve, LONG_PRESS_MS + 50)));
+    const sheet = screen.getByRole('dialog', { name: 'Сообщение' });
+    fireEvent.touchEnd(text);
+    // The browser's tap from lifting the finger lands on the backdrop or a button of the sheet.
+    fireEvent.mouseDown(sheet.parentElement!);
+    fireEvent.click(within(sheet).getByRole('button', { name: 'нравится' }));
+    expect(screen.getByRole('dialog', { name: 'Сообщение' })).toBeInTheDocument();
+    expect(within(message).queryByRole('button', { name: /👍/ })).not.toBeInTheDocument();
+    await act(() => new Promise((resolve) => setTimeout(resolve, SHEET_READY_MS + 50)));
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Ответить в обсуждении' }));
+    expect(screen.queryByRole('dialog', { name: 'Сообщение' })).not.toBeInTheDocument();
+  });
 
   it('opens a message\'s actions on a long press, not on a tap or a scroll', async () => {
     const user = userEvent.setup();

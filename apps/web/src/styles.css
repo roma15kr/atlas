@@ -853,6 +853,7 @@ button.dialog-row:hover { background: #f0f6f5; }
   .chat-message { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
   .chat-message.is-pressed { background: var(--surface-soft); }
 }
+.dialog-backdrop.is-inert, .dialog-backdrop.is-inert * { pointer-events: none; }
 .message-sheet__reactions { display: flex; justify-content: space-between; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid #edf0ef; }
 .message-sheet__reactions button { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); color: var(--muted); font-size: 22px; line-height: 1; }
 .message-sheet__reactions button[aria-pressed="true"] { border-color: var(--primary); background: var(--primary-soft); }
