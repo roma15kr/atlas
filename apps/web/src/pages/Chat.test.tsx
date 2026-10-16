@@ -1,5 +1,5 @@
 import { phoneViewport } from '../test/phone';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -7,6 +7,7 @@ import App from '../App';
 import { AuthProvider, WorkspaceProvider } from '../context/AppContext';
 import { demoSessions, demoUsers } from '../data/demo';
 import { resetDemoChat } from '../lib/chat';
+import { LONG_PRESS_MS } from '../components/chat/ChatParts';
 
 const renderAs = (username: keyof typeof demoSessions, path = '/messages') => {
   localStorage.setItem('atlas.session', JSON.stringify(demoSessions[username]));
@@ -190,18 +191,42 @@ describe('chat on a phone', () => {
 });
 
 describe('message actions on touch screens', () => {
-  it('shows a message\'s actions on a tap, and hides them on a second tap', async () => {
+  const hold = async (element: Element, move = false) => {
+    fireEvent.touchStart(element, { touches: [{ clientX: 40, clientY: 40 }] });
+    if (move) fireEvent.touchMove(element, { touches: [{ clientX: 40, clientY: 90 }] });
+    await act(() => new Promise((resolve) => setTimeout(resolve, LONG_PRESS_MS + 50)));
+    fireEvent.touchEnd(element);
+  };
+
+  it('opens a message\'s actions on a long press, not on a tap or a scroll', async () => {
+    const user = userEvent.setup();
+    renderAs('director', '/messages?conversation=ch-general');
+    const message = (await screen.findAllByRole('article', { name: /^Сообщение / }))[0]!;
+    const text = within(message).getByText(/общая встреча/);
+    await user.click(text);
+    expect(screen.queryByRole('dialog', { name: 'Сообщение' })).not.toBeInTheDocument();
+    await hold(text, true);
+    expect(screen.queryByRole('dialog', { name: 'Сообщение' })).not.toBeInTheDocument();
+
+    await hold(text);
+    const sheet = within(screen.getByRole('dialog', { name: 'Сообщение' }));
+    expect(sheet.getByRole('button', { name: 'Ответить в обсуждении' })).toBeInTheDocument();
+    expect(sheet.getByRole('button', { name: 'Изменить' })).toBeInTheDocument();
+    await user.click(sheet.getByRole('button', { name: 'нравится' }));
+    expect(screen.queryByRole('dialog', { name: 'Сообщение' })).not.toBeInTheDocument();
+    expect(within(message).getByRole('button', { name: /👍/ })).toBeInTheDocument();
+  });
+
+  it('offers delete from the sheet, and no edit on someone else\'s message', async () => {
     const user = userEvent.setup();
     renderAs('employee', '/messages?conversation=ch-general');
     const message = (await screen.findAllByRole('article', { name: /^Сообщение / }))[0]!;
-    expect(message).not.toHaveClass('is-open');
-    await user.click(within(message).getByText(/общая встреча/));
-    expect(message).toHaveClass('is-open');
-    await user.click(within(message).getByText(/общая встреча/));
-    expect(message).not.toHaveClass('is-open');
-    // A tap on one of its own buttons does that button's job instead.
-    await user.click(within(message).getByRole('button', { name: 'Добавить реакцию' }));
-    expect(message).not.toHaveClass('is-open');
+    await hold(within(message).getByText(/общая встреча/));
+    const sheet = within(screen.getByRole('dialog', { name: 'Сообщение' }));
+    expect(sheet.queryByRole('button', { name: 'Изменить' })).not.toBeInTheDocument();
+    expect(sheet.queryByRole('button', { name: 'Удалить' })).not.toBeInTheDocument();
+    await user.click(sheet.getByRole('button', { name: 'Копировать текст' }));
+    expect(screen.queryByRole('dialog', { name: 'Сообщение' })).not.toBeInTheDocument();
   });
 });
 
