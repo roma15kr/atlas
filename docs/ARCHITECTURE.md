@@ -329,6 +329,8 @@ Where to look when a task spans several files.
   - `lib/api.ts` holds the session store in memory, the refresh serialised by the Web Lock `atlas-refresh`, and `apiRequest`, `api.*` and `api.download`.
   - Shared UI primitives are in `components/ui.tsx`, and styles are plain CSS in `styles.css` with tokens on `:root`.
   - Demo data is in `data/demo.ts`. Demo sessions have tokens starting with `demo-`.
+  - Installable app (PWA): `public/manifest.webmanifest`, icons from `scripts/pwa-icons.mjs`, and `public/sw.js`, registered on load in production. The worker answers failed page loads with `public/offline.html` and never handles API, socket or asset requests. `lib/install.ts` keeps Chrome's install prompt for «Профиль → Приложение».
+  - Phones: `lib/useIsPhone.ts` (640px and less) switches structure (bottom bar in `AppShell`, one task column, list-or-conversation in chat and Telegram, call buttons on the client card); the phone CSS rules sit in the 640px blocks of `styles.css`. Tests simulate a phone with `test/phone.ts`.
 - **Tests:**
   - API database tests use `src/test/dbHarness.ts` (PGlite with the real migrations). `harness.user(name, role, department)` returns a user with a signed token.
   - Web tests use Testing Library with jsdom (`src/test/setup.ts`).

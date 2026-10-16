@@ -6,6 +6,7 @@ import App from '../App';
 import { AuthProvider, WorkspaceProvider } from '../context/AppContext';
 import { demoSessions } from '../data/demo';
 import { resetDemoClientComments } from '../lib/clientComments';
+import { phoneViewport } from '../test/phone';
 
 const renderClient = () => {
   localStorage.setItem('atlas.session', JSON.stringify(demoSessions.director));
@@ -54,5 +55,22 @@ describe('client card', () => {
     expect(items[0]).toContainElement(newest);
     expect(within(items[0]!).getByRole('checkbox')).toBeDisabled();
     expect(within(items[0]!).getByText('Елена Морозова')).toBeInTheDocument();
+  });
+});
+
+describe('client card on a phone', () => {
+  it('offers calling and writing to the client with large buttons', async () => {
+    const restore = phoneViewport();
+    try {
+      renderClient();
+      expect(await screen.findByRole('link', { name: 'Позвонить' })).toHaveAttribute('href', 'tel:+1555010220');
+      expect(screen.getByRole('link', { name: 'Написать' })).toHaveAttribute('href', 'mailto:sofia@northstar.example');
+    } finally { restore(); }
+  });
+
+  it('keeps the desktop card without them', async () => {
+    renderClient();
+    await screen.findAllByRole('heading', { name: 'Northstar Labs' });
+    expect(screen.queryByRole('link', { name: 'Позвонить' })).not.toBeInTheDocument();
   });
 });

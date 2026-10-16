@@ -13,12 +13,12 @@
 
 - [x] 3.1 «Мои задачи»: one category at a time with tabs on a phone. Verify `TaskBoards.test.tsx` phone cases; commit.
 - [x] 3.2 Chat and Telegram: the list or one conversation, «К списку», sticky composer. Verify `Chat.test.tsx` and `Telegram.test.tsx` phone cases; commit.
-- [ ] 3.3 Client card: «Позвонить» and «Написать» action buttons, stacked sections. Verify the `ClientPage.test.tsx` phone case; commit.
+- [x] 3.3 Client card: «Позвонить» and «Написать» action buttons, stacked sections. Verify the `ClientPage.test.tsx` phone case; commit.
 
 ## 4. Integration checks
 
-- [ ] 4.1 Run `make check` and `npm run build`; verify both pass.
-- [ ] 4.2 Run `npx openspec validate add-mobile-pwa --strict`; verify it passes.
+- [x] 4.1 Run `make check` and `npm run build`; verify both pass.
+- [x] 4.2 Run `npx openspec validate add-mobile-pwa --strict`; verify it passes.
 
 ## Workflow follow-up
 
