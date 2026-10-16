@@ -166,7 +166,7 @@ async function conversationSummaries(auth: AuthContext, options: { ids?: string[
              WHERE mm.user_id = $2 AND mm.read_at IS NULL AND x.conversation_id = c.id AND x.deleted_at IS NULL) AS mentions,
             (SELECT count(*)::int FROM chat_members cm WHERE cm.conversation_id = c.id) AS "memberCount",
             CASE WHEN c.kind <> 'CHANNEL' THEN (
-              SELECT json_agg(json_build_object('id', pu.id, 'fullName', pu.full_name, 'username', pu.username, 'active', pu.status = 'ACTIVE') ORDER BY pu.full_name)
+              SELECT json_agg(json_build_object('id', pu.id, 'fullName', pu.full_name, 'username', pu.username, 'active', pu.status = 'ACTIVE', 'avatarUrl', pu.avatar_url) ORDER BY pu.full_name)
               FROM chat_members pm JOIN users pu ON pu.id = pm.user_id WHERE pm.conversation_id = c.id) END AS participants,
             last.message AS "lastMessage"
      FROM chat_members m JOIN chat_conversations c ON c.id = m.conversation_id
