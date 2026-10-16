@@ -249,3 +249,30 @@ describe('message actions on touch screens', () => {
   });
 });
 
+describe('channel icons', () => {
+  it('lets a channel admin pick an icon and a colour from the library, shown in the list', async () => {
+    const user = userEvent.setup();
+    renderAs('director', '/messages?conversation=ch-general');
+    const conversation = await screen.findByRole('region', { name: 'Разговор Общий' }, { timeout: 5_000 });
+    await user.click(await within(conversation).findByRole('button', { name: 'Иконка канала' }));
+    const picker = within(screen.getByRole('dialog', { name: 'Выбор иконки' }));
+    await user.click(picker.getByRole('radio', { name: 'Красный' }));
+    await user.type(picker.getByLabelText('Найти иконку'), 'мег');
+    await user.click(picker.getByRole('button', { name: 'Мегафон' }));
+    expect(screen.queryByRole('dialog', { name: 'Выбор иконки' })).not.toBeInTheDocument();
+    await waitFor(() => expect(within(row(/Общий/)).getByTitle('Мегафон')).toHaveStyle({ background: '#b54a4a' }));
+
+    // Cleared again, the channel shows «#».
+    await user.click(within(conversation).getByRole('button', { name: 'Иконка канала' }));
+    await user.click(screen.getByRole('button', { name: /Убрать иконку/ }));
+    await waitFor(() => expect(within(row(/Общий/)).queryByTitle('Мегафон')).not.toBeInTheDocument());
+  });
+
+  it('gives a member who is not an admin no icon picker', async () => {
+    renderAs('employee', '/messages?conversation=ch-general');
+    await within(list()).findByRole('button', { name: /Общий/ });
+    const conversation = await screen.findByRole('region', { name: 'Разговор Общий' }, { timeout: 5_000 });
+    expect(within(conversation).queryByRole('button', { name: 'Иконка канала' })).not.toBeInTheDocument();
+  });
+});
+

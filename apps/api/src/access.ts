@@ -65,6 +65,7 @@ export interface ChatConversationRow {
   kind: ChatKind;
   name: string | null;
   description: string | null;
+  icon: string | null;
   visibility: "PUBLIC" | "PRIVATE" | null;
   is_default: boolean;
   archived_at: Date | null;
@@ -95,7 +96,7 @@ export function chatPermissions(auth: AuthContext, row: ChatConversationRow): Ch
 /** Loads a conversation with the caller's membership; unknown and invisible ones are 404. */
 export async function loadConversation(auth: AuthContext, id: string, need: "see" | "read" = "read"): Promise<ChatConversationRow & ChatPermissions> {
   const result = await query<ChatConversationRow>(
-    `SELECT c.id, c.company_id, c.kind, c.name, c.description, c.visibility, c.is_default, c.archived_at, m.role AS my_role
+    `SELECT c.id, c.company_id, c.kind, c.name, c.description, c.icon, c.visibility, c.is_default, c.archived_at, m.role AS my_role
      FROM chat_conversations c LEFT JOIN chat_members m ON m.conversation_id = c.id AND m.user_id = $2
      WHERE c.id = $1 AND c.company_id = $3`,
     [id, auth.userId, auth.companyId]
