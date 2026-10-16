@@ -1,6 +1,7 @@
 import { firstName } from './format';
 import { aggregateReactions, toggleDemoReaction, type Reaction, type ReactionRow } from './reactions';
 import { apiRequest } from './api';
+import { parseChannelIcon } from './channelIcons';
 import type { Role, User } from '../types';
 
 export type ChatKind = 'DM' | 'GROUP' | 'CHANNEL';
@@ -28,6 +29,8 @@ export interface ChatConversation {
   kind: ChatKind;
   name: string | null;
   description: string | null;
+  /** A channel's library icon as `<icon>:<colour>`, or null for «#». */
+  icon?: string | null;
   visibility: ChatVisibility | null;
   isDefault: boolean;
   archivedAt: string | null;
@@ -44,12 +47,12 @@ export interface ChatConversation {
   isMember?: boolean;
 }
 export interface ChatChannel {
-  id: string; name: string; description: string | null; visibility: ChatVisibility; isDefault: boolean; archivedAt: string | null;
+  id: string; name: string; description: string | null; icon?: string | null; visibility: ChatVisibility; isDefault: boolean; archivedAt: string | null;
   memberCount: number; myRole: ChatRole | null; canRead: boolean; canManage: boolean; isMember: boolean;
 }
 export interface ChatMember extends ChatPerson { role: ChatRole; active: boolean }
 export interface ChatMention extends ChatMessage { unread: boolean; conversation: { id: string; kind: ChatKind; name: string | null } }
-export interface ChannelInput { name: string; description?: string | null; visibility: ChatVisibility; memberIds?: string[] }
+export interface ChannelInput { name: string; description?: string | null; icon?: string | null; visibility: ChatVisibility; memberIds?: string[] }
 
 export interface ChatBackend {
   people(): Promise<ChatPerson[]>;
@@ -157,7 +160,7 @@ export const canCreateChannels = (role: Role): boolean => role === 'DIRECTOR' ||
 // ---------------------------------------------------------------------------
 // Demo backend: an in-memory copy of the server rules, so demo mode and tests work offline.
 
-interface DemoConversation { id: string; kind: ChatKind; name: string | null; description: string | null; visibility: ChatVisibility | null; isDefault: boolean; archivedAt: string | null; createdAt: string }
+interface DemoConversation { id: string; kind: ChatKind; name: string | null; description: string | null; icon?: string | null; visibility: ChatVisibility | null; isDefault: boolean; archivedAt: string | null; createdAt: string }
 interface DemoMember { conversationId: string; userId: string; role: ChatRole; lastReadAt: string; muted: boolean }
 interface DemoMessage { id: string; conversationId: string; authorId: string; parentId: string | null; body: string; createdAt: string; editedAt: string | null; deletedAt: string | null }
 interface DemoMentionRow { messageId: string; userId: string; readAt: string | null }
@@ -207,7 +210,7 @@ export function createDemoChat(users: User[], me: User): ChatBackend {
     const members = store.members.filter((item) => item.conversationId === conversation.id);
     const access = permissions(conversation);
     return {
-      id: conversation.id, kind: conversation.kind, name: conversation.name, description: conversation.description, visibility: conversation.visibility,
+      id: conversation.id, kind: conversation.kind, name: conversation.name, description: conversation.description, icon: conversation.icon ?? null, visibility: conversation.visibility,
       isDefault: conversation.isDefault, archivedAt: conversation.archivedAt, lastActivityAt: last?.createdAt ?? conversation.createdAt,
       myRole: mine?.role ?? null, muted: mine?.muted ?? false,
       unread: mine ? messages.filter((item) => item.createdAt > mine.lastReadAt && item.authorId !== me.id && !item.deletedAt).length : 0,
@@ -326,7 +329,7 @@ export function createDemoChat(users: User[], me: User): ChatBackend {
       .sort((a, b) => Number(b.isDefault) - Number(a.isDefault) || (a.name ?? '').localeCompare(b.name ?? '', 'ru'))
       .map((item) => {
         const access = permissions(item);
-        return { id: item.id, name: item.name ?? '', description: item.description, visibility: item.visibility!, isDefault: item.isDefault, archivedAt: item.archivedAt,
+        return { id: item.id, name: item.name ?? '', description: item.description, icon: item.icon ?? null, visibility: item.visibility!, isDefault: item.isDefault, archivedAt: item.archivedAt,
           memberCount: store.members.filter((member) => member.conversationId === item.id).length, myRole: access.myRole, canRead: access.canRead, canManage: access.canManage, isMember: access.isMember };
       })),
     createChannel: async (input) => {
@@ -346,6 +349,10 @@ export function createDemoChat(users: User[], me: User): ChatBackend {
       if (patch.name) conversation.name = patch.name.trim();
       if (patch.description !== undefined) conversation.description = patch.description || null;
       if (patch.visibility) conversation.visibility = patch.visibility;
+      if (patch.icon !== undefined) {
+        if (patch.icon && !parseChannelIcon(patch.icon)) throw new ChatError('CHAT_INVALID_ICON', 'Выберите иконку и цвет из библиотеки');
+        conversation.icon = patch.icon || null;
+      }
     },
     archive: async (id, archived) => {
       const { conversation, canManage } = find(id, 'see');

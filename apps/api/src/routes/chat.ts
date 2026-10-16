@@ -11,6 +11,7 @@ import { notify, removeNotifications } from "../notifications/notify";
 import { plainPreview } from "../notifications/preview";
 import { addReaction, CHAT_REACTIONS, reactionEmoji, reactionInput, reactionsSql, removeReaction, type Reaction } from "../reactions/reactions";
 import { emitToUsers } from "../realtime";
+import { isChannelIcon } from "../chat/channelIcons";
 import { deleteStoredImages, forgetUnusedImages } from "./images";
 import { chatAccessSql } from "../scope";
 import type { AuthContext } from "../types";
@@ -34,7 +35,8 @@ export const channelCreateSchema = z.object({
 const channelPatchSchema = z.object({
   name: channelNameSchema.optional(),
   description: descriptionSchema.nullable().optional(),
-  visibility: z.enum(["PUBLIC", "PRIVATE"]).optional()
+  visibility: z.enum(["PUBLIC", "PRIVATE"]).optional(),
+  icon: z.string().max(40).nullable().optional()
 });
 export const groupCreateSchema = z.object({
   userIds: userIdsSchema,
@@ -158,7 +160,7 @@ async function conversationSummaries(auth: AuthContext, options: { ids?: string[
   let filter = "";
   if (options.ids) { values.push(options.ids); filter = `AND c.id = ANY($${values.length}::uuid[])`; }
   const result = await query(
-    `SELECT c.id, c.kind, c.name, c.description, c.visibility, c.is_default AS "isDefault", c.archived_at AS "archivedAt",
+    `SELECT c.id, c.kind, c.name, c.description, c.icon, c.visibility, c.is_default AS "isDefault", c.archived_at AS "archivedAt",
             coalesce(c.last_message_at, c.created_at) AS "lastActivityAt", m.role AS "myRole", m.muted, m.last_read_at AS "lastReadAt",
             (SELECT count(*)::int FROM (SELECT 1 FROM chat_messages x WHERE x.conversation_id = c.id AND x.created_at > m.last_read_at
                AND x.author_id <> $2 AND x.deleted_at IS NULL LIMIT 100) unread) AS unread,
@@ -166,7 +168,7 @@ async function conversationSummaries(auth: AuthContext, options: { ids?: string[
              WHERE mm.user_id = $2 AND mm.read_at IS NULL AND x.conversation_id = c.id AND x.deleted_at IS NULL) AS mentions,
             (SELECT count(*)::int FROM chat_members cm WHERE cm.conversation_id = c.id) AS "memberCount",
             CASE WHEN c.kind <> 'CHANNEL' THEN (
-              SELECT json_agg(json_build_object('id', pu.id, 'fullName', pu.full_name, 'username', pu.username, 'active', pu.status = 'ACTIVE') ORDER BY pu.full_name)
+              SELECT json_agg(json_build_object('id', pu.id, 'fullName', pu.full_name, 'username', pu.username, 'active', pu.status = 'ACTIVE', 'avatarUrl', pu.avatar_url) ORDER BY pu.full_name)
               FROM chat_members pm JOIN users pu ON pu.id = pm.user_id WHERE pm.conversation_id = c.id) END AS participants,
             last.message AS "lastMessage"
      FROM chat_members m JOIN chat_conversations c ON c.id = m.conversation_id
@@ -230,7 +232,7 @@ chatRouter.get("/conversations/:id", asyncHandler(async (req, res) => {
   if (conversation.isMember) { res.json({ data: { ...await summaryFor(auth, conversation.id), ...permissionsOf(conversation) } }); return; }
   const count = await query<{ count: number }>("SELECT count(*)::int AS count FROM chat_members WHERE conversation_id = $1", [conversation.id]);
   res.json({ data: {
-    id: conversation.id, kind: conversation.kind, name: conversation.name, description: conversation.description,
+    id: conversation.id, kind: conversation.kind, name: conversation.name, description: conversation.description, icon: conversation.icon,
     visibility: conversation.visibility, isDefault: conversation.is_default, archivedAt: conversation.archived_at,
     myRole: null, muted: false, unread: 0, mentions: 0, memberCount: count.rows[0]?.count ?? 0, participants: null, ...permissionsOf(conversation)
   } });
@@ -299,7 +301,7 @@ chatRouter.get("/channels", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
   const { archived } = z.object({ archived: z.enum(["true", "false"]).optional() }).parse(req.query);
   const result = await query<ChatConversationRow & { memberCount: number }>(
-    `SELECT c.id, c.company_id, c.kind, c.name, c.description, c.visibility, c.is_default, c.archived_at, m.role AS my_role,
+    `SELECT c.id, c.company_id, c.kind, c.name, c.description, c.icon, c.visibility, c.is_default, c.archived_at, m.role AS my_role,
             (SELECT count(*)::int FROM chat_members cm WHERE cm.conversation_id = c.id) AS "memberCount"
      FROM chat_conversations c LEFT JOIN chat_members m ON m.conversation_id = c.id AND m.user_id = $2
      WHERE c.company_id = $1 AND c.kind = 'CHANNEL' AND (c.archived_at IS NULL OR $3)
@@ -310,7 +312,7 @@ chatRouter.get("/channels", asyncHandler(async (req, res) => {
   res.json({ data: result.rows.map((row) => {
     const conversation = { ...row, ...chatPermissions(auth, row) };
     return {
-      id: row.id, name: row.name, description: row.description, visibility: row.visibility, isDefault: row.is_default,
+      id: row.id, name: row.name, description: row.description, icon: row.icon, visibility: row.visibility, isDefault: row.is_default,
       archivedAt: row.archived_at, memberCount: row.memberCount, myRole: row.my_role, ...permissionsOf(conversation)
     };
   }) });
@@ -354,11 +356,14 @@ chatRouter.patch("/channels/:id", asyncHandler(async (req, res) => {
   const input = channelPatchSchema.parse(req.body);
   assertActive(conversation);
   if (conversation.is_default && (input.name !== undefined || input.visibility !== undefined)) assertNotDefault(conversation);
+  if (input.icon && !isChannelIcon(input.icon)) throw new ApiError(400, "CHAT_INVALID_ICON", "Choose an icon and a colour from the library");
   await withChannelName(() => query(
     `UPDATE chat_conversations SET name = coalesce($2, name),
-       description = CASE WHEN $5 THEN $3 ELSE description END, visibility = coalesce($4, visibility)
+       description = CASE WHEN $5 THEN $3 ELSE description END, visibility = coalesce($4, visibility),
+       icon = CASE WHEN $6 THEN $7 ELSE icon END
      WHERE id = $1`,
-    [conversation.id, input.name ?? null, input.description || null, input.visibility ?? null, input.description !== undefined]
+    [conversation.id, input.name ?? null, input.description || null, input.visibility ?? null, input.description !== undefined,
+      input.icon !== undefined, input.icon || null]
   ));
   await audit(req, auth, "CHAT_CHANNEL_UPDATED", conversation.id, { fields: Object.keys(input) });
   await notifyConversationChanged(conversation.id);

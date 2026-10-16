@@ -1,5 +1,6 @@
 import { AlertCircle, ChevronDown, Inbox, LoaderCircle, X, type LucideIcon } from 'lucide-react';
-import { useEffect, useState, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { useEffect, useId, useState, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react';
 import { initials } from '../lib/format';
 
 export function Button({ variant = 'primary', icon: Icon, children, className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; icon?: LucideIcon }) {
@@ -29,6 +30,7 @@ export function SectionHeader({ title, meta, action }: { title: string; meta?: R
 }
 
 export function Dialog({ open, title, description, onClose, children, footer, size = 'md', className = '' }: { open: boolean; title: string; description?: string; onClose: () => void; children: ReactNode; footer?: ReactNode; size?: 'sm' | 'md' | 'lg'; className?: string }) {
+  const titleId = useId();
   useEffect(() => {
     if (!open) return;
     const keydown = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
@@ -37,7 +39,8 @@ export function Dialog({ open, title, description, onClose, children, footer, si
     return () => { document.removeEventListener('keydown', keydown); document.body.classList.remove('modal-open'); };
   }, [open, onClose]);
   if (!open) return null;
-  return <div className={`dialog-backdrop ${className}`.trim()} role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target && !event.currentTarget.classList.contains('is-inert')) onClose(); }}><section className={`dialog dialog--${size}`} role="dialog" aria-modal="true" aria-labelledby="dialog-title"><header><div><h2 id="dialog-title">{title}</h2>{description && <p>{description}</p>}</div><IconButton label="Закрыть" icon={X} onClick={onClose} /></header><div className="dialog__body">{children}</div>{footer && <footer>{footer}</footer>}</section></div>;
+  // On the page root, so no sticky bar's layer (top bar, bottom bar on phones) can cover it.
+  return createPortal(<div className={`dialog-backdrop ${className}`.trim()} role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target && !event.currentTarget.classList.contains('is-inert')) onClose(); }}><section className={`dialog dialog--${size}`} role="dialog" aria-modal="true" aria-labelledby={titleId}><header><div><h2 id={titleId}>{title}</h2>{description && <p>{description}</p>}</div><IconButton label="Закрыть" icon={X} onClick={onClose} /></header><div className="dialog__body">{children}</div>{footer && <footer>{footer}</footer>}</section></div>, document.body);
 }
 
 export function EmptyState({ title, description, icon: Icon = Inbox, action }: { title: string; description: string; icon?: LucideIcon; action?: ReactNode }) {

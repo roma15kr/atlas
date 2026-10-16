@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, AtSign, Bell, BellOff, Hash, MessageSquare, Plus, Search, Settings2, Users, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { BrowseChannelsDialog, ChannelFormDialog, ConfirmDialog, ConversationSettingsDialog, EditMessageDialog, NewMessageDialog, usePeopleByUsername } from '../components/chat/ChatDialogs';
+import { ChannelIconPicker } from '../components/chat/ChannelIconPicker';
 import { Composer, ConversationIcon, MessageItem } from '../components/chat/ChatParts';
 import { Badge, Button, EmptyState, IconButton, LoadingState, PageHeader, SectionHeader, Surface } from '../components/ui';
 import { useAuth } from '../context/AppContext';
@@ -170,6 +171,11 @@ function ConversationView({ conversation, threadId, onThread, onSettings, onEdit
   const inactiveDm = conversation.kind === 'DM' && participants.some((person) => !person.active);
   const title = conversationTitle(conversation, me.id);
   const { backend, refresh, setActive } = chat;
+  // The list doesn't carry `canManage`; the rule is the server's: a channel admin or a director.
+  const canManageChannel = conversation.kind === 'CHANNEL' && (conversation.canManage ?? (conversation.myRole === 'ADMIN' || me.role === 'DIRECTOR'));
+  const setIcon = async (icon: string | null) => {
+    try { await backend.updateChannel(conversation.id, { icon }); await refresh(); } catch (reason) { onError(chatErrorMessage(reason, 'Иконка не сохранена')); }
+  };
 
   useEffect(() => { setActive(conversation.id); return () => setActive(null); }, [conversation.id, setActive]);
   // Opening the conversation, and every new message while it is open, marks it read.
@@ -196,7 +202,9 @@ function ConversationView({ conversation, threadId, onThread, onSettings, onEdit
   return <Surface className="chat-main" aria-label={`Разговор ${title}`}>
     <header className="chat-main__header">
       {onBack && <IconButton label="К списку" icon={ArrowLeft} onClick={onBack} />}
-      <ConversationIcon conversation={conversation} myId={me.id} />
+      {canManageChannel && !conversation.archivedAt
+        ? <ChannelIconPicker value={conversation.icon} visibility={conversation.visibility} onChange={(icon) => void setIcon(icon)} />
+        : <ConversationIcon conversation={conversation} myId={me.id} />}
       <div><h2>{title}</h2><span>{meta}{conversation.kind === 'CHANNEL' && conversation.description ? ` · ${conversation.description}` : ''}</span></div>
       {isMember && <IconButton label={conversation.muted ? 'Включить уведомления' : 'Без уведомлений'} icon={conversation.muted ? BellOff : Bell} onClick={() => void toggleMute()} />}
       {conversation.kind !== 'DM' && <IconButton label={conversation.kind === 'CHANNEL' ? 'Настройки канала' : 'Участники группы'} icon={conversation.kind === 'CHANNEL' ? Settings2 : Users} onClick={onSettings} />}
