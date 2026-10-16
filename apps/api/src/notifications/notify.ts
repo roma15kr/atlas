@@ -4,7 +4,7 @@ import { plainPreview } from "./preview";
 
 export const NOTIFICATION_GROUPS = {
   TASK_ASSIGNED: "tasks", TASK_COMMENTED: "tasks", TASK_DUE: "tasks", TASK_OVERDUE: "tasks",
-  CHAT_DIRECT: "chat", CHAT_MENTION: "chat",
+  CHAT_DIRECT: "chat", CHAT_MENTION: "chat", CHAT_MESSAGE: "chat",
   TELEGRAM_MESSAGE: "telegram",
   ALERT_CREATED: "alerts", DEAL_ASSIGNED: "alerts", CLIENT_ASSIGNED: "alerts"
 } as const;

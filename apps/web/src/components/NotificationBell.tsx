@@ -8,7 +8,7 @@ import { EmptyState } from './ui';
 
 const icons: Record<NotificationKind, typeof Bell> = {
   TASK_ASSIGNED: ClipboardList, TASK_COMMENTED: MessageSquare, TASK_DUE: BellRing, TASK_OVERDUE: BellRing,
-  CHAT_DIRECT: MessageSquare, CHAT_MENTION: MessageSquare, TELEGRAM_MESSAGE: Send,
+  CHAT_DIRECT: MessageSquare, CHAT_MENTION: MessageSquare, CHAT_MESSAGE: MessageSquare, TELEGRAM_MESSAGE: Send,
   ALERT_CREATED: TriangleAlert, DEAL_ASSIGNED: ClipboardList, CLIENT_ASSIGNED: ClipboardList,
 };
 

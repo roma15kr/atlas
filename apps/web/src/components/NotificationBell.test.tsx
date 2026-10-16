@@ -64,6 +64,21 @@ describe('notification bell', () => {
     expect(within(screen.getByRole('dialog', { name: 'Уведомления' })).queryByText('Пароль от склада')).not.toBeInTheDocument();
   });
 
+  it('shows a channel message notification', async () => {
+    const user = userEvent.setup();
+    renderAs('employee', '/');
+    await screen.findByRole('button', { name: /Уведомления: 2/ });
+    act(() => {
+      window.dispatchEvent(new CustomEvent('atlas:socket', { detail: { event: 'notification:new', payload: {
+        id: 'live-3', kind: 'CHAT_MESSAGE', title: 'Новое в #Общий', body: 'Семенець Максим: Привет всем', link: '/messages?conversation=c1', createdAt: new Date().toISOString(), readAt: null,
+      } } }));
+    });
+    await user.click(screen.getByRole('button', { name: 'Уведомления: 3 непрочитанных' }));
+    const panel = within(screen.getByRole('dialog', { name: 'Уведомления' }));
+    expect(panel.getByText('Новое в #Общий')).toBeInTheDocument();
+    expect(panel.getByText('Семенець Максим: Привет всем')).toBeInTheDocument();
+  });
+
   it('closes on Escape', async () => {
     const user = userEvent.setup();
     renderAs('employee', '/');
