@@ -18,7 +18,10 @@ const REPLIES: [string, string, string] = ['ответ', 'ответа', 'отв
 const time = (value: string) => new Date(value).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
 export function ConversationIcon({ conversation, myId }: { conversation: ChatConversation; myId: string }) {
-  if (conversation.kind === 'DM') return <Avatar name={conversationTitle(conversation, myId)} size="sm" />;
+  if (conversation.kind === 'DM') {
+    const other = conversation.participants?.find((person) => person.id !== myId);
+    return <Avatar name={conversationTitle(conversation, myId)} src={other?.avatarUrl ?? undefined} size="sm" />;
+  }
   const Icon = conversation.kind === 'GROUP' ? Users : conversation.visibility === 'PRIVATE' ? Lock : Hash;
   return <span className="chat-icon"><Icon size={15} aria-hidden="true" /></span>;
 }
