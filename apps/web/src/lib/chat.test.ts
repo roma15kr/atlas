@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { applyIncoming, chatTotals } from '../context/ChatContext';
-import { conversationTitle, mentionQuery, messageParts, type ChatConversation, type ChatMention, type ChatMessage } from './chat';
+import { demoUsers } from '../data/demo';
+import { conversationTitle, createDemoChat, mentionQuery, messageParts, resetDemoChat, type ChatConversation, type ChatMention, type ChatMessage } from './chat';
 
 const conversation = (patch: Partial<ChatConversation>): ChatConversation => ({
   id: 'c1', kind: 'CHANNEL', name: 'Продажи', description: null, visibility: 'PUBLIC', isDefault: false, archivedAt: null,
@@ -48,5 +49,23 @@ describe('message text', () => {
     const people = [{ id: 'me', fullName: 'Анна Петрова', username: 'employee', active: true }, { id: 'u2', fullName: 'Михаил Волков', username: 'manager', active: true }];
     expect(conversationTitle({ kind: 'DM', name: null, participants: people }, 'me')).toBe('Михаил Волков');
     expect(conversationTitle({ kind: 'GROUP', name: null, participants: [...people, { id: 'u4', fullName: 'Алексей Ким', username: 'alex', active: true }] }, 'me')).toBe('Михаил, Алексей');
+  });
+});
+
+describe('demo chat deletion', () => {
+  beforeEach(() => resetDemoChat());
+  const as = (username: string) => createDemoChat(demoUsers, demoUsers.find((user) => user.username === username)!);
+
+  it('erases a message, keeping an empty anchor while it has replies', async () => {
+    await as('manager').remove('m3');
+    const thread = await as('employee').replies('m3');
+    expect(thread.root).toMatchObject({ body: null });
+    expect(thread.root.deletedAt).not.toBeNull();
+    expect(thread.replies.map((item) => item.id)).toEqual(['m4']);
+
+    await as('employee').remove('m4');
+    const sales = (await as('manager').messages('ch-sales')).items.map((item) => item.id);
+    expect(sales).not.toContain('m3');
+    expect(sales).toContain('m5');
   });
 });

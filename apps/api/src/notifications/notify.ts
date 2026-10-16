@@ -67,3 +67,13 @@ export async function notify(companyId: string, recipients: Iterable<string>, ac
     return [];
   }
 }
+
+/** Deletes every recipient's notifications about these items and takes them off open bells. */
+export async function removeNotifications(entityType: string, entityIds: string[]): Promise<void> {
+  if (!entityIds.length) return;
+  const removed = await query<{ id: string; user_id: string }>(
+    "DELETE FROM notifications WHERE entity_type = $1 AND entity_id = ANY($2::uuid[]) RETURNING id, user_id", [entityType, entityIds]);
+  const byUser = new Map<string, string[]>();
+  for (const row of removed.rows) byUser.set(row.user_id, [...(byUser.get(row.user_id) ?? []), row.id]);
+  for (const [userId, ids] of byUser) emitToUsers([userId], "notification:removed", { ids });
+}

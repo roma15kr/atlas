@@ -108,7 +108,7 @@ export function MessagesPage() {
     {dialog?.type === 'channel' && <ChannelFormDialog onClose={() => setDialog(null)} onSaved={open} />}
     {dialog?.type === 'settings' && current && <ConversationSettingsDialog conversation={current} onClose={() => { setDialog(null); setPreview(null); }} onLeft={() => { setDialog(null); setPreview(null); setSelection(null); }} />}
     {dialog?.type === 'edit' && <EditMessageDialog message={dialog.message} onClose={() => setDialog(null)} />}
-    {dialog?.type === 'delete' && <ConfirmDialog title="Удалить сообщение?" description={dialog.message.author.id === me.id ? 'Вместо текста участники увидят «Сообщение удалено». Ответы в обсуждении останутся.' : `Сообщение ${dialog.message.author.fullName} будет удалено для всех участников канала.`} confirm="Удалить" onClose={() => setDialog(null)} onConfirm={async () => { await chat.backend.remove(dialog.message.id); chat.notify({ type: 'changed' }); setDialog(null); }} />}
+    {dialog?.type === 'delete' && <ConfirmDialog title="Удалить сообщение?" description={dialog.message.author.id === me.id ? 'Сообщение будет удалено навсегда вместе с изображениями и реакциями. Если на него ответили, останется строка «Сообщение удалено», чтобы ответы не потеряли смысл.' : `Сообщение ${dialog.message.author.fullName} будет удалено для всех участников канала.`} confirm="Удалить" onClose={() => setDialog(null)} onConfirm={async () => { await chat.backend.remove(dialog.message.id); chat.notify({ type: 'changed' }); setDialog(null); }} />}
   </>;
 }
 

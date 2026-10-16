@@ -29,6 +29,16 @@ export function NotificationBell() {
     const handle = (event: Event) => {
       const { event: name, payload } = (event as CustomEvent<{ event: string; payload: AppNotification }>).detail;
       if (name === 'connect') { void load(); return; }
+      // A deleted chat message takes its notifications with it.
+      if (name === 'notification:removed') {
+        const ids = new Set((payload as unknown as { ids?: string[] })?.ids ?? []);
+        setItems((current) => {
+          const gone = current.filter((item) => ids.has(item.id));
+          setUnread((count) => Math.max(0, count - gone.filter((item) => !item.readAt).length));
+          return gone.length ? current.filter((item) => !ids.has(item.id)) : current;
+        });
+        return;
+      }
       if (name !== 'notification:new' || !payload?.id) return;
       setItems((current) => {
         const replaced = current.some((item) => item.id === payload.id);
