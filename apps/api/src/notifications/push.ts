@@ -11,13 +11,14 @@ const MAX_FAILURES = 5;
 
 export const pushEnabled = (): boolean => Boolean(config.VAPID_PUBLIC_KEY && config.VAPID_PRIVATE_KEY);
 
-let sender: PushSender = async (target, payload) => {
-  const result = await webPush.sendNotification(target, payload, {
-    TTL: 24 * 60 * 60,
-    vapidDetails: { subject: config.VAPID_SUBJECT, publicKey: config.VAPID_PUBLIC_KEY!, privateKey: config.VAPID_PRIVATE_KEY! }
-  });
-  return result.statusCode;
-};
+/** Options for every push: a day to deliver, high urgency (a locked, idle Android phone otherwise holds it), VAPID keys. */
+export const pushOptions = () => ({
+  TTL: 24 * 60 * 60,
+  urgency: "high" as const,
+  vapidDetails: { subject: config.VAPID_SUBJECT, publicKey: config.VAPID_PUBLIC_KEY!, privateKey: config.VAPID_PRIVATE_KEY! }
+});
+
+let sender: PushSender = async (target, payload) => (await webPush.sendNotification(target, payload, pushOptions())).statusCode;
 export function setPushSender(next: PushSender): void { sender = next; }
 
 const groupColumn = { tasks: "push_tasks", chat: "push_chat", telegram: "push_telegram", alerts: "push_alerts" } as const;
