@@ -3,6 +3,7 @@ import multer from "multer";
 import { z } from "zod";
 import { writeAudit } from "../audit";
 import { requireAuth } from "../auth";
+import type { PoolClient } from "pg";
 import { query } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { imageUploadLimiter } from "../middleware";
@@ -64,3 +65,32 @@ imagesRouter.get("/:id", asyncHandler(async (req, res) => {
   stream.on("error", (error) => res.destroy(error));
   stream.pipe(res);
 }));
+
+/** Every column that can hold formatted text with pasted images. */
+const IMAGE_REFERENCES = [
+  "chat_messages.body", "chat_conversations.description", "tasks.description", "task_comments.body",
+  "clients.notes", "client_comments.body", "deals.notes", "users.job_description"
+];
+
+/**
+ * Deletes the rows of images that `body` embeds, were uploaded by `authorId` and are no longer referenced anywhere
+ * (call it after the text itself is gone). Returns their storage keys, to remove with `deleteStoredImages` after commit.
+ */
+export async function forgetUnusedImages(db: Pick<PoolClient, "query">, companyId: string, authorId: string, body: string): Promise<string[]> {
+  const ids = [...new Set([...body.matchAll(/\/api\/v1\/images\/([0-9a-f-]{36})/gi)].map((match) => match[1]!.toLowerCase()))];
+  if (!ids.length) return [];
+  const used = IMAGE_REFERENCES.map((ref) => {
+    const [table, column] = ref.split(".");
+    return `EXISTS (SELECT 1 FROM ${table} WHERE ${column} LIKE '%/api/v1/images/' || i.id::text || '%')`;
+  }).join(" OR ");
+  const removed = await db.query<{ storage_key: string }>(
+    `DELETE FROM rich_text_images i WHERE i.id = ANY($1::uuid[]) AND i.company_id = $2 AND i.uploaded_by = $3 AND NOT (${used})
+     RETURNING storage_key`,
+    [ids, companyId, authorId]
+  );
+  return removed.rows.map((row) => row.storage_key);
+}
+
+export async function deleteStoredImages(keys: string[]): Promise<void> {
+  for (const key of keys) await objectStorage.delete(key).catch((error) => console.error("Image removal failed", error));
+}
