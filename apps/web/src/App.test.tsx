@@ -138,4 +138,26 @@ describe('role-aware routing', () => {
     renderAt('/sales?deal=d1');
     expect(await screen.findByRole('dialog', { name: /Стартовый пакет/ })).toBeInTheDocument();
   });
+
+  it('lists the overdue tasks of a signal and opens one', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.director));
+    renderAt('/');
+    const signal = (await screen.findByText('Просроченные задачи')).closest('article')!;
+    await user.click(within(signal).getByRole('button', { name: 'Показать задачи (3)' }));
+    expect(within(signal).getByText('и ещё 1')).toBeInTheDocument();
+    expect(within(signal).getAllByText(/^Задачи отдела · срок /, { selector: 'small' })).toHaveLength(2);
+    await user.click(within(signal).getByRole('link', { name: 'Согласовать дату демонстрации' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Задача' });
+    expect(within(dialog).getByDisplayValue('Согласовать дату демонстрации')).toBeInTheDocument();
+  });
+
+  it('shows online colleagues first in «Кто в сети», each group alphabetically', async () => {
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.director));
+    const { container } = renderAt('/');
+    await screen.findByText('Кто в сети');
+    const names = [...container.querySelectorAll('.presence-list .person-row strong')].map((name) => name.textContent);
+    expect(names).toEqual(['Анна Петрова', 'Елена Морозова', 'Иван Смирнов', 'Михаил Волков', 'Алексей Ким', 'Ольга Соколова']);
+  });
 });
+

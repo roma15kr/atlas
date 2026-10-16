@@ -55,3 +55,26 @@ export const plural = (count: number, [one, few, many]: [string, string, string]
   const word = mod10 === 1 && mod100 !== 11 ? one : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14) ? few : many;
   return `${count} ${word}`;
 };
+
+// Common Ukrainian and Russian given names, for telling «Имя Фамилия» from «Фамилия Имя».
+const GIVEN_NAMES = new Set(`андрій андрей олександр александр олексій алексей анатолій анатолий антон артем артём богдан борис вадим валентин валерій валерий василь василий віктор виктор віталій виталий володимир владимир владислав в'ячеслав вячеслав геннадій геннадий георгій георгий гліб глеб григорій григорий денис дмитро дмитрий євген евгений іван иван ігор игорь ілля илья кирило кирилл костянтин константин леонід леонид максим микола николай михайло михаил назар олег павло павел петро петр роман руслан сергій сергей станіслав станислав степан тарас тимур федір федор юрій юрий ярослав
+  аліна алина алла анастасія анастасия анна ганна валентина валерія валерия вікторія виктория віра вера галина дар'я дарья діана диана євгенія евгения єлизавета елизавета елена олена жанна зоя ірина ирина катерина екатерина кристина лариса леся лілія лилия любов любовь людмила маргарита марина марія мария наталія наталья наталия надія надежда оксана ольга поліна полина світлана светлана софія софия тамара тетяна татьяна уляна ульяна юлія юлия яна кароліна каролина вероніка вероника злата мілана милана хишам`.split(/\s+/));
+const PATRONYMIC = /(ович|евич|євич|йович|ївна|івна|овна|евна|ична|інічна)$/i;
+const SURNAME = /(енко|ченко|ук|юк|чук|щук|ик|ник|ов|ова|ев|ева|єв|єва|ін|іна|ин|ина|ський|ська|цький|цька|зький|зька|ич|ак|як)$/i;
+/** Endings no given name has: the word is a surname for sure. */
+const CERTAIN_SURNAME = /(енко|ук|юк|чук|щук|ський|ська|цький|цька|зький|зька)$/i;
+
+/**
+ * The given name to address someone by. Names are stored both as «Фамилия Имя Отчество» and «Имя Фамилия»:
+ * a patronymic or a known given name decides; otherwise a typical surname ending; otherwise the first word.
+ */
+export function firstName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return parts[0] ?? '';
+  const given = (word: string) => GIVEN_NAMES.has(word.toLowerCase().replace(/[’ʼ]/g, "'"));
+  if (parts.length >= 3 && PATRONYMIC.test(parts[parts.length - 1]!)) return parts[1]!;
+  if (given(parts[0]!)) return parts[0]!;
+  if (given(parts[1]!)) return parts[1]!;
+  if (CERTAIN_SURNAME.test(parts[0]!) || (SURNAME.test(parts[0]!) && !SURNAME.test(parts[1]!))) return parts[1]!;
+  return parts[0]!;
+}

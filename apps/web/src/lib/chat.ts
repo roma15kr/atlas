@@ -1,3 +1,4 @@
+import { firstName } from './format';
 import { aggregateReactions, toggleDemoReaction, type Reaction, type ReactionRow } from './reactions';
 import { apiRequest } from './api';
 import type { Role, User } from '../types';
@@ -114,7 +115,7 @@ export function conversationTitle(conversation: Pick<ChatConversation, 'kind' | 
   if (conversation.name) return conversation.name;
   const others = (conversation.participants ?? []).filter((person) => person.id !== myId);
   if (!others.length) return 'Только вы';
-  return others.map((person) => conversation.kind === 'GROUP' ? person.fullName.split(' ')[0] : person.fullName).join(', ');
+  return others.map((person) => conversation.kind === 'GROUP' ? firstName(person.fullName) : person.fullName).join(', ');
 }
 
 export type MessagePart = { type: 'text'; value: string } | { type: 'mention'; username: string } | { type: 'link'; href: string };

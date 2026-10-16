@@ -156,7 +156,7 @@ describe("password reset and change", () => {
     expect((await request(app).post("/api/v1/auth/refresh").set("Cookie", otherCookie)).status).toBe(401);
     const newCookie = changed.headers["set-cookie"] as unknown as string[];
     expect((await request(app).post("/api/v1/auth/refresh").set("Cookie", newCookie)).status).toBe(200);
-  });
+  }, 15_000); // several logins and a password change, each hashing slowly on purpose
 
   it("does not let a director reset their own password", async () => {
     expect((await as(boss).post(`/team/${boss.id}/reset-password`, { password: TEMPORARY })).body.error.code).toBe("CANNOT_RESET_SELF");

@@ -1,10 +1,10 @@
 import { Activity, ArrowUpRight, ShieldCheck, Banknote, Bot, CalendarDays, Check, Clock3, FileWarning, Plus, Target, TrendingUp, UserCheck, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { TaskDialog } from '../components/TaskDialog';
 import { Avatar, Badge, Button, EmptyState, PageHeader, SectionHeader, Surface } from '../components/ui';
 import { hasMonitoringConsent, useAuth, useWorkspace } from '../context/AppContext';
-import { formatDate, formatMoney, relativeTime } from '../lib/format';
+import { firstName, formatDate, formatMoney, relativeTime } from '../lib/format';
 import { defaultBoard, isAssignedTo, rememberedBoard } from '../lib/boards';
 import type { Alert, TaskBoard, User, WorkTask } from '../types';
 
@@ -29,12 +29,12 @@ export function DashboardPage() {
   const taskTotal = dashboardMetrics?.tasks.total ?? tasks.length;
   const overdue = dashboardMetrics?.tasks.overdue ?? tasks.filter((task) => task.stage.category !== 'DONE' && task.dueAt && new Date(task.dueAt).getTime() < Date.now()).length;
   const kpi = user.kpis.length ? Math.round(user.kpis.reduce((sum, item) => sum + Math.min(1, item.actual / item.target) * item.weight, 0) / user.kpis.reduce((sum, item) => sum + item.weight, 0) * 100) : 0;
-  const chart = isDirector ? users.map((member) => ({ label: member.fullName.split(' ')[0], value: member.rating })) : user.kpis.map((item) => ({ label: item.name, value: Math.round(Math.min(1, item.actual / item.target) * 100) }));
+  const chart = isDirector ? users.map((member) => ({ label: firstName(member.fullName), value: member.rating })) : user.kpis.map((item) => ({ label: item.name, value: Math.round(Math.min(1, item.actual / item.target) * 100) }));
   const chartAverage = chart.length ? Math.round(chart.reduce((sum, item) => sum + item.value, 0) / chart.length) : 0;
   const openAlerts = alerts.filter((alert) => !alert.acknowledged);
 
   return <>
-    <PageHeader title={`Добрый день, ${user.fullName.split(' ')[0]}`} description={`${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}`} action={<Button icon={Plus} onClick={() => setTaskOpen(true)}>Новая задача</Button>} />
+    <PageHeader title={`Добрый день, ${firstName(user.fullName)}`} description={`${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}`} action={<Button icon={Plus} onClick={() => setTaskOpen(true)}>Новая задача</Button>} />
     {!hasMonitoringConsent(user) && <Surface className="consent-notice" role="note"><span className="settings-icon"><ShieldCheck size={18} /></span><div><strong>Примите политику мониторинга</strong><p>Atlas учитывает присутствие в отчётах и рекомендациях только после вашего согласия. Содержание переписки не анализируется.</p></div><Button variant="secondary" onClick={() => navigate('/profile')}>Перейти в профиль</Button></Surface>}
     <div className="metric-grid">
       <Metric label={isDirector ? 'Команда в сети' : 'Мой рейтинг'} value={isDirector ? `${online} / ${teamSize}` : `${user.rating}`} note={isDirector ? `${Math.round(online / Math.max(teamSize, 1) * 100)}% команды` : 'из 100 баллов'} icon={isDirector ? Users : Target} tone="teal" />
@@ -51,11 +51,11 @@ export function DashboardPage() {
       </Surface>
       <Surface className="presence-panel">
         <SectionHeader title="Кто в сети" meta={<Badge tone="success">{online} онлайн</Badge>} action={<button className="text-button" onClick={() => navigate('/team')}>Вся команда</button>} />
-        <div className="presence-list">{users.slice(0, 6).map((member) => <button key={member.id} className="person-row" onClick={() => navigate(`/team?user=${member.id}`)}><Avatar name={member.fullName} src={member.avatarUrl} online={member.online} /><span><strong>{member.fullName}</strong><small>{member.jobTitle}</small></span><time>{member.online ? 'Сейчас' : relativeTime(member.lastSeen)}</time></button>)}</div>
+        <div className="presence-list">{[...users].sort((a, b) => Number(b.online) - Number(a.online) || a.fullName.localeCompare(b.fullName, 'ru')).slice(0, 6).map((member) => <button key={member.id} className="person-row" onClick={() => navigate(`/team?user=${member.id}`)}><Avatar name={member.fullName} src={member.avatarUrl} online={member.online} /><span><strong>{member.fullName}</strong><small>{member.jobTitle}</small></span><time>{member.online ? 'Сейчас' : relativeTime(member.lastSeen)}</time></button>)}</div>
       </Surface>
       <Surface className="alerts-panel">
         <SectionHeader title="AI-наблюдения" meta={<Badge tone={openAlerts.some((alert) => alert.severity === 'CRITICAL') ? 'danger' : 'warning'}>{openAlerts.length} новых</Badge>} action={<span className="ai-label"><Bot size={15} /> Системные метрики</span>} />
-        <div className="alert-list">{openAlerts.length ? openAlerts.slice(0, 4).map((alert) => <article className={`alert-row alert-row--${alert.severity.toLowerCase()}`} key={alert.id}><span className="alert-row__icon">{alert.severity === 'CRITICAL' ? <FileWarning size={17} /> : alert.severity === 'WARNING' ? <Clock3 size={17} /> : <Activity size={17} />}</span><div><span><Badge tone={alert.severity === 'CRITICAL' ? 'danger' : alert.severity === 'WARNING' ? 'warning' : 'info'}>{alertLabel(alert)}</Badge><time>{relativeTime(alert.createdAt)}</time></span><strong>{alert.title}</strong><p>{alert.summary}</p>{alert.userName && <small>{alert.userName}</small>}{alert.clientId && <button className="text-button" onClick={() => navigate(`/crm/${alert.clientId}`)}>Открыть клиента <ArrowUpRight size={13} /></button>}</div>{user.role !== 'EMPLOYEE' && <button aria-label="Отметить просмотренным" title="Отметить просмотренным" onClick={() => void acknowledgeAlert(alert.id)}><Check size={16} /></button>}</article>) : <EmptyState title="Всё спокойно" description="Новых системных наблюдений нет" icon={Bot} />}</div>
+        <div className="alert-list">{openAlerts.length ? openAlerts.slice(0, 4).map((alert) => <article className={`alert-row alert-row--${alert.severity.toLowerCase()}`} key={alert.id}><span className="alert-row__icon">{alert.severity === 'CRITICAL' ? <FileWarning size={17} /> : alert.severity === 'WARNING' ? <Clock3 size={17} /> : <Activity size={17} />}</span><div><span><Badge tone={alert.severity === 'CRITICAL' ? 'danger' : alert.severity === 'WARNING' ? 'warning' : 'info'}>{alertLabel(alert)}</Badge><time>{relativeTime(alert.createdAt)}</time></span><strong>{alert.title}</strong><p>{alert.summary}</p>{alert.userName && <small>{alert.userName}</small>}{alert.clientId && <button className="text-button" onClick={() => navigate(`/crm/${alert.clientId}`)}>Открыть клиента <ArrowUpRight size={13} /></button>}{alert.tasks && alert.tasks.length > 0 && <OverdueTasks tasks={alert.tasks} more={alert.more ?? 0} />}</div>{user.role !== 'EMPLOYEE' && <button aria-label="Отметить просмотренным" title="Отметить просмотренным" onClick={() => void acknowledgeAlert(alert.id)}><Check size={16} /></button>}</article>) : <EmptyState title="Всё спокойно" description="Новых системных наблюдений нет" icon={Bot} />}</div>
       </Surface>
       <Surface className="today-panel">
         <SectionHeader title="Сегодня" meta={<CalendarDays size={16} />} action={<button className="text-button" onClick={() => navigate('/tasks')}>Все задачи</button>} />
@@ -87,3 +87,16 @@ export function dashboardTasks(tasks: WorkTask[], boards: TaskBoard[], user: Use
   const own = new Set(boards.filter((board) => board.departmentId && board.departmentId === user.departmentId).map((board) => board.id));
   return tasks.filter((task) => own.has(task.boardId));
 }
+
+/** The overdue tasks of a «Просроченные задачи» signal, folded until asked for; each opens the task. */
+function OverdueTasks({ tasks, more }: { tasks: NonNullable<Alert['tasks']>; more: number }) {
+  const [open, setOpen] = useState(false);
+  return <div className="alert-tasks">
+    <button type="button" className="text-button" aria-expanded={open} onClick={() => setOpen((value) => !value)}>{open ? 'Скрыть задачи' : `Показать задачи (${tasks.length + more})`}</button>
+    {open && <ul>
+      {tasks.map((task) => <li key={task.id}><Link to={`/tasks?task=${task.id}`}>{task.title}</Link><small>{task.boardName} · срок {formatDate(task.dueAt)}</small></li>)}
+      {more > 0 && <li className="alert-tasks__more">и ещё {more}</li>}
+    </ul>}
+  </div>;
+}
+

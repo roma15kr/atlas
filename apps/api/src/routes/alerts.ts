@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { scopeDepartments } from "../scope";
+import { scopeDepartments, taskAccessSql } from "../scope";
+import type { AuthContext } from "../types";
 import { z } from "zod";
 import { writeAudit } from "../audit";
 import { requireAuth, requireRoles } from "../auth";
@@ -30,7 +31,7 @@ alertsRouter.get("/", asyncHandler(async (req, res) => {
      LIMIT $${values.length - 1} OFFSET $${values.length}`,
     values
   );
-  res.json({ data: result.rows.map(stripTotal), meta: { ...page, total: Number(result.rows[0]?.totalCount ?? 0) } });
+  res.json({ data: await withOverdueTasks(auth, result.rows.map(stripTotal)), meta: { ...page, total: Number(result.rows[0]?.totalCount ?? 0) } });
 }));
 
 alertsRouter.patch("/:id/acknowledge", requireRoles("DIRECTOR", "MANAGER"), asyncHandler(async (req, res) => {
@@ -69,3 +70,32 @@ function stripTotal(row: Record<string, unknown>): Record<string, unknown> {
   const { totalCount: _total, ...rest } = row;
   return rest;
 }
+
+interface OverdueTask { id: string; title: string; boardName: string; dueAt: string }
+
+/**
+ * An overdue-tasks alert names its tasks: the ids stored in its evidence, resolved for the caller (only tasks they
+ * may open and that are not done, oldest due first), plus how many overdue tasks are not shown.
+ */
+export async function withOverdueTasks<T extends Record<string, unknown>>(auth: AuthContext, rows: T[]): Promise<Array<T & { tasks?: OverdueTask[]; more?: number }>> {
+  const evidenceOf = (row: T) => (row.evidence ?? {}) as { taskIds?: string[]; overdue?: number };
+  const overdueRows = rows.filter((row) => row.rule === "TASKS_OVERDUE");
+  const ids = [...new Set(overdueRows.flatMap((row) => evidenceOf(row).taskIds ?? []))];
+  if (!ids.length) return rows;
+  const access = taskAccessSql(auth, "t", 2);
+  const found = await query<OverdueTask>(
+    `SELECT t.id, t.title, b.name AS "boardName", t.due_at AS "dueAt"
+     FROM tasks t JOIN task_boards b ON b.id = t.board_id JOIN task_board_stages s ON s.id = t.stage_id
+     WHERE t.id = ANY($1::uuid[]) AND s.category <> 'DONE' AND ${access.sql} ORDER BY t.due_at`,
+    [ids, ...access.values]
+  );
+  const byId = new Map(found.rows.map((task) => [task.id, task]));
+  return rows.map((row) => {
+    if (row.rule !== "TASKS_OVERDUE") return row;
+    const evidence = evidenceOf(row);
+    const tasks = (evidence.taskIds ?? []).map((id) => byId.get(id)).filter((task): task is OverdueTask => Boolean(task))
+      .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime());
+    return { ...row, tasks, more: Math.max(0, (evidence.overdue ?? tasks.length) - tasks.length) };
+  });
+}
+

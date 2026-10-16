@@ -11,7 +11,7 @@ import { useAuth } from '../context/AppContext';
 import { useChat } from '../context/ChatContext';
 import { conversationTitle, type ChatConversation, type ChatMessage } from '../lib/chat';
 import { chatErrorMessage } from '../lib/chatErrors';
-import { plural, relativeTime } from '../lib/format';
+import { firstName, plural, relativeTime } from '../lib/format';
 import { markdownToPlain } from '../lib/markdown';
 
 type Selection = { kind: 'conversation'; id: string } | { kind: 'mentions' };
@@ -74,7 +74,7 @@ export function MessagesPage() {
 
   const row = (item: ChatConversation) => <button key={item.id} type="button" className={`${selectedId === item.id ? 'is-active' : ''} ${item.unread ? 'is-unread' : ''}`} onClick={() => open(item.id)} aria-current={selectedId === item.id ? 'true' : undefined}>
     <ConversationIcon conversation={item} myId={me.id} />
-    <span><strong>{conversationTitle(item, me.id)}</strong><small>{item.lastMessage ? `${item.lastMessage.authorId === me.id ? 'Вы' : item.lastMessage.authorName.split(' ')[0]}: ${item.lastMessage.body === null ? 'сообщение удалено' : markdownToPlain(item.lastMessage.body)}` : item.kind === 'CHANNEL' ? item.description ?? 'Нет сообщений' : 'Нет сообщений'}</small></span>
+    <span><strong>{conversationTitle(item, me.id)}</strong><small>{item.lastMessage ? `${item.lastMessage.authorId === me.id ? 'Вы' : firstName(item.lastMessage.authorName)}: ${item.lastMessage.body === null ? 'сообщение удалено' : markdownToPlain(item.lastMessage.body)}` : item.kind === 'CHANNEL' ? item.description ?? 'Нет сообщений' : 'Нет сообщений'}</small></span>
     {item.mentions > 0 ? <Badge tone="danger">@{item.mentions}</Badge> : item.unread > 0 ? <Badge tone={item.muted ? 'neutral' : 'info'}>{item.unread}</Badge> : item.muted ? <BellOff size={13} className="chat-row__muted" aria-label="Без уведомлений" /> : null}
   </button>;
 
@@ -98,8 +98,8 @@ export function MessagesPage() {
           {loaded && !direct.length && <p className="chat-list__empty">Напишите коллеге — нажмите «Новое сообщение»</p>}
         </div>
       </Surface>}
-      {showConversation && phone && <IconButton label="К списку" icon={ArrowLeft} className="phone-back" onClick={() => { setPhoneList(true); setThreadId(null); }} />}
-      {!showConversation || (phone && threadId) ? null : selection?.kind === 'mentions' ? <MentionsView onOpen={open} /> : current ? <ConversationView key={current.id} conversation={current} threadId={threadId} onThread={setThreadId} onSettings={() => setDialog({ type: 'settings' })} onEdit={(message) => setDialog({ type: 'edit', message })} onDelete={(message) => setDialog({ type: 'delete', message })} onError={setError} />
+      {showConversation && phone && selection?.kind === 'mentions' && <IconButton label="К списку" icon={ArrowLeft} className="phone-back" onClick={() => { setPhoneList(true); setThreadId(null); }} />}
+      {!showConversation || (phone && threadId) ? null : selection?.kind === 'mentions' ? <MentionsView onOpen={open} /> : current ? <ConversationView key={current.id} conversation={current} threadId={threadId} onThread={setThreadId} onSettings={() => setDialog({ type: 'settings' })} onEdit={(message) => setDialog({ type: 'edit', message })} onDelete={(message) => setDialog({ type: 'delete', message })} onError={setError}  onBack={phone ? () => { setPhoneList(true); setThreadId(null); } : undefined} />
         : <Surface className="chat-main">{loaded ? <EmptyState title="Выберите разговор" description="Каналы, группы и личные сообщения появятся слева" icon={MessageSquare} /> : <LoadingState label="Загружаем разговоры" />}</Surface>}
       {threadId && current && <ThreadPanel key={threadId} conversation={current} rootId={threadId} onClose={() => setThreadId(null)} onEdit={(message) => setDialog({ type: 'edit', message })} onDelete={(message) => setDialog({ type: 'delete', message })} />}
     </div>
@@ -153,8 +153,8 @@ function useLiveMessages(conversationId: string, rootId: string | null) {
   return { items, hasMore, root, loadOlder, append, reload, setReactions };
 }
 
-function ConversationView({ conversation, threadId, onThread, onSettings, onEdit, onDelete, onError }: {
-  conversation: ChatConversation; threadId: string | null; onThread: (id: string | null) => void; onSettings: () => void;
+function ConversationView({ conversation, threadId, onThread, onSettings, onEdit, onDelete, onError, onBack }: {
+  conversation: ChatConversation; threadId: string | null; onThread: (id: string | null) => void; onSettings: () => void; onBack?: () => void;
   onEdit: (message: ChatMessage) => void; onDelete: (message: ChatMessage) => void; onError: (message: string) => void;
 }) {
   const { session } = useAuth();
@@ -179,6 +179,8 @@ function ConversationView({ conversation, threadId, onThread, onSettings, onEdit
     void backend.read(conversation.id).then(refresh).catch(() => undefined);
   }, [conversation.id, lastId, Boolean(items)]); // eslint-disable-line react-hooks/exhaustive-deps
   const history = useScrollBack({ firstId: items?.[0]?.id, lastId, lastIsMine: items?.at(-1)?.author.id === me.id, hasMore, loadOlder });
+  // On a phone, focusing the message box on open would pop the keyboard up over the conversation.
+  const phoneScreen = useIsPhone();
 
   const send = async (body: string) => {
     try { append(await backend.post(conversation.id, body)); await refresh(); } catch (reason) { onError(chatErrorMessage(reason, 'Сообщение не отправлено')); throw reason; }
@@ -193,6 +195,7 @@ function ConversationView({ conversation, threadId, onThread, onSettings, onEdit
 
   return <Surface className="chat-main" aria-label={`Разговор ${title}`}>
     <header className="chat-main__header">
+      {onBack && <IconButton label="К списку" icon={ArrowLeft} onClick={onBack} />}
       <ConversationIcon conversation={conversation} myId={me.id} />
       <div><h2>{title}</h2><span>{meta}{conversation.kind === 'CHANNEL' && conversation.description ? ` · ${conversation.description}` : ''}</span></div>
       {isMember && <IconButton label={conversation.muted ? 'Включить уведомления' : 'Без уведомлений'} icon={conversation.muted ? BellOff : Bell} onClick={() => void toggleMute()} />}
@@ -211,7 +214,7 @@ function ConversationView({ conversation, threadId, onThread, onSettings, onEdit
     {conversation.archivedAt ? <div className="chat-main__notice">Канал в архиве — только чтение</div>
       : inactiveDm ? <div className="chat-main__notice">Сотрудник деактивирован — переписка доступна только для чтения</div>
       : !isMember ? <div className="chat-main__notice"><span>Вы не участник канала</span><Button variant="secondary" onClick={() => void join()}>Вступить</Button></div>
-      : <Composer key={conversation.id} people={mentionable} placeholder={conversation.kind === 'CHANNEL' ? `Написать в #${title}` : `Написать ${title}`} onSend={send} autoFocus={!threadId} />}
+      : <Composer key={conversation.id} people={mentionable} placeholder={conversation.kind === 'CHANNEL' ? `Написать в #${title}` : `Написать ${title}`} onSend={send} autoFocus={!threadId && !phoneScreen} />}
   </Surface>;
 }
 

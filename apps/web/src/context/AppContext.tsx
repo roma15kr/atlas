@@ -168,6 +168,7 @@ const normalizeReport = (source: Record<string, unknown>): Report => ({
 const normalizeAlert = (source: Record<string, unknown>): Alert => ({
   rule: (source.rule ?? undefined) as string | undefined, dealId: (source.dealId ?? undefined) as string | undefined,
   clientId: (source.clientId ?? undefined) as string | undefined, resolvedAt: (source.resolvedAt ?? null) as string | null,
+  tasks: Array.isArray(source.tasks) ? source.tasks as Alert['tasks'] : undefined, more: typeof source.more === 'number' ? source.more : undefined,
   id: String(source.id), severity: (source.severity as Alert['severity']) ?? 'INFO', category: String(source.category ?? ''), title: String(source.title ?? ''), summary: String(source.summary ?? ''), userName: source.userName as string | undefined, createdAt: String(source.createdAt ?? ''), acknowledged: Boolean(source.acknowledged ?? source.acknowledgedAt),
 });
 

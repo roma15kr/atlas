@@ -234,7 +234,7 @@ input[type="checkbox"] { width: 16px; min-height: 16px; accent-color: var(--prim
 .app-layout--collapsed .nav-link, .app-layout--collapsed .sidebar__collapse { justify-content: center; padding: 0; }
 .app-layout--collapsed .sidebar__user { justify-content: center; }
 .app-main { min-height: 100vh; margin-left: var(--sidebar-width); transition: margin-left .18s ease; }
-.topbar { z-index: 30; position: sticky; top: 0; height: 65px; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.96); }
+.topbar { z-index: 30; position: sticky; top: 0; height: 65px; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid var(--line); background: #fff; }
 .topbar__left { display: flex; align-items: center; gap: 10px; }
 .topbar__left > div { display: flex; flex-direction: column; }
 .topbar__left span { color: var(--subtle); font-size: 9px; text-transform: uppercase; }
@@ -586,7 +586,7 @@ input[type="checkbox"] { width: 16px; min-height: 16px; accent-color: var(--prim
 .profile-identity__head { display: flex; align-items: center; gap: 11px; }
 .profile-identity__head > div { min-width: 0; }
 .profile-identity__head h2 { font-size: 16px; }
-.profile-identity__head > div > span { margin: 3px 0 6px; display: block; color: var(--muted); font-size: 10px; }
+.profile-identity__head > div > span:not(.badge) { margin: 3px 0 6px; display: block; color: var(--muted); font-size: 10px; }
 .profile-identity dl { margin: 18px 0 0; }
 .profile-identity dl > div { padding: 10px 0; border-bottom: 1px solid #edf0ef; }
 .profile-identity dt { color: var(--muted); font-size: 9px; }
@@ -1366,3 +1366,56 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 .chat-main__start { margin: 4px 0 10px; color: var(--subtle); font-size: 11px; text-align: center; }
 .chat-main, .chat-thread, .tg-chat { position: relative; }
 .new-messages { position: absolute; left: 50%; bottom: 76px; z-index: 5; transform: translateX(-50%); min-height: 32px; padding: 0 14px; border: 0; border-radius: 16px; background: var(--primary); color: #fff; font: inherit; font-size: 12px; font-weight: 700; box-shadow: 0 6px 18px rgba(17, 37, 33, .22); cursor: pointer; }
+.alert-tasks ul { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.alert-tasks li { display: grid; }
+.alert-tasks li a { color: var(--primary); font-weight: 600; text-decoration: none; }
+.alert-tasks li a:hover { text-decoration: underline; }
+.alert-tasks li small { color: var(--muted); font-size: 11px; }
+.alert-tasks__more { color: var(--muted); font-size: 12px; }
+
+/* Team (desktop): the list scrolls by itself and is as tall as the window, so the profile stays in view. */
+@media (min-width: 781px) {
+  .team-list { position: sticky; top: 77px; display: flex; flex-direction: column; max-height: calc(100vh - 97px); }
+  .team-list__rows { flex: 1; min-height: 0; overflow-y: auto; }
+}
+
+/* Phone audit fixes (640px and less). */
+@media (max-width: 640px) {
+  /* Header actions and filters wrap onto rows instead of hiding off-screen. */
+  .page-header__actions { width: 100%; flex-wrap: wrap; overflow: visible; }
+  .page-header__actions .compact-select { flex: 1 1 calc(50% - 4px); min-width: 0; min-height: 40px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+  .page-header__actions .compact-select select { flex: 1; min-width: 0; }
+  .segmented { max-width: 100%; overflow-x: auto; }
+  /* Boards and the funnel: one stage per screen, snapping. */
+  .kanban--sales { grid-auto-columns: 86vw; scroll-snap-type: x mandatory; }
+  .kanban--sales > .kanban-column { scroll-snap-align: start; }
+  /* Tables become cards: no header row, cells stacked. */
+  .data-table-wrap { overflow: visible; }
+  .data-table { min-width: 0; }
+  .data-table thead { display: none; }
+  .data-table, .data-table tbody, .data-table tr, .data-table td { display: block; width: 100%; }
+  .data-table tr { padding: 10px 14px; border-bottom: 1px solid #edf0ef; }
+  .data-table td { height: auto; padding: 2px 0; border: 0; }
+  .data-table td:empty { display: none; }
+  /* Summary tiles two or three to a row instead of one screen each. */
+  .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .metric-grid .metric { min-height: 0; padding: 12px; }
+  .report-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .report-summary .surface { min-height: 0; padding: 10px; flex-direction: column; align-items: flex-start; gap: 6px; }
+  /* Telegram: the CRM line takes a full row, its links the next one. */
+  .mail-crm > span { flex-basis: 100%; }
+  /* Chat: message actions appear on tap, under the message, instead of squeezing the text. */
+  .chat-message { flex-wrap: wrap; }
+  .chat-message .chat-message__actions { display: none; }
+  .chat-message.is-open .chat-message__actions { display: flex; position: static; flex-basis: 100%; justify-content: flex-end; border: 0; box-shadow: none; background: transparent; }
+  .chat-message.is-open { background: #f3f6f5; }
+  /* The composer's formatting bar shows only while writing, in one scrollable row. */
+  .rich-editor__toolbar { flex-wrap: nowrap; overflow-x: auto; }
+  .chat-composer .rich-editor:not(:focus-within) .rich-editor__toolbar, .tg-composer .rich-editor:not(:focus-within) .rich-editor__toolbar { display: none; }
+}
+@media (max-width: 640px) {
+  /* A one-row formatting bar scrolls inside the editor instead of widening the page. */
+  .rich-editor, .rich-field, .rich-field > * { min-width: 0; max-width: 100%; }
+  .section-header { flex-wrap: wrap; }
+}
+@media (max-width: 640px) { .mail-crm > svg { display: none; } }
