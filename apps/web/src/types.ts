@@ -250,6 +250,9 @@ export interface Alert {
   dealId?: string;
   clientId?: string;
   resolvedAt?: string | null;
+  /** An overdue-tasks alert's tasks the viewer may open, oldest due first; `more` counts the others. */
+  tasks?: Array<{ id: string; title: string; boardName: string; dueAt: string }>;
+  more?: number;
 }
 
 export interface Report {
