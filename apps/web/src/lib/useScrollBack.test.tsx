@@ -29,6 +29,26 @@ describe('useScrollBack', () => {
     expect(box().scrollTop).toBe(1000);
   });
 
+  it('stays on the newest message when an image above loads later', () => {
+    render(<Harness firstId="m1" lastId="m50" hasMore />);
+    expect(box().scrollTop).toBe(1000);
+    height = 1240;
+    const image = document.createElement('img');
+    box().appendChild(image);
+    fireEvent.load(image);
+    expect(box().scrollTop).toBe(1240);
+  });
+
+  it('leaves a reader who scrolled back where they are when an image loads', () => {
+    render(<Harness firstId="m1" lastId="m50" hasMore />);
+    scrollTo(100);
+    height = 1240;
+    const image = document.createElement('img');
+    box().appendChild(image);
+    fireEvent.load(image);
+    expect(box().scrollTop).toBe(100);
+  });
+
   it('stays put and offers a jump when a message arrives while reading back', () => {
     const { rerender } = render(<Harness firstId="m1" lastId="m50" hasMore />);
     scrollTo(100);

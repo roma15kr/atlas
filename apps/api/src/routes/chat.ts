@@ -8,6 +8,7 @@ import { query, transaction } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { chatPostLimiter } from "../middleware";
 import { notify, removeNotifications } from "../notifications/notify";
+import { plainPreview } from "../notifications/preview";
 import { addReaction, CHAT_REACTIONS, reactionEmoji, reactionInput, reactionsSql, removeReaction, type Reaction } from "../reactions/reactions";
 import { emitToUsers } from "../realtime";
 import { deleteStoredImages, forgetUnusedImages } from "./images";
@@ -598,22 +599,34 @@ async function resolveMentions(auth: AuthContext, conversation: Conversation, bo
 }
 
 /**
- * A mention notifies whoever the mention rules allow (muted or not); a direct message notifies the other member
- * unless they muted the conversation. A burst of direct messages stays one unread notification.
+ * A mention notifies whoever the mention rules allow (muted or not). Otherwise a direct or group message notifies the
+ * other members, a channel message every member, and a thread reply the thread's author and earlier repliers, each
+ * unless they muted the conversation. One unread notification per person and conversation shows the latest message.
  */
-async function notifyChat(auth: AuthContext, conversation: { id: string; kind: string; name: string | null }, messageId: string, body: string, mentioned: string[]): Promise<void> {
+async function notifyChat(auth: AuthContext, conversation: { id: string; kind: string; name: string | null }, message: { id: string; parentId: string | null; body: string }, mentioned: string[]): Promise<void> {
   const author = (await query<{ full_name: string }>("SELECT full_name FROM users WHERE id = $1", [auth.userId])).rows[0]?.full_name ?? "Коллега";
   const link = `/messages?conversation=${conversation.id}`;
+  const place = conversation.kind === "CHANNEL" ? `#${conversation.name ?? "канал"}` : `«${conversation.name ?? "группа"}»`;
   await notify(auth.companyId, mentioned, auth.userId, {
-    kind: "CHAT_MENTION", title: conversation.kind === "DM" ? `${author} упомянул(а) вас` : `${author} упомянул(а) вас в «${conversation.name ?? "чате"}»`,
-    body, link, entityType: "chat_message", entityId: messageId
+    kind: "CHAT_MENTION", title: conversation.kind === "DM" ? `${author} упомянул(а) вас` : `${author} упомянул(а) вас в ${place}`,
+    body: message.body, link, entityType: "chat_message", entityId: message.id
   });
-  if (conversation.kind !== "DM") return;
+  const threadOnly = conversation.kind !== "DM" && message.parentId !== null;
   const others = await query<{ user_id: string }>(
-    "SELECT user_id FROM chat_members WHERE conversation_id = $1 AND user_id <> $2 AND NOT muted", [conversation.id, auth.userId]);
-  await notify(auth.companyId, others.rows.map((row) => row.user_id).filter((id) => !mentioned.includes(id)), auth.userId, {
-    kind: "CHAT_DIRECT", title: `Сообщение от ${author}`, body, link, entityType: "chat_message", entityId: messageId,
-    collapseKey: `chat:${conversation.id}`
+    `SELECT m.user_id FROM chat_members m WHERE m.conversation_id = $1 AND m.user_id <> $2 AND NOT m.muted
+       AND (NOT $3 OR EXISTS (SELECT 1 FROM chat_messages x WHERE (x.id = $4 OR x.parent_id = $4) AND x.id <> $5 AND x.author_id = m.user_id))`,
+    [conversation.id, auth.userId, threadOnly, message.parentId, message.id]);
+  const recipients = others.rows.map((row) => row.user_id).filter((id) => !mentioned.includes(id));
+  if (conversation.kind === "DM") {
+    await notify(auth.companyId, recipients, auth.userId, {
+      kind: "CHAT_DIRECT", title: `Сообщение от ${author}`, body: message.body, link, entityType: "chat_message", entityId: message.id,
+      collapseKey: `chat:${conversation.id}`
+    });
+    return;
+  }
+  await notify(auth.companyId, recipients, auth.userId, {
+    kind: "CHAT_MESSAGE", title: `Новое в ${place}`, body: `${author}: ${plainPreview(message.body)}`, link,
+    entityType: "chat_message", entityId: message.id, collapseKey: `chat:${conversation.id}`
   });
 }
 
@@ -657,7 +670,7 @@ chatRouter.post("/conversations/:id/messages", chatPostLimiter, asyncHandler(asy
   emitToUsers(members, "chat:message", { conversationId: conversation.id, message });
   const outsiders = mentioned.filter((user) => !members.includes(user));
   emitToUsers(outsiders, "chat:mention", { conversationId: conversation.id, messageId: id });
-  await notifyChat(auth, conversation, id, input.body, mentioned);
+  await notifyChat(auth, conversation, { id, parentId: input.parentId ?? null, body: input.body }, mentioned);
   res.status(201).json({ data: message });
 }));
 

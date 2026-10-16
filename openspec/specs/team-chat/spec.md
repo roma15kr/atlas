@@ -110,7 +110,7 @@ A member SHALL be able to post a message of 1–4000 characters of formatted tex
 - **THEN** every member sees the list and the bold word, and the conversation list shows the message as plain text
 
 ### Requirement: Editing and deleting messages
-An author SHALL be able to edit the text of their own message, which marks it as edited. An author SHALL be able to delete their own message. A channel admin or a DIRECTOR who is a member SHALL be able to delete any message in a channel, which is audited as `CHAT_MESSAGE_MODERATED`. A deleted message SHALL keep its place, with its text removed and a deleted flag set. Its thread replies SHALL remain.
+An author SHALL be able to edit the text of their own message, which marks it as edited. An author SHALL be able to delete their own message. A channel admin or a DIRECTOR who is a member SHALL be able to delete any message in a channel, which is audited as `CHAT_MESSAGE_MODERATED`. Deleting a message SHALL erase it with its mentions, reactions, notifications and images only it used; a message with replies SHALL keep only a contentless «Сообщение удалено» line.
 
 #### Scenario: Editing another person's message
 - **WHEN** a user edits a message they did not write
@@ -119,6 +119,10 @@ An author SHALL be able to edit the text of their own message, which marks it as
 #### Scenario: Deleting a message with replies
 - **WHEN** an author deletes a message that has thread replies
 - **THEN** the message shows as "Сообщение удалено" and its replies remain readable
+
+#### Scenario: Deleting a message without replies
+- **WHEN** an author deletes a message with an image, a reaction and a mention
+- **THEN** the message disappears for everyone, the mentioned colleague's notification is gone, and the image no longer opens
 
 ### Requirement: Mentions
 The system SHALL treat `@username` in a message as a mention of that user when they are a member of the conversation. For a public channel, a mentioned non-member SHALL also be notified. The system SHALL treat `@channel` in a channel as a mention of every member.

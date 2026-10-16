@@ -7,7 +7,8 @@ export const AT_END = 80;
  * Scrolling back through a long conversation, newest at the bottom:
  * - a sentinel at the top loads the previous page when it comes near (and `loadOlder()` works for a button);
  * - the messages on screen stay in place while older ones are inserted above;
- * - a new last message follows the view only when the user was at the end (or wrote it); otherwise `newBelow`.
+ * - a new last message follows the view only when the user was at the end (or wrote it); otherwise `newBelow`;
+ * - content that grows later (images loading) keeps a reader at the end on the newest message.
  */
 export function useScrollBack({ firstId, lastId, lastIsMine, hasMore, loadOlder }: {
   firstId?: string; lastId?: string; lastIsMine?: boolean; hasMore: boolean; loadOlder?: () => Promise<void>;
@@ -49,6 +50,18 @@ export function useScrollBack({ firstId, lastId, lastIsMine, hasMore, loadOlder 
     if (atEnd.current || lastIsMine) scrollToEnd();
     else setNewBelow(true);
   }, [lastId, lastIsMine, scrollToEnd]);
+
+  // Images (and anything else) that finish loading grow the conversation after it opened: stay on the newest message.
+  useEffect(() => {
+    const box = container.current;
+    if (!box) return;
+    const keepEnd = () => { if (atEnd.current && fromEnd.current === null) box.scrollTop = box.scrollHeight; };
+    box.addEventListener('load', keepEnd, true);
+    const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(keepEnd);
+    resize?.observe(box);
+    for (const child of Array.from(box.children)) resize?.observe(child);
+    return () => { box.removeEventListener('load', keepEnd, true); resize?.disconnect(); };
+  }, [firstId, lastId]);
 
   const onScroll = useCallback(() => {
     const box = container.current;
