@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, Hash, Lock, LogOut, Search, Shield, ShieldOff, UserMinus, UserPlus } from 'lucide-react';
+import { Archive, ArchiveRestore, Hash, LogOut, Search, Shield, ShieldOff, UserMinus, UserPlus } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '../../context/AppContext';
 import { useChat } from '../../context/ChatContext';
@@ -7,6 +7,7 @@ import { chatErrorMessage } from '../../lib/chatErrors';
 import { plural } from '../../lib/format';
 import { fitsLimit, RichTextEditor } from '../richtext/RichTextEditor';
 import { Avatar, Badge, Button, Dialog, EmptyState, Field, IconButton, SelectField } from '../ui';
+import { ChannelIconPicker, ChannelIconTile } from './ChannelIconPicker';
 import { CHAT_MESSAGE_LIMIT } from './ChatParts';
 
 const MEMBERS: [string, string, string] = ['участник', 'участника', 'участников'];
@@ -56,12 +57,13 @@ export function NewMessageDialog({ onClose, onOpened }: { onClose: () => void; o
   </Dialog>;
 }
 
-export function ChannelFormDialog({ channel, onClose, onSaved }: { channel?: Pick<ChatConversation, 'id' | 'name' | 'description' | 'visibility' | 'isDefault'>; onClose: () => void; onSaved: (id: string) => void }) {
+export function ChannelFormDialog({ channel, onClose, onSaved }: { channel?: Pick<ChatConversation, 'id' | 'name' | 'description' | 'visibility' | 'isDefault' | 'icon'>; onClose: () => void; onSaved: (id: string) => void }) {
   const { session } = useAuth();
   const { backend, people, refresh } = useChat();
   const [name, setName] = useState(channel?.name ?? '');
   const [description, setDescription] = useState(channel?.description ?? '');
   const [visibility, setVisibility] = useState<ChatVisibility>(channel?.visibility ?? 'PUBLIC');
+  const [icon, setIcon] = useState<string | null>(channel?.icon ?? null);
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -71,7 +73,7 @@ export function ChannelFormDialog({ channel, onClose, onSaved }: { channel?: Pic
     setSaving(true); setError('');
     try {
       if (channel) {
-        await backend.updateChannel(channel.id, channel.isDefault ? { description: description.trim() || null } : { name: name.trim(), description: description.trim() || null, visibility });
+        await backend.updateChannel(channel.id, channel.isDefault ? { description: description.trim() || null, icon } : { name: name.trim(), description: description.trim() || null, visibility, icon });
         await refresh(); onSaved(channel.id);
       } else {
         const created = await backend.createChannel({ name: name.trim(), description: description.trim() || null, visibility, memberIds });
@@ -86,6 +88,7 @@ export function ChannelFormDialog({ channel, onClose, onSaved }: { channel?: Pic
     <form id="channel-form" className="form-grid" onSubmit={(event) => void submit(event)}>
       <Field label="Название"><input value={name} maxLength={80} required disabled={channel?.isDefault} autoFocus onChange={(event) => setName(event.target.value)} placeholder="Например, «Маркетинг»" /></Field>
       <SelectField label="Доступ" value={visibility} disabled={channel?.isDefault} onChange={(event) => setVisibility(event.target.value as ChatVisibility)}><option value="PUBLIC">Публичный</option><option value="PRIVATE">Закрытый</option></SelectField>
+      {channel && <div className="field field--wide channel-icon-field"><span>Иконка</span><div><ChannelIconPicker value={icon} visibility={visibility} onChange={setIcon} /><small>{icon ? 'Нажмите, чтобы сменить иконку или цвет' : 'Выберите иконку и цвет, как в ClickUp'}</small></div></div>}
       <Field label="Описание" className="field--wide"><textarea rows={2} maxLength={500} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="О чём этот канал" /></Field>
       {!channel && <PeoplePicker people={people} selected={memberIds} onChange={setMemberIds} exclude={[session!.user.id]} legend="Участники" />}
       {error && <div className="form-error field--wide" role="alert">{error}</div>}
@@ -113,7 +116,7 @@ export function BrowseChannelsDialog({ onClose, onOpen, onCreate }: { onClose: (
     {error && <div className="form-error" role="alert">{error}</div>}
     <div className="dialog-rows">
       {channels?.map((channel) => <button key={channel.id} type="button" className="dialog-row" onClick={() => onOpen(channel)}>
-        <span className="chat-icon">{channel.visibility === 'PRIVATE' ? <Lock size={15} /> : <Hash size={15} />}</span>
+        <ChannelIconTile icon={channel.icon} visibility={channel.visibility} />
         <span><strong>{channel.name}</strong><small>{channel.description || (channel.visibility === 'PRIVATE' ? 'Закрытый канал' : 'Публичный канал')} · {plural(channel.memberCount, MEMBERS)}</small></span>
         {channel.archivedAt ? <Badge>Архив</Badge> : channel.isMember ? <Badge tone="success">Вы участник</Badge> : !channel.canRead ? <Badge tone="warning">Только управление</Badge> : null}
       </button>)}

@@ -1,12 +1,13 @@
 import { ReactionBar } from '../reactions/ReactionBar';
 import { ReactionPicker } from '../reactions/ReactionPicker';
-import { Copy, Hash, Lock, MessageSquareReply, Pencil, Plus, Send, Trash2, Users } from 'lucide-react';
+import { Copy, MessageSquareReply, Pencil, Plus, Send, Trash2, Users } from 'lucide-react';
 import { useEffect, useRef, useState, type TouchEvent } from 'react';
 import { conversationTitle, type ChatConversation, type ChatMessage, type ChatPerson } from '../../lib/chat';
 import { formatDateTime, plural } from '../../lib/format';
 import { fitsLimit, RichTextEditor } from '../richtext/RichTextEditor';
 import { RichTextView } from '../richtext/RichTextView';
 import { Avatar, Dialog, IconButton } from '../ui';
+import { ChannelIconTile } from './ChannelIconPicker';
 import { EmojiPicker } from '../reactions/EmojiPicker';
 import { emojiName, QUICK_REACTIONS } from '../../lib/reactions';
 import { markdownToPlain } from '../../lib/markdown';
@@ -22,8 +23,8 @@ export function ConversationIcon({ conversation, myId }: { conversation: ChatCon
     const other = conversation.participants?.find((person) => person.id !== myId);
     return <Avatar name={conversationTitle(conversation, myId)} src={other?.avatarUrl ?? undefined} size="sm" />;
   }
-  const Icon = conversation.kind === 'GROUP' ? Users : conversation.visibility === 'PRIVATE' ? Lock : Hash;
-  return <span className="chat-icon"><Icon size={15} aria-hidden="true" /></span>;
+  if (conversation.kind === 'CHANNEL') return <ChannelIconTile icon={conversation.icon} visibility={conversation.visibility} />;
+  return <span className="chat-icon"><Users size={15} aria-hidden="true" /></span>;
 }
 
 /** Message text as plain text, links and named mentions; nothing from the message is rendered as HTML. */

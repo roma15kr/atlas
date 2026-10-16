@@ -20,4 +20,4 @@
 5. **Display.**
    - `ConversationIcon` draws the library icon white on its colour in the 30px tile, or «#».
    - The picker is a popover like the reaction picker, opened from «Настройки канала» or by clicking the header tile when the viewer may manage the channel. It has a colour row, a search field, icons by group, and «Убрать иконку».
-6. **Live.** The existing `chat:conversation-updated` event carries `icon`.
+6. **Live.** The existing `chat:conversation-updated` event makes open screens reload the conversation list, which carries `icon`.

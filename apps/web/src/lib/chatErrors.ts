@@ -19,6 +19,7 @@ const messages: Record<string, string> = {
   CHAT_MESSAGE_DELETED: 'Сообщение уже удалено',
   CHAT_RATE_LIMITED: 'Слишком много сообщений подряд — подождите минуту',
   CHANNEL_NAME_TAKEN: 'Канал с таким названием уже есть',
+  CHAT_INVALID_ICON: 'Выберите иконку и цвет из библиотеки',
   MESSAGE_NOT_FOUND: 'Сообщение недоступно',
   USER_NOT_FOUND: 'Сотрудник не найден',
 };
