@@ -1,7 +1,7 @@
 # notifications Specification
 
 ## Purpose
-TBD - created by archiving change add-notifications. Update Purpose after archive.
+Tell staff about events that concern them (tasks, chat, Telegram customers, alerts and handed-over records) on the bell in Atlas and, when they allow it, as desktop and phone pop-ups even while Atlas is closed.
 
 ## Requirements
 
