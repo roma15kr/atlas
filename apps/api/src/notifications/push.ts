@@ -25,6 +25,12 @@ const groupColumn = { tasks: "push_tasks", chat: "push_chat", telegram: "push_te
 
 interface SubscriptionRow { id: string; endpoint: string; p256dh: string; auth: string }
 
+/** Chat pop-ups replace each other per conversation; other kinds per item. */
+export function pushTag(row: Pick<NotificationRow, "id" | "kind" | "link" | "entityId">): string {
+  if (NOTIFICATION_GROUPS[row.kind] === "chat") return `chat:${row.link}`;
+  return row.entityId ? `${row.kind}:${row.entityId}` : row.id;
+}
+
 /** Pushes one notification to every subscription of its user, if their preference allows the group. */
 async function pushOne(row: NotificationRow): Promise<void> {
   const column = groupColumn[NOTIFICATION_GROUPS[row.kind]];
@@ -32,7 +38,7 @@ async function pushOne(row: NotificationRow): Promise<void> {
     `SELECT s.id, s.endpoint, s.p256dh, s.auth FROM push_subscriptions s
      LEFT JOIN notification_preferences p ON p.user_id = s.user_id
      WHERE s.user_id = $1 AND COALESCE(p.${column}, true)`, [row.userId]);
-  const payload = JSON.stringify({ id: row.id, title: row.title, body: row.body ?? "", link: row.link, tag: row.entityId ? `${row.kind}:${row.entityId}` : row.id });
+  const payload = JSON.stringify({ id: row.id, title: row.title, body: row.body ?? "", link: row.link, tag: pushTag(row) });
   await Promise.all(subscriptions.rows.map((subscription) => sendTo(subscription, payload)));
 }
 
