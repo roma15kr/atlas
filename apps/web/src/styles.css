@@ -1305,3 +1305,11 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 .phone-tabs .segmented button { min-height: 40px; white-space: nowrap; }
 .kanban--single { display: block; overflow: visible; }
 .kanban--single .kanban-column { width: 100%; min-width: 0; max-width: none; }
+@media (max-width: 640px) {
+  /* Chat and Telegram: the list or one conversation, filling the screen between the top and bottom bars. */
+  .chat-layout--phone, .tg-layout--phone { display: block; height: auto; }
+  .chat-layout--phone .chat-list, .tg-layout--phone .tg-list { max-height: none; }
+  .chat-layout--phone .chat-main, .chat-layout--phone .chat-thread, .tg-layout--phone .tg-chat { height: calc(100dvh - 58px - 84px - 64px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); min-height: 320px; display: flex; flex-direction: column; }
+  .chat-composer, .tg-composer { position: sticky; bottom: 0; }
+  .phone-back { margin: 0 0 8px; }
+}

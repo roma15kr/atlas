@@ -1,3 +1,4 @@
+import { useIsPhone } from '../lib/useIsPhone';
 import { AlertTriangle, ArrowLeft, BriefcaseBusiness, Download, FileUp, Link2, Paperclip, Search, Send, Settings2, UserPlus, UserRoundCog, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -23,6 +24,7 @@ export function TelegramPage() {
   const [contacts, setContacts] = useState<TelegramContact[] | null>(null);
   // A notification links here with ?contact=<id>.
   const [params, setParams] = useSearchParams();
+  const phone = useIsPhone();
   const [selectedId, setSelectedId] = useState<string | null>(() => params.get('contact'));
   const linked = params.get('contact');
   useEffect(() => {
@@ -51,16 +53,18 @@ export function TelegramPage() {
     </>;
   }
 
+  // On a phone the customer list and one conversation take turns.
+  const phoneConversation = phone && Boolean(selected);
   return <>
-    <PageHeader title="Telegram" description={`${telegram.status?.botUsername ? `@${telegram.status.botUsername} · ` : ''}${plural(telegram.unread, UNREAD)}`} action={<>
+    {!phoneConversation && <PageHeader title="Telegram" description={`${telegram.status?.botUsername ? `@${telegram.status.botUsername} · ` : ''}${plural(telegram.unread, UNREAD)}`} action={<>
       <label className="table-search tg-search"><Search size={16} /><input aria-label="Поиск по клиентам" placeholder="Поиск" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
       {me.role !== 'EMPLOYEE' && <Button variant="secondary" icon={FileUp} onClick={() => setImporting(true)}>Импорт контактов</Button>}
       {me.role === 'DIRECTOR' && <IconButton label="Настройки Telegram" icon={Settings2} onClick={() => navigate('/telegram/settings')} />}
-    </>}><Segmented value={filter} label="Какие переписки показать" options={filters} onChange={(value) => { setFilter(value); setSelectedId(null); }} /></PageHeader>
+    </>}><Segmented value={filter} label="Какие переписки показать" options={filters} onChange={(value) => { setFilter(value); setSelectedId(null); }} /></PageHeader>}
     {error && <div className="notice notice--danger" role="alert">{error}<button onClick={() => setError('')}>Закрыть</button></div>}
     {notice && <div className="notice notice--info" role="status">{notice}<button onClick={() => setNotice('')}>Закрыть</button></div>}
-    <div className={`tg-layout ${selected ? 'tg-layout--open' : ''}`}>
-      <Surface className="tg-list" aria-label="Клиенты в Telegram">
+    <div className={`tg-layout ${selected ? 'tg-layout--open' : ''} ${phone ? 'tg-layout--phone' : ''}`}>
+      {!phoneConversation && <Surface className="tg-list" aria-label="Клиенты в Telegram">
         <div className="tg-list__rows">
           {!contacts ? <LoadingState label="Загружаем переписки" /> : contacts.length ? contacts.map((contact) => <button key={contact.id} type="button" className={`${selectedId === contact.id ? 'is-active' : ''} ${contact.unread ? 'is-unread' : ''}`} onClick={() => setSelectedId(contact.id)} aria-current={selectedId === contact.id ? 'true' : undefined}>
             <Avatar name={contact.displayName} size="sm" />
@@ -69,9 +73,9 @@ export function TelegramPage() {
             <span className="tg-list__meta">{contact.lastMessageAt && <time dateTime={contact.lastMessageAt}>{relativeTime(contact.lastMessageAt)}</time>}{contact.unread > 0 && <Badge tone="info">{contact.unread}</Badge>}</span>
           </button>) : <EmptyState title={filter === 'unassigned' ? 'Неразобранных нет' : 'Переписок нет'} description={filter === 'mine' ? 'Когда клиент, за которого вы отвечаете, напишет боту, переписка появится здесь' : 'Сообщения клиентов боту появятся здесь'} icon={Send} />}
         </div>
-      </Surface>
+      </Surface>}
       {selected ? <Conversation key={selected.id} contact={selected} onBack={() => setSelectedId(null)} onChanged={() => void load()} />
-        : <Surface className="tg-chat"><EmptyState title="Выберите переписку" description="Сообщения клиента и ваши ответы появятся здесь" icon={Send} /></Surface>}
+        : phone ? null : <Surface className="tg-chat"><EmptyState title="Выберите переписку" description="Сообщения клиента и ваши ответы появятся здесь" icon={Send} /></Surface>}
     </div>
     {importing && <ImportDialog onClose={() => setImporting(false)} onDone={(summary) => { setImporting(false); setNotice(summary); void load(); }} />}
   </>;

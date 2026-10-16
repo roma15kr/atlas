@@ -21,7 +21,7 @@
 - **Phone navigation** (screens up to 640px): a bottom bar with «Задачи», «Сообщения», «Telegram», «CRM» and «Ещё», which opens the full menu. The bell stays at the top.
 - **Phone layouts of the screens used on the go:**
   - **«Мои задачи»:** one status column at a time with tabs «Не начато / В работе / Готово» instead of a sideways board; the task dialog opens full-screen.
-  - **Chat and the Telegram inbox:** the list or one conversation at a time, with a back button. The message box stays at the bottom above the keyboard.
+  - **Chat and the Telegram inbox:** the list or one conversation at a time, with a «К списку» back button. The message box stays at the bottom above the keyboard.
   - **Notification panel:** a full-width sheet.
   - **Client card:** «Позвонить» and «Написать» as large buttons, sections one under another.
 - **Touch-friendly basics:** tap targets of at least 40px, 16px text in inputs (no iPhone zoom on focus), and room for the iPhone notch and home bar.

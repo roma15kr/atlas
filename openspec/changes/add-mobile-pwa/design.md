@@ -3,7 +3,7 @@
 ## Context
 
 - **Narrow windows:** `styles.css` already collapses multi-column layouts at 780px, and turns dialogs into bottom sheets at 520px. `AppShell` has a slide-out sidebar (`mobileOpen`).
-- **Mail** already shows the list or the reader on narrow screens, with a back button. That is the pattern for chat and Telegram.
+- **Mail** already shows the list or the reader on narrow screens, with a «К списку» back button. That is the pattern for chat and Telegram.
 - **`sw.js` exists** (push and click only, no `fetch` handler). Nginx serves `public/` files, and Cloudflare overrides browser cache TTLs.
 
 ## Decisions
@@ -29,7 +29,7 @@
    - Pages get bottom padding so the bar covers no content.
 6. **Screens.**
    - **`TasksPage`:** on a phone, a `Segmented` with the three categories (remembered per user) renders one column. Moving a task between columns keeps the existing status select on each card.
-   - **`MessagesPage` / `TelegramPage`:** with a selection, only the conversation renders, with «Назад»; without one, the list renders. The composer is `position: sticky; bottom: 0`.
+   - **`MessagesPage` / `TelegramPage`:** with a selection, only the conversation renders, with «К списку»; without one, the list renders. The composer is `position: sticky; bottom: 0`.
    - **`NotificationBell` panel:** `position: fixed` and full width below the top bar on a phone.
    - **`ClientPage`:** phone and email become `tel:`/`mailto:` action buttons at the top; sections stack.
    - **Dialogs:** full-height sheets at 640px and less (today 520px).
