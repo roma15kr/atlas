@@ -188,3 +188,20 @@ describe('chat on a phone', () => {
     } finally { restore(); }
   });
 });
+
+describe('message actions on touch screens', () => {
+  it('shows a message\'s actions on a tap, and hides them on a second tap', async () => {
+    const user = userEvent.setup();
+    renderAs('employee', '/messages?conversation=ch-general');
+    const message = (await screen.findAllByRole('article', { name: /^Сообщение / }))[0]!;
+    expect(message).not.toHaveClass('is-open');
+    await user.click(within(message).getByText(/общая встреча/));
+    expect(message).toHaveClass('is-open');
+    await user.click(within(message).getByText(/общая встреча/));
+    expect(message).not.toHaveClass('is-open');
+    // A tap on one of its own buttons does that button's job instead.
+    await user.click(within(message).getByRole('button', { name: 'Добавить реакцию' }));
+    expect(message).not.toHaveClass('is-open');
+  });
+});
+
