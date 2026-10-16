@@ -10,10 +10,7 @@
    - The tile is the colour with a white icon, as in ClickUp.
    - Like stage colours, these are user-chosen data, which the design system allows outside the tokens.
 3. **Storage.**
-   - `chat_conversations.icon text NULL` holds one of:
-     - `icon:<key>:<colour>`;
-     - `emoji:<emoji>`, where the emoji must be in the reactions' emoji library;
-     - null.
+   - `chat_conversations.icon text NULL` holds `<icon key>:<colour key>` or null.
    - Anything else is rejected with 400 `CHAT_INVALID_ICON`.
    - An icon key that a later version drops falls back to «#» on display.
 4. **Access.**
@@ -21,6 +18,6 @@
    - Others get 403 `CHAT_FORBIDDEN`, audited as other management attempts.
    - A change is audited with the field name `icon` among the changed fields, never the value of other fields.
 5. **Display.**
-   - `ConversationIcon` draws a library icon white on its colour in the 30px tile, an emoji on the neutral tile, or «#».
-   - The picker is a popover like the reaction picker, opened from «Настройки канала» or by clicking the header tile when the viewer may manage the channel. It has tabs «Иконки» (colour row on top, then icons by group) and «Эмодзи» (the existing emoji picker), a search field, and «Убрать иконку».
+   - `ConversationIcon` draws the library icon white on its colour in the 30px tile, or «#».
+   - The picker is a popover like the reaction picker, opened from «Настройки канала» or by clicking the header tile when the viewer may manage the channel. It has a colour row, a search field, icons by group, and «Убрать иконку».
 6. **Live.** The existing `chat:conversation-updated` event carries `icon`.
