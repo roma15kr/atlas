@@ -12,12 +12,12 @@
 ## 3. Scrolling back
 
 - [x] 3.1 Add `useScrollBack` (top sentinel, position kept, «Начало переписки», «Новые сообщения ↓» when not at the bottom) and use it in chat and threads. Verify hook unit tests with stubbed sizes (open at the end, stay put and offer «Новые сообщения ↓» while reading back, follow own messages, keep the view when older pages load, nothing to load at the start) and that the existing `Chat.test.tsx` cases pass; commit.
-- [ ] 3.2 Load older Telegram messages with the same hook. Verify a `Telegram.test.tsx` case with a conversation longer than one page; commit.
+- [x] 3.2 Load older Telegram messages with the same hook. Verify a `Telegram.test.tsx` case with a conversation longer than one page; commit.
 
 ## 4. Integration checks
 
-- [ ] 4.1 Run `make check` and `npm run build`; verify both pass.
-- [ ] 4.2 Run `npx openspec validate add-reactions-and-scrollback --strict`; verify it passes.
+- [x] 4.1 Run `make check` and `npm run build`; verify both pass.
+- [x] 4.2 Run `npx openspec validate add-reactions-and-scrollback --strict`; verify it passes.
 
 ## Workflow follow-up
 

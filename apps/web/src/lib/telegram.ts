@@ -85,6 +85,20 @@ interface DemoContact extends Omit<TelegramContact, 'unread' | 'lastMessage' | '
 interface DemoStore { contacts: DemoContact[]; messages: Array<TelegramMessage & { contactId: string }>; reads: Map<string, string>; settings: Required<Omit<TelegramStatus, 'mode'>> & { mode: string } }
 let shared: DemoStore | null = null;
 export function resetDemoTelegram(): void { shared = null; }
+
+/** Adds `count` older customer messages before a demo conversation's history (for long-history tests and demos). */
+export function seedDemoTelegramHistory(contactId: string, count: number): void {
+  const data = store();
+  const first = data.messages.find((item) => item.contactId === contactId);
+  const sample = first ?? data.messages[0]!;
+  const startAt = new Date(first?.createdAt ?? Date.now()).getTime() - (count + 1) * 60_000;
+  const older = Array.from({ length: count }, (_, index) => ({
+    ...sample, id: `${contactId}-old-${index + 1}`, contactId, direction: 'IN' as const, text: `Старое сообщение ${index + 1}`, kind: 'TEXT',
+    summary: null, fileName: null, mimeType: null, fileSize: null, replyToId: null, sentBy: null, createdAt: new Date(startAt + index * 60_000).toISOString(),
+  }));
+  const index = data.messages.findIndex((item) => item.contactId === contactId);
+  data.messages.splice(index < 0 ? data.messages.length : index, 0, ...older);
+}
 const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
 
 function store(): DemoStore {
@@ -158,7 +172,14 @@ export function createDemoTelegram(me: User, users: User[], clients: Client[], d
       .filter((item) => !q || `${item.displayName} ${item.username ?? ''}`.toLowerCase().includes(q.toLowerCase()))
       .map(view).sort((a, b) => (b.lastMessageAt ?? '').localeCompare(a.lastMessageAt ?? ''))),
     contact: async (id) => copy(view(find(id))),
-    messages: async (id) => { find(id); return { items: copy(data.messages.filter((item) => item.contactId === id)), hasMore: false }; },
+    // Pages of 50, newest last, with a cursor for older ones, as the API answers.
+    messages: async (id, before) => {
+      find(id);
+      const all = data.messages.filter((item) => item.contactId === id);
+      const end = before ? Math.max(0, all.findIndex((item) => item.id === before)) : all.length;
+      const start = Math.max(0, end - 50);
+      return { items: copy(all.slice(start, end)), hasMore: start > 0 };
+    },
     send: async (id, input) => {
       const contact = find(id);
       if (contact.status === 'BLOCKED') throw new TelegramError('TELEGRAM_CONTACT_BLOCKED', 'Клиент заблокировал бота');
