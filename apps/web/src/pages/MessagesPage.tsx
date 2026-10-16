@@ -1,3 +1,4 @@
+import type { Reaction } from '../lib/reactions';
 import { useIsPhone } from '../lib/useIsPhone';
 import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, AtSign, Bell, BellOff, Hash, MessageSquare, Plus, Search, Settings2, Users, X } from 'lucide-react';
@@ -122,10 +123,16 @@ function useLiveMessages(conversationId: string, rootId: string | null) {
     setItems(page.items.slice().reverse()); setHasMore(page.hasMore);
   }, [chat.backend, conversationId, rootId]);
   useEffect(() => { setItems(null); void reload().catch(() => setItems([])); }, [reload]);
+  /** Applies a message's reactions, from a socket event or the reply to the viewer's own change. */
+  const setReactions = useCallback((messageId: string, reactions: Reaction[]) => {
+    setItems((current) => current?.map((item) => item.id === messageId ? { ...item, reactions } : item) ?? current);
+    setRoot((current) => current?.id === messageId ? { ...current, reactions } : current);
+  }, []);
   useEffect(() => chat.subscribe((event) => {
     if (event.type === 'reconnect') { void reload(); return; }
     if (event.type === 'changed') { if (!event.conversationId || event.conversationId === conversationId) void reload().catch(() => undefined); return; }
     if (event.conversationId !== conversationId) return;
+    if (event.type === 'reactions') { setReactions(event.messageId, event.reactions); return; }
     const message = event.message;
     if (event.type === 'message') {
       if (rootId ? message.parentId === rootId : !message.parentId) setItems((current) => current && !current.some((item) => item.id === message.id) ? [...current, message] : current);
@@ -135,14 +142,14 @@ function useLiveMessages(conversationId: string, rootId: string | null) {
       setItems((current) => current?.map((item) => item.id === message.id ? message : item) ?? current);
       if (message.id === rootId) setRoot(message);
     }
-  }), [chat, conversationId, rootId, reload]);
+  }), [chat, conversationId, rootId, reload, setReactions]);
   const loadOlder = async () => {
     if (!items?.length) return;
     const page = await chat.backend.messages(conversationId, items[0]!.id);
     setItems([...page.items.slice().reverse(), ...items]); setHasMore(page.hasMore);
   };
   const append = (message: ChatMessage) => setItems((current) => current && !current.some((item) => item.id === message.id) ? [...current, message] : current);
-  return { items, hasMore, root, loadOlder, append, reload };
+  return { items, hasMore, root, loadOlder, append, reload, setReactions };
 }
 
 function ConversationView({ conversation, threadId, onThread, onSettings, onEdit, onDelete, onError }: {
@@ -153,9 +160,12 @@ function ConversationView({ conversation, threadId, onThread, onSettings, onEdit
   const me = session!.user;
   const chat = useChat();
   const people = usePeopleByUsername(chat.people);
-  const { items, hasMore, loadOlder, append } = useLiveMessages(conversation.id, null);
+  const { items, hasMore, loadOlder, append, setReactions } = useLiveMessages(conversation.id, null);
   const end = useRef<HTMLDivElement>(null);
   const isMember = conversation.myRole !== null || conversation.isMember === true;
+  const react = isMember && !conversation.archivedAt ? (message: ChatMessage) => (emoji: string, add: boolean) => {
+    chat.backend.react(message.id, emoji, add).then((reactions) => setReactions(message.id, reactions), (reason) => onError(chatErrorMessage(reason, 'Реакция не сохранена')));
+  } : null;
   const participants = conversation.participants ?? [];
   const inactiveDm = conversation.kind === 'DM' && participants.some((person) => !person.active);
   const title = conversationTitle(conversation, me.id);
@@ -192,7 +202,7 @@ function ConversationView({ conversation, threadId, onThread, onSettings, onEdit
       {hasMore && <button type="button" className="text-button chat-main__older" onClick={() => void loadOlder()}>Показать более ранние</button>}
       {!items ? <LoadingState label="Загружаем сообщения" /> : items.length ? items.map((message) => <MessageItem key={message.id} message={message} people={people} me={me} canModerate={canModerate}
         onReply={isMember && !conversation.archivedAt ? () => onThread(message.id) : undefined} onOpenThread={() => onThread(message.id)}
-        onEdit={() => onEdit(message)} onDelete={() => onDelete(message)} />)
+        onEdit={() => onEdit(message)} onDelete={() => onDelete(message)}  onReact={react?.(message)} />)
         : <EmptyState title="Сообщений пока нет" description={conversation.kind === 'DM' ? `Начните разговор с ${title}` : 'Напишите первое сообщение'} icon={conversation.kind === 'CHANNEL' ? Hash : MessageSquare} />}
       <div ref={end} />
     </div>
@@ -208,9 +218,12 @@ function ThreadPanel({ conversation, rootId, onClose, onEdit, onDelete }: { conv
   const me = session!.user;
   const chat = useChat();
   const people = usePeopleByUsername(chat.people);
-  const { items, root, append } = useLiveMessages(conversation.id, rootId);
+  const { items, root, append, setReactions } = useLiveMessages(conversation.id, rootId);
   const [error, setError] = useState('');
   const isMember = conversation.myRole !== null;
+  const react = isMember && !conversation.archivedAt ? (message: ChatMessage) => (emoji: string, add: boolean) => {
+    chat.backend.react(message.id, emoji, add).then((reactions) => setReactions(message.id, reactions), (reason) => setError(chatErrorMessage(reason, 'Реакция не сохранена')));
+  } : null;
   const canModerate = conversation.kind === 'CHANNEL' && isMember && (conversation.myRole === 'ADMIN' || me.role === 'DIRECTOR');
   const send = async (body: string) => {
     setError('');
@@ -219,9 +232,9 @@ function ThreadPanel({ conversation, rootId, onClose, onEdit, onDelete }: { conv
   return <Surface className="chat-thread" aria-label="Обсуждение">
     <SectionHeader title="Обсуждение" meta={items ? <Badge>{items.length}</Badge> : undefined} action={<IconButton label="Закрыть обсуждение" icon={X} onClick={onClose} />} />
     <div className="chat-thread__messages">
-      {root && <MessageItem message={root} people={people} me={me} canModerate={canModerate} onEdit={() => onEdit(root)} onDelete={() => onDelete(root)} />}
+      {root && <MessageItem message={root} people={people} me={me} canModerate={canModerate} onEdit={() => onEdit(root)} onDelete={() => onDelete(root)} onReact={react?.(root)} />}
       {items && items.length > 0 && <div className="chat-thread__divider">{plural(items.length, ['ответ', 'ответа', 'ответов'])}</div>}
-      {items?.map((message) => <MessageItem key={message.id} message={message} people={people} me={me} canModerate={canModerate} onEdit={() => onEdit(message)} onDelete={() => onDelete(message)} />)}
+      {items?.map((message) => <MessageItem key={message.id} message={message} people={people} me={me} canModerate={canModerate} onEdit={() => onEdit(message)} onDelete={() => onDelete(message)} onReact={react?.(message)} />)}
     </div>
     {error && <div className="form-error" role="alert">{error}</div>}
     {isMember && !conversation.archivedAt && <Composer people={chat.people} placeholder="Ответить в обсуждении" label="Ответ в обсуждении" onSend={send} autoFocus />}

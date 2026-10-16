@@ -6,6 +6,7 @@ const messages: Record<string, string> = {
   CONVERSATION_ARCHIVED: 'Разговор закрыт для новых сообщений',
   CHAT_FORBIDDEN: 'Недостаточно прав для этого действия',
   CHAT_JOIN_REQUIRED: 'Вступите в канал, чтобы писать',
+  REACTION_LIMIT: 'У сообщения уже 20 разных реакций — выберите одну из них',
   CHAT_LAST_ADMIN: 'Сначала назначьте другого администратора',
   CHAT_DEFAULT_CHANNEL: 'Общий канал всегда включает всех сотрудников',
   CHAT_MEMBER_LIMIT: 'В группе может быть не больше 20 человек',
