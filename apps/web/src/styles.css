@@ -1363,3 +1363,6 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
 }
 .task-comments__reactions { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
 .task-comments__reactions .reaction-bar { margin-top: 0; }
+.chat-main__start { margin: 4px 0 10px; color: var(--subtle); font-size: 11px; text-align: center; }
+.chat-main, .chat-thread, .tg-chat { position: relative; }
+.new-messages { position: absolute; left: 50%; bottom: 76px; z-index: 5; transform: translateX(-50%); min-height: 32px; padding: 0 14px; border: 0; border-radius: 16px; background: var(--primary); color: #fff; font: inherit; font-size: 12px; font-weight: 700; box-shadow: 0 6px 18px rgba(17, 37, 33, .22); cursor: pointer; }

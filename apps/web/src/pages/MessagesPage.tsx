@@ -1,8 +1,9 @@
+import { useScrollBack } from '../lib/useScrollBack';
 import type { Reaction } from '../lib/reactions';
 import { useIsPhone } from '../lib/useIsPhone';
 import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, AtSign, Bell, BellOff, Hash, MessageSquare, Plus, Search, Settings2, Users, X } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { BrowseChannelsDialog, ChannelFormDialog, ConfirmDialog, ConversationSettingsDialog, EditMessageDialog, NewMessageDialog, usePeopleByUsername } from '../components/chat/ChatDialogs';
 import { Composer, ConversationIcon, MessageItem } from '../components/chat/ChatParts';
 import { Badge, Button, EmptyState, IconButton, LoadingState, PageHeader, SectionHeader, Surface } from '../components/ui';
@@ -161,7 +162,6 @@ function ConversationView({ conversation, threadId, onThread, onSettings, onEdit
   const chat = useChat();
   const people = usePeopleByUsername(chat.people);
   const { items, hasMore, loadOlder, append, setReactions } = useLiveMessages(conversation.id, null);
-  const end = useRef<HTMLDivElement>(null);
   const isMember = conversation.myRole !== null || conversation.isMember === true;
   const react = isMember && !conversation.archivedAt ? (message: ChatMessage) => (emoji: string, add: boolean) => {
     chat.backend.react(message.id, emoji, add).then((reactions) => setReactions(message.id, reactions), (reason) => onError(chatErrorMessage(reason, 'Реакция не сохранена')));
@@ -178,7 +178,7 @@ function ConversationView({ conversation, threadId, onThread, onSettings, onEdit
     if (!items || (!conversation.unread && !conversation.mentions && !lastId)) return;
     void backend.read(conversation.id).then(refresh).catch(() => undefined);
   }, [conversation.id, lastId, Boolean(items)]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { end.current?.scrollIntoView?.({ block: 'end' }); }, [lastId]);
+  const history = useScrollBack({ firstId: items?.[0]?.id, lastId, lastIsMine: items?.at(-1)?.author.id === me.id, hasMore, loadOlder });
 
   const send = async (body: string) => {
     try { append(await backend.post(conversation.id, body)); await refresh(); } catch (reason) { onError(chatErrorMessage(reason, 'Сообщение не отправлено')); throw reason; }
@@ -198,14 +198,16 @@ function ConversationView({ conversation, threadId, onThread, onSettings, onEdit
       {isMember && <IconButton label={conversation.muted ? 'Включить уведомления' : 'Без уведомлений'} icon={conversation.muted ? BellOff : Bell} onClick={() => void toggleMute()} />}
       {conversation.kind !== 'DM' && <IconButton label={conversation.kind === 'CHANNEL' ? 'Настройки канала' : 'Участники группы'} icon={conversation.kind === 'CHANNEL' ? Settings2 : Users} onClick={onSettings} />}
     </header>
-    <div className="chat-main__messages" aria-live="polite">
-      {hasMore && <button type="button" className="text-button chat-main__older" onClick={() => void loadOlder()}>Показать более ранние</button>}
+    <div className="chat-main__messages" aria-live="polite" ref={history.container} onScroll={history.onScroll}>
+      <div ref={history.sentinel} aria-hidden />
+      {hasMore ? <button type="button" className="text-button chat-main__older" disabled={history.busy} onClick={() => void history.older()}>{history.busy ? 'Загружаем ранние сообщения…' : 'Показать более ранние'}</button>
+        : items && items.length > 0 && <div className="chat-main__start">Начало переписки</div>}
       {!items ? <LoadingState label="Загружаем сообщения" /> : items.length ? items.map((message) => <MessageItem key={message.id} message={message} people={people} me={me} canModerate={canModerate}
         onReply={isMember && !conversation.archivedAt ? () => onThread(message.id) : undefined} onOpenThread={() => onThread(message.id)}
         onEdit={() => onEdit(message)} onDelete={() => onDelete(message)}  onReact={react?.(message)} />)
         : <EmptyState title="Сообщений пока нет" description={conversation.kind === 'DM' ? `Начните разговор с ${title}` : 'Напишите первое сообщение'} icon={conversation.kind === 'CHANNEL' ? Hash : MessageSquare} />}
-      <div ref={end} />
     </div>
+    {history.newBelow && <button type="button" className="new-messages" onClick={history.scrollToEnd}>Новые сообщения ↓</button>}
     {conversation.archivedAt ? <div className="chat-main__notice">Канал в архиве — только чтение</div>
       : inactiveDm ? <div className="chat-main__notice">Сотрудник деактивирован — переписка доступна только для чтения</div>
       : !isMember ? <div className="chat-main__notice"><span>Вы не участник канала</span><Button variant="secondary" onClick={() => void join()}>Вступить</Button></div>
@@ -219,6 +221,7 @@ function ThreadPanel({ conversation, rootId, onClose, onEdit, onDelete }: { conv
   const chat = useChat();
   const people = usePeopleByUsername(chat.people);
   const { items, root, append, setReactions } = useLiveMessages(conversation.id, rootId);
+  const history = useScrollBack({ firstId: items?.[0]?.id, lastId: items?.at(-1)?.id, lastIsMine: items?.at(-1)?.author.id === session!.user.id, hasMore: false });
   const [error, setError] = useState('');
   const isMember = conversation.myRole !== null;
   const react = isMember && !conversation.archivedAt ? (message: ChatMessage) => (emoji: string, add: boolean) => {
@@ -231,12 +234,13 @@ function ThreadPanel({ conversation, rootId, onClose, onEdit, onDelete }: { conv
   };
   return <Surface className="chat-thread" aria-label="Обсуждение">
     <SectionHeader title="Обсуждение" meta={items ? <Badge>{items.length}</Badge> : undefined} action={<IconButton label="Закрыть обсуждение" icon={X} onClick={onClose} />} />
-    <div className="chat-thread__messages">
+    <div className="chat-thread__messages" ref={history.container} onScroll={history.onScroll}>
       {root && <MessageItem message={root} people={people} me={me} canModerate={canModerate} onEdit={() => onEdit(root)} onDelete={() => onDelete(root)} onReact={react?.(root)} />}
       {items && items.length > 0 && <div className="chat-thread__divider">{plural(items.length, ['ответ', 'ответа', 'ответов'])}</div>}
       {items?.map((message) => <MessageItem key={message.id} message={message} people={people} me={me} canModerate={canModerate} onEdit={() => onEdit(message)} onDelete={() => onDelete(message)} onReact={react?.(message)} />)}
     </div>
     {error && <div className="form-error" role="alert">{error}</div>}
+    {history.newBelow && <button type="button" className="new-messages" onClick={history.scrollToEnd}>Новые сообщения ↓</button>}
     {isMember && !conversation.archivedAt && <Composer people={chat.people} placeholder="Ответить в обсуждении" label="Ответ в обсуждении" onSend={send} autoFocus />}
   </Surface>;
 }

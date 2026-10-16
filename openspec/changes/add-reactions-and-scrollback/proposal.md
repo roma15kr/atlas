@@ -22,7 +22,7 @@
   - Each emoji shows as a chip with its count. Your own reactions are highlighted, a click adds or removes yours, and hovering a chip lists who reacted.
   - Chat reactions appear live for everyone in the conversation. Reacting needs the same right as posting there (a member, and the conversation not archived). A task comment can be reacted to by anyone who can see the task.
   - Reactions don't create notifications and aren't audited (they're not sensitive).
-- **Long conversations load from the end** (chat, its threads and the Telegram inbox).
+- **Long conversations load from the end** (chat and the Telegram inbox; threads are short and load at once, and get the same «stay where I read» behaviour).
   - A conversation opens on its newest messages. Scrolling near the top loads the previous page by itself, keeping your place, until the beginning, which is marked «Начало переписки».
   - A «Показать более ранние» button stays available for keyboard users.
   - A new message keeps you at the bottom only if you were already there. Otherwise a «Новые сообщения ↓» button appears.

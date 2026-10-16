@@ -16,7 +16,7 @@ A member of an active conversation SHALL be able to add and remove their own emo
 - **THEN** the response is 409 `CHAT_JOIN_REQUIRED` and nothing is stored
 
 ### Requirement: Scrolling back through a conversation
-A conversation and a thread SHALL open on their newest messages and SHALL load earlier messages page by page as the user scrolls up, keeping the messages on screen in place, until the first message, after which «Начало переписки» is shown. A «Показать более ранние» button SHALL also load the previous page. A new message SHALL scroll the view to the end only when the user was already at the end; otherwise a «Новые сообщения ↓» button SHALL appear.
+A conversation SHALL open on its newest messages and SHALL load earlier messages page by page as the user scrolls up, keeping the messages on screen in place, until the first message, after which «Начало переписки» is shown. A «Показать более ранние» button SHALL also load the previous page. In a conversation and in a thread, a new message SHALL scroll the view to the end only when the user was already at the end or wrote it; otherwise a «Новые сообщения ↓» button SHALL appear.
 
 #### Scenario: Reading back
 - **WHEN** a user scrolls to the top of a conversation with 180 messages
