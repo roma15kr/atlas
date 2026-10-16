@@ -7,9 +7,10 @@ import { requireAuth } from "../auth";
 import { query, transaction } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { chatPostLimiter } from "../middleware";
-import { notify } from "../notifications/notify";
+import { notify, removeNotifications } from "../notifications/notify";
 import { addReaction, CHAT_REACTIONS, reactionEmoji, reactionInput, reactionsSql, removeReaction, type Reaction } from "../reactions/reactions";
 import { emitToUsers } from "../realtime";
+import { deleteStoredImages, forgetUnusedImages } from "./images";
 import { chatAccessSql } from "../scope";
 import type { AuthContext } from "../types";
 
@@ -600,18 +601,18 @@ async function resolveMentions(auth: AuthContext, conversation: Conversation, bo
  * A mention notifies whoever the mention rules allow (muted or not); a direct message notifies the other member
  * unless they muted the conversation. A burst of direct messages stays one unread notification.
  */
-async function notifyChat(auth: AuthContext, conversation: { id: string; kind: string; name: string | null }, body: string, mentioned: string[]): Promise<void> {
+async function notifyChat(auth: AuthContext, conversation: { id: string; kind: string; name: string | null }, messageId: string, body: string, mentioned: string[]): Promise<void> {
   const author = (await query<{ full_name: string }>("SELECT full_name FROM users WHERE id = $1", [auth.userId])).rows[0]?.full_name ?? "Коллега";
   const link = `/messages?conversation=${conversation.id}`;
   await notify(auth.companyId, mentioned, auth.userId, {
     kind: "CHAT_MENTION", title: conversation.kind === "DM" ? `${author} упомянул(а) вас` : `${author} упомянул(а) вас в «${conversation.name ?? "чате"}»`,
-    body, link, entityType: "chat_conversation", entityId: conversation.id
+    body, link, entityType: "chat_message", entityId: messageId
   });
   if (conversation.kind !== "DM") return;
   const others = await query<{ user_id: string }>(
     "SELECT user_id FROM chat_members WHERE conversation_id = $1 AND user_id <> $2 AND NOT muted", [conversation.id, auth.userId]);
   await notify(auth.companyId, others.rows.map((row) => row.user_id).filter((id) => !mentioned.includes(id)), auth.userId, {
-    kind: "CHAT_DIRECT", title: `Сообщение от ${author}`, body, link, entityType: "chat_conversation", entityId: conversation.id,
+    kind: "CHAT_DIRECT", title: `Сообщение от ${author}`, body, link, entityType: "chat_message", entityId: messageId,
     collapseKey: `chat:${conversation.id}`
   });
 }
@@ -656,7 +657,7 @@ chatRouter.post("/conversations/:id/messages", chatPostLimiter, asyncHandler(asy
   emitToUsers(members, "chat:message", { conversationId: conversation.id, message });
   const outsiders = mentioned.filter((user) => !members.includes(user));
   emitToUsers(outsiders, "chat:mention", { conversationId: conversation.id, messageId: id });
-  await notifyChat(auth, conversation, input.body, mentioned);
+  await notifyChat(auth, conversation, id, input.body, mentioned);
   res.status(201).json({ data: message });
 }));
 
@@ -687,12 +688,46 @@ chatRouter.delete("/messages/:id", asyncHandler(async (req, res) => {
   const moderator = conversation.kind === "CHANNEL" && conversation.isMember && (conversation.my_role === "ADMIN" || auth.role === "DIRECTOR");
   if (!own && !moderator) throw new ApiError(403, "CHAT_FORBIDDEN", "You can delete only your own messages");
   if (!message.deleted_at) {
-    await transaction(async (client) => {
-      await client.query("UPDATE chat_messages SET body = '', deleted_at = now() WHERE id = $1", [message.id]);
-      await client.query("DELETE FROM chat_mentions WHERE message_id = $1", [message.id]);
+    const { removed, anchored, images } = await transaction(async (client) => {
+      const row = (await client.query<{ body: string; deleted_at: Date | null }>(
+        "SELECT body, deleted_at FROM chat_messages WHERE id = $1 FOR UPDATE", [message.id])).rows[0];
+      if (!row || row.deleted_at) return { removed: [] as string[], anchored: false, images: [] as string[] };
+      const removedIds: string[] = [];
+      let anchor = false;
+      if (message.parent_id) {
+        await client.query("DELETE FROM chat_messages WHERE id = $1", [message.id]);
+        removedIds.push(message.id);
+        const parent = (await client.query<{ deleted_at: Date | null; replies: number }>(
+          `UPDATE chat_messages p SET reply_count = r.replies, last_reply_at = r.last
+           FROM (SELECT count(*)::int AS replies, max(created_at) AS last FROM chat_messages WHERE parent_id = $1) r
+           WHERE p.id = $1 RETURNING p.deleted_at, r.replies`, [message.parent_id])).rows[0];
+        // The anchor of a deleted message goes with its last reply.
+        if (parent?.deleted_at && parent.replies === 0) {
+          await client.query("DELETE FROM chat_messages WHERE id = $1", [message.parent_id]);
+          removedIds.push(message.parent_id);
+        }
+      } else if ((await client.query("SELECT 1 FROM chat_messages WHERE parent_id = $1 LIMIT 1", [message.id])).rowCount) {
+        // Colleagues' replies stay readable under a line without content.
+        await client.query("UPDATE chat_messages SET body = '', deleted_at = now() WHERE id = $1", [message.id]);
+        await client.query("DELETE FROM chat_mentions WHERE message_id = $1", [message.id]);
+        await client.query("DELETE FROM chat_message_reactions WHERE message_id = $1", [message.id]);
+        anchor = true;
+      } else {
+        await client.query("DELETE FROM chat_messages WHERE id = $1", [message.id]);
+        removedIds.push(message.id);
+      }
+      await client.query(
+        `UPDATE chat_conversations c SET last_message_at = coalesce((SELECT max(created_at) FROM chat_messages WHERE conversation_id = c.id), c.created_at)
+         WHERE c.id = $1`, [conversation.id]);
+      const keys = await forgetUnusedImages(client, auth.companyId, message.author_id, row.body);
+      return { removed: removedIds, anchored: anchor, images: keys };
     });
+    await deleteStoredImages(images);
+    await removeNotifications("chat_message", [...removed, ...(anchored ? [message.id] : [])]);
     if (!own) await audit(req, auth, "CHAT_MESSAGE_MODERATED", conversation.id, { messageId: message.id, authorId: message.author_id });
-    emitToUsers(await memberIds(conversation.id), "chat:message-updated", { conversationId: conversation.id, message: await messageById(message.id) });
+    const members = await memberIds(conversation.id);
+    if (anchored) emitToUsers(members, "chat:message-updated", { conversationId: conversation.id, message: await messageById(message.id) });
+    for (const id of removed) emitToUsers(members, "chat:message-removed", { conversationId: conversation.id, messageId: id });
   }
   res.status(204).end();
 }));

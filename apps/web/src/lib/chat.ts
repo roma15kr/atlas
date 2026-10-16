@@ -291,7 +291,17 @@ export function createDemoChat(users: User[], me: User): ChatBackend {
       const { conversation, isMember, myRole } = find(message.conversationId);
       const moderator = conversation.kind === 'CHANNEL' && isMember && (myRole === 'ADMIN' || me.role === 'DIRECTOR');
       if (message.authorId !== me.id && !moderator) throw new ChatError('CHAT_FORBIDDEN', 'Удалить можно только своё сообщение');
-      message.deletedAt = now(); message.body = '';
+      // Erased like on the server: a message with replies stays only as an empty anchor, which goes with its last reply.
+      const erased = new Set([messageId]);
+      if (message.parentId) {
+        const parent = store.messages.find((item) => item.id === message.parentId);
+        if (parent?.deletedAt && !store.messages.some((item) => item.parentId === parent.id && item.id !== messageId)) erased.add(parent.id);
+      } else if (store.messages.some((item) => item.parentId === messageId)) {
+        erased.delete(messageId);
+        message.deletedAt = now(); message.body = '';
+      }
+      store.messages = store.messages.filter((item) => !erased.has(item.id));
+      store.reactions = store.reactions.filter((item) => item.targetId !== messageId && !erased.has(item.targetId));
       store.mentions = store.mentions.filter((item) => item.messageId !== messageId);
     },
     direct: async (userId) => {
