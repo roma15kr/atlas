@@ -11,7 +11,7 @@ import { useAuth } from '../context/AppContext';
 import { useChat } from '../context/ChatContext';
 import { conversationTitle, type ChatConversation, type ChatMessage } from '../lib/chat';
 import { chatErrorMessage } from '../lib/chatErrors';
-import { plural, relativeTime } from '../lib/format';
+import { firstName, plural, relativeTime } from '../lib/format';
 import { markdownToPlain } from '../lib/markdown';
 
 type Selection = { kind: 'conversation'; id: string } | { kind: 'mentions' };
@@ -74,7 +74,7 @@ export function MessagesPage() {
 
   const row = (item: ChatConversation) => <button key={item.id} type="button" className={`${selectedId === item.id ? 'is-active' : ''} ${item.unread ? 'is-unread' : ''}`} onClick={() => open(item.id)} aria-current={selectedId === item.id ? 'true' : undefined}>
     <ConversationIcon conversation={item} myId={me.id} />
-    <span><strong>{conversationTitle(item, me.id)}</strong><small>{item.lastMessage ? `${item.lastMessage.authorId === me.id ? 'Вы' : item.lastMessage.authorName.split(' ')[0]}: ${item.lastMessage.body === null ? 'сообщение удалено' : markdownToPlain(item.lastMessage.body)}` : item.kind === 'CHANNEL' ? item.description ?? 'Нет сообщений' : 'Нет сообщений'}</small></span>
+    <span><strong>{conversationTitle(item, me.id)}</strong><small>{item.lastMessage ? `${item.lastMessage.authorId === me.id ? 'Вы' : firstName(item.lastMessage.authorName)}: ${item.lastMessage.body === null ? 'сообщение удалено' : markdownToPlain(item.lastMessage.body)}` : item.kind === 'CHANNEL' ? item.description ?? 'Нет сообщений' : 'Нет сообщений'}</small></span>
     {item.mentions > 0 ? <Badge tone="danger">@{item.mentions}</Badge> : item.unread > 0 ? <Badge tone={item.muted ? 'neutral' : 'info'}>{item.unread}</Badge> : item.muted ? <BellOff size={13} className="chat-row__muted" aria-label="Без уведомлений" /> : null}
   </button>;
 

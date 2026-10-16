@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { TaskDialog } from '../components/TaskDialog';
 import { Avatar, Badge, Button, EmptyState, PageHeader, SectionHeader, Surface } from '../components/ui';
 import { hasMonitoringConsent, useAuth, useWorkspace } from '../context/AppContext';
-import { formatDate, formatMoney, relativeTime } from '../lib/format';
+import { firstName, formatDate, formatMoney, relativeTime } from '../lib/format';
 import { defaultBoard, isAssignedTo, rememberedBoard } from '../lib/boards';
 import type { Alert, TaskBoard, User, WorkTask } from '../types';
 
@@ -29,12 +29,12 @@ export function DashboardPage() {
   const taskTotal = dashboardMetrics?.tasks.total ?? tasks.length;
   const overdue = dashboardMetrics?.tasks.overdue ?? tasks.filter((task) => task.stage.category !== 'DONE' && task.dueAt && new Date(task.dueAt).getTime() < Date.now()).length;
   const kpi = user.kpis.length ? Math.round(user.kpis.reduce((sum, item) => sum + Math.min(1, item.actual / item.target) * item.weight, 0) / user.kpis.reduce((sum, item) => sum + item.weight, 0) * 100) : 0;
-  const chart = isDirector ? users.map((member) => ({ label: member.fullName.split(' ')[0], value: member.rating })) : user.kpis.map((item) => ({ label: item.name, value: Math.round(Math.min(1, item.actual / item.target) * 100) }));
+  const chart = isDirector ? users.map((member) => ({ label: firstName(member.fullName), value: member.rating })) : user.kpis.map((item) => ({ label: item.name, value: Math.round(Math.min(1, item.actual / item.target) * 100) }));
   const chartAverage = chart.length ? Math.round(chart.reduce((sum, item) => sum + item.value, 0) / chart.length) : 0;
   const openAlerts = alerts.filter((alert) => !alert.acknowledged);
 
   return <>
-    <PageHeader title={`Добрый день, ${user.fullName.split(' ')[0]}`} description={`${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}`} action={<Button icon={Plus} onClick={() => setTaskOpen(true)}>Новая задача</Button>} />
+    <PageHeader title={`Добрый день, ${firstName(user.fullName)}`} description={`${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}`} action={<Button icon={Plus} onClick={() => setTaskOpen(true)}>Новая задача</Button>} />
     {!hasMonitoringConsent(user) && <Surface className="consent-notice" role="note"><span className="settings-icon"><ShieldCheck size={18} /></span><div><strong>Примите политику мониторинга</strong><p>Atlas учитывает присутствие в отчётах и рекомендациях только после вашего согласия. Содержание переписки не анализируется.</p></div><Button variant="secondary" onClick={() => navigate('/profile')}>Перейти в профиль</Button></Surface>}
     <div className="metric-grid">
       <Metric label={isDirector ? 'Команда в сети' : 'Мой рейтинг'} value={isDirector ? `${online} / ${teamSize}` : `${user.rating}`} note={isDirector ? `${Math.round(online / Math.max(teamSize, 1) * 100)}% команды` : 'из 100 баллов'} icon={isDirector ? Users : Target} tone="teal" />

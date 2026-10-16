@@ -5,7 +5,7 @@ import { fitsLimit, RichTextEditor } from '../components/richtext/RichTextEditor
 import { RichTextView } from '../components/richtext/RichTextView';
 import { Badge, Button, Dialog, EmptyState, Field, IconButton, PageHeader, SelectField } from '../components/ui';
 import { useAuth, useWorkspace } from '../context/AppContext';
-import { formatDate, formatMoney } from '../lib/format';
+import { firstName, formatDate, formatMoney } from '../lib/format';
 import { funnelErrorMessage } from '../lib/funnelErrors';
 import type { Deal, DealStage, Funnel } from '../types';
 
@@ -106,7 +106,7 @@ function DealDialog({ funnels, initialFunnelId, saving, onClose, onSave, clients
 }
 
 function DealCard({ deal, stages, onDrag, onMove, onOpenNotes }: { deal: Deal; stages: DealStage[]; onDrag: () => void; onMove: (stageId: string) => void; onOpenNotes: () => void }) {
-  return <article className="kanban-card" draggable onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', deal.id); onDrag(); }}><div className="kanban-card__top"><span className="drag-handle"><GripVertical size={15} /></span><small>{deal.companyName}</small><IconButton label={`Заметки: ${deal.title}`} icon={deal.notes ? NotebookText : MoreHorizontal} onClick={onOpenNotes} /></div><strong>{deal.title}</strong><div className="deal-value"><b>{formatMoney(deal.value, deal.currency)}</b><span>{deal.probability}%</span></div><div className="kanban-card__meta"><span><CalendarDays size={13} />{formatDate(deal.expectedCloseAt)}</span><span><UserRound size={13} />{deal.ownerName.split(' ')[0]}</span></div><select className="card-move-select" aria-label={`Переместить сделку ${deal.title}`} value={deal.stage.id} onChange={(event) => onMove(event.target.value)}>{stages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}</select></article>;
+  return <article className="kanban-card" draggable onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', deal.id); onDrag(); }}><div className="kanban-card__top"><span className="drag-handle"><GripVertical size={15} /></span><small>{deal.companyName}</small><IconButton label={`Заметки: ${deal.title}`} icon={deal.notes ? NotebookText : MoreHorizontal} onClick={onOpenNotes} /></div><strong>{deal.title}</strong><div className="deal-value"><b>{formatMoney(deal.value, deal.currency)}</b><span>{deal.probability}%</span></div><div className="kanban-card__meta"><span><CalendarDays size={13} />{formatDate(deal.expectedCloseAt)}</span><span><UserRound size={13} />{firstName(deal.ownerName)}</span></div><select className="card-move-select" aria-label={`Переместить сделку ${deal.title}`} value={deal.stage.id} onChange={(event) => onMove(event.target.value)}>{stages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}</select></article>;
 }
 
 /** A deal's notes: formatted, with checklist items that save on a tick, and the editor on demand. */
