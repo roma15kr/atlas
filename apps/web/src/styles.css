@@ -1300,3 +1300,8 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
   .dialog { width: 100%; max-height: calc(100vh - env(safe-area-inset-top)); border-radius: 10px 10px 0 0; padding-bottom: env(safe-area-inset-bottom); }
   .notification-panel { position: fixed; top: calc(58px + env(safe-area-inset-top)); left: 8px; right: 8px; width: auto; max-height: calc(100vh - 160px); }
 }
+.phone-tabs { margin-bottom: 12px; overflow-x: auto; }
+.phone-tabs .segmented { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); }
+.phone-tabs .segmented button { min-height: 40px; white-space: nowrap; }
+.kanban--single { display: block; overflow: visible; }
+.kanban--single .kanban-column { width: 100%; min-width: 0; max-width: none; }

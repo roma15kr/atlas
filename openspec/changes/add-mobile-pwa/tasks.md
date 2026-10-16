@@ -11,7 +11,7 @@
 
 ## 3. Phone screens
 
-- [ ] 3.1 «Мои задачи»: one category at a time with tabs on a phone. Verify `TaskBoards.test.tsx` phone cases; commit.
+- [x] 3.1 «Мои задачи»: one category at a time with tabs on a phone. Verify `TaskBoards.test.tsx` phone cases; commit.
 - [ ] 3.2 Chat and Telegram: the list or one conversation, «Назад», sticky composer. Verify `Chat.test.tsx` and `Telegram.test.tsx` phone cases; commit.
 - [ ] 3.3 Client card: «Позвонить» and «Написать» action buttons, stacked sections. Verify the `ClientPage.test.tsx` phone case; commit.
 
