@@ -8,6 +8,11 @@ import './styles.css';
 
 installDiagnostics();
 
+// The service worker shows the offline page and desktop notifications; registering it also makes Atlas installable.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => { void navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => undefined); });
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>

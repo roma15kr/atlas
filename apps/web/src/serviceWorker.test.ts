@@ -14,13 +14,29 @@ function loadWorker(windows: Array<{ url: string; focused: boolean }>) {
     registration: { showNotification: vi.fn(async () => undefined) },
     clients: { matchAll: vi.fn(async () => clients), openWindow: vi.fn(async () => undefined), claim: vi.fn() },
   };
-  new Function('self', readFileSync(resolve(__dirname, '../public/sw.js'), 'utf8'))(scope);
+  const cached = new Map<string, unknown>();
+  const caches = {
+    open: vi.fn(async () => ({ add: vi.fn(async (request: { url: string }) => { cached.set(new URL(request.url, 'https://atlas.rdim.ua').pathname, 'offline page'); }) })),
+    match: vi.fn(async (path: string) => cached.get(path)),
+    keys: vi.fn(async () => ['atlas-offline-v1', 'old-cache']), delete: vi.fn(async () => true),
+  };
+  const network = { fail: false };
+  const fetch = vi.fn(async () => { if (network.fail) throw new TypeError('Failed to fetch'); return 'network page'; });
+  class Request { constructor(public url: string) {} }
+  const Response = { error: () => 'error response' };
+  new Function('self', 'caches', 'fetch', 'Request', 'Response', readFileSync(resolve(__dirname, '../public/sw.js'), 'utf8'))(scope, caches, fetch, Request, Response);
   const fire = async (name: string, event: object) => {
     let pending: Promise<unknown> = Promise.resolve();
     listeners.get(name)!({ ...event, waitUntil: (promise) => { pending = promise; } });
     await pending;
   };
-  return { scope, clients, fire };
+  /** Dispatches a fetch event; resolves what the worker responded with, or undefined when it let the request through. */
+  const request = async (mode: string, url: string) => {
+    let responded: Promise<unknown> | undefined;
+    listeners.get('fetch')!({ request: { mode, url }, respondWith: (promise: Promise<unknown>) => { responded = promise; } } as never);
+    return responded ? await responded : undefined;
+  };
+  return { scope, clients, fire, request, network, caches, fetch };
 }
 const push = (payload: object) => ({ data: { json: () => payload, text: () => JSON.stringify(payload) } });
 
@@ -50,5 +66,19 @@ describe('service worker', () => {
     const closed = loadWorker([]);
     await closed.fire('notificationclick', { notification });
     expect(closed.scope.clients.openWindow).toHaveBeenCalledWith('https://atlas.rdim.ua/telegram?contact=c1');
+  });
+
+  it('keeps the offline page and shows it when a page load fails, without touching API or asset requests', async () => {
+    const worker = loadWorker([]);
+    await worker.fire('install', {});
+    await worker.fire('activate', {});
+    expect(worker.caches.delete).toHaveBeenCalledWith('old-cache');
+    expect(await worker.request('navigate', 'https://atlas.rdim.ua/tasks')).toBe('network page');
+    worker.network.fail = true;
+    expect(await worker.request('navigate', 'https://atlas.rdim.ua/tasks')).toBe('offline page');
+    worker.fetch.mockClear();
+    expect(await worker.request('cors', 'https://atlas.rdim.ua/api/v1/tasks')).toBeUndefined();
+    expect(await worker.request('no-cors', 'https://atlas.rdim.ua/assets/index.js')).toBeUndefined();
+    expect(worker.fetch).not.toHaveBeenCalled();
   });
 });

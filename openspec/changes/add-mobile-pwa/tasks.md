@@ -2,7 +2,7 @@
 
 ## 1. Installable app
 
-- [ ] 1.1 Add the icon script and icons, `manifest.webmanifest`, `index.html` meta tags, the Nginx manifest type, the offline page and the navigation fallback in `sw.js`. Verify `serviceWorker.test.ts` cases (a failed navigation gets the offline page; `/api` and assets are not intercepted) and that the built `dist/` contains the manifest and icons; commit.
+- [x] 1.1 Add the icon script and icons, `manifest.webmanifest`, `index.html` meta tags, the Nginx manifest type, the offline page and the navigation fallback in `sw.js`. Verify `serviceWorker.test.ts` cases (a failed navigation gets the offline page; `/api` and assets are not intercepted) and that the built `dist/` contains the manifest and icons; commit.
 - [ ] 1.2 Add «Профиль → Приложение» (install button on `beforeinstallprompt`, iPhone instructions, «установлено» in standalone). Verify `AppInstall.test.tsx` cases; commit.
 
 ## 2. Phone shell
