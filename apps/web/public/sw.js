@@ -24,9 +24,12 @@ self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data ? event.data.text() : '' }; }
   event.waitUntil((async () => {
-    // While Atlas is the active window the bell already shows it; Chrome allows skipping the pop-up then.
-    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    if (data.tag !== 'test' && windows.some((client) => client.focused)) return;
+    // While Atlas is the visible, focused window the bell already shows it, and Chrome allows skipping the pop-up.
+    // Safari (iPhone, Mac) requires a notification for every push and cancels the subscription otherwise; a minimised
+    // iPhone app can also still report itself focused. So only Chromium may skip, and only for a visible window.
+    const chromium = Boolean(self.navigator.userAgentData);
+    const windows = chromium ? await self.clients.matchAll({ type: 'window', includeUncontrolled: true }) : [];
+    if (data.tag !== 'test' && windows.some((client) => client.focused && client.visibilityState === 'visible')) return;
     await self.registration.showNotification(data.title || 'Atlas', {
       body: data.body || '', tag: data.tag || data.id, renotify: Boolean(data.tag),
       icon: '/notification-icon.png', badge: '/notification-icon.png', data: { link: data.link || '/' },

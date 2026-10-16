@@ -46,7 +46,7 @@ describe('notification settings', () => {
   it('turns desktop notifications on for this browser and sends a test', async () => {
     const actions = userEvent.setup();
     renderSettings();
-    await actions.click(await screen.findByRole('button', { name: 'Включить на этом компьютере' }));
+    await actions.click(await screen.findByRole('button', { name: 'Включить на этом устройстве' }));
     expect(await screen.findByText('Включены в этом браузере')).toBeInTheDocument();
     expect(navigator.serviceWorker.register).toHaveBeenCalledWith('/sw.js', { scope: '/' });
     expect(registration.pushManager.subscribe).toHaveBeenCalledWith(expect.objectContaining({ userVisibleOnly: true }));
@@ -60,15 +60,15 @@ describe('notification settings', () => {
     renderSettings();
     expect(await screen.findByText('Заблокированы браузером')).toBeInTheDocument();
     expect(screen.getByText(/«Уведомления: Разрешить»/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Включить на этом компьютере' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Включить на этом устройстве' })).not.toBeInTheDocument();
   });
 
   it('saves which groups pop up', async () => {
     const actions = userEvent.setup();
     renderSettings();
-    await actions.click(await screen.findByRole('switch', { name: 'Сообщения на рабочем столе' }));
+    await actions.click(await screen.findByRole('switch', { name: 'Сообщения: всплывающие уведомления' }));
     expect(calls.find((call) => call.method === 'PATCH')?.body).toEqual({ chat: false });
-    expect(screen.getByRole('switch', { name: 'Сообщения на рабочем столе' })).not.toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Сообщения: всплывающие уведомления' })).not.toBeChecked();
   });
 
   it('says desktop notifications are unavailable without server keys', async () => {
@@ -82,6 +82,6 @@ describe('notification settings', () => {
     sessionStore.set(null);
     localStorage.setItem('atlas.session', JSON.stringify(demoSessions.employee));
     renderSettings();
-    expect(await screen.findByText('В демо-режиме уведомления на рабочем столе недоступны.')).toBeInTheDocument();
+    expect(await screen.findByText('В демо-режиме всплывающие уведомления недоступны.')).toBeInTheDocument();
   });
 });

@@ -5,12 +5,12 @@ import { describe, expect, it, vi } from 'vitest';
 type Listener = (event: { data?: unknown; notification?: unknown; waitUntil: (promise: Promise<unknown>) => void }) => void;
 
 /** Runs public/sw.js against a fake worker scope and returns its handlers and spies. */
-function loadWorker(windows: Array<{ url: string; focused: boolean }>) {
+function loadWorker(windows: Array<{ url: string; focused: boolean; visibilityState?: 'visible' | 'hidden' }>, { chromium = true } = {}) {
   const listeners = new Map<string, Listener>();
-  const clients = windows.map((window) => ({ ...window, focus: vi.fn(async () => undefined), navigate: vi.fn(async () => undefined) }));
+  const clients = windows.map((window) => ({ visibilityState: window.focused ? 'visible' : 'hidden', ...window, focus: vi.fn(async () => undefined), navigate: vi.fn(async () => undefined) }));
   const scope = {
     addEventListener: (name: string, listener: Listener) => listeners.set(name, listener),
-    skipWaiting: vi.fn(), location: { origin: 'https://atlas.rdim.ua' },
+    skipWaiting: vi.fn(), location: { origin: 'https://atlas.rdim.ua' }, navigator: chromium ? { userAgentData: { brands: [] } } : {},
     registration: { showNotification: vi.fn(async () => undefined) },
     clients: { matchAll: vi.fn(async () => clients), openWindow: vi.fn(async () => undefined), claim: vi.fn() },
   };
@@ -54,6 +54,18 @@ describe('service worker', () => {
     await worker.fire('push', push({ id: 'n2', title: 'Сообщение', link: '/messages' }));
     expect(worker.scope.registration.showNotification).not.toHaveBeenCalled();
     await worker.fire('push', push({ id: 'test-1', title: 'Atlas: проверка уведомлений', link: '/profile#notifications', tag: 'test' }));
+    expect(worker.scope.registration.showNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the pop-up when a minimised app still reports itself focused', async () => {
+    const worker = loadWorker([{ url: 'https://atlas.rdim.ua/', focused: true, visibilityState: 'hidden' }]);
+    await worker.fire('push', push({ id: 'n3', title: 'Сообщение от Наталії', link: '/messages' }));
+    expect(worker.scope.registration.showNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it('always shows the pop-up in Safari, which cancels subscriptions for silent pushes', async () => {
+    const worker = loadWorker([{ url: 'https://atlas.rdim.ua/', focused: true, visibilityState: 'visible' }], { chromium: false });
+    await worker.fire('push', push({ id: 'n4', title: 'Новая задача', link: '/tasks' }));
     expect(worker.scope.registration.showNotification).toHaveBeenCalledTimes(1);
   });
 

@@ -59,7 +59,7 @@ A user SHALL be able to turn desktop notifications on for a browser, which store
 - **THEN** the profile shows desktop notifications as unavailable, and the bell still works
 
 ### Requirement: Desktop notification delivery
-Each new notification of an enabled group SHALL be pushed to all of the user's subscriptions with a title, a plain-text preview of at most 120 characters and a link. A subscription the push service reports as gone SHALL be deleted. While an Atlas tab is focused, no desktop pop-up SHALL be shown.
+Each new notification of an enabled group SHALL be pushed to all of the user's subscriptions with a title, a plain-text preview of at most 120 characters and a link. Pushes SHALL be sent with high urgency, so a locked or idle phone shows them at once. A subscription the push service reports as gone SHALL be deleted. In Chrome, while an Atlas window is visible and focused, no pop-up SHALL be shown; browsers that require every push to be shown (Safari on iPhone and Mac) SHALL always show it.
 
 #### Scenario: Atlas closed
 - **WHEN** a user with desktop notifications on has no Atlas tab open and a task is assigned to them
@@ -68,6 +68,10 @@ Each new notification of an enabled group SHALL be pushed to all of the user's s
 #### Scenario: Atlas in focus
 - **WHEN** a notification arrives while an Atlas tab is focused
 - **THEN** the bell updates and no desktop pop-up is shown
+
+#### Scenario: Phone locked
+- **WHEN** a user's phone with the installed Atlas is locked and a colleague sends them a direct message
+- **THEN** the notification appears on the lock screen at once, without waiting for the phone to be unlocked
 
 ### Requirement: Notification screens
 The bell in the top bar SHALL open a panel with the user's notifications, show the unread count, open the linked item and mark it read on click, and offer «Прочитать все». The profile SHALL have an «Уведомления» section showing whether desktop notifications are unsupported, blocked, off or on in this browser, with buttons to turn them on or off, the group switches and «Проверить», which sends a test notification.

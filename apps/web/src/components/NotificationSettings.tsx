@@ -58,19 +58,19 @@ export function NotificationSettings() {
 
   return <Surface id="notifications" className="notification-settings">
     <SectionHeader title="Уведомления" meta={state ? <Badge tone={status[state].tone}>{status[state].label}</Badge> : undefined} />
-    <p className="dialog-note">Все уведомления видны под колокольчиком вверху. На рабочем столе Windows они появляются, даже когда Atlas закрыт, — пока открыт Chrome.</p>
-    {state === 'unsupported' && <p className="form-hint">Этот браузер не поддерживает уведомления на рабочем столе. Используйте Google Chrome.</p>}
-    {state === 'unavailable' && <p className="form-hint">{demo ? 'В демо-режиме уведомления на рабочем столе недоступны.' : 'Уведомления на рабочем столе ещё не настроены на сервере. Обратитесь к администратору.'}</p>}
+    <p className="dialog-note">Все уведомления видны под колокольчиком вверху. На компьютере и телефоне они всплывают, даже когда Atlas закрыт или свёрнут, а экран заблокирован.</p>
+    {state === 'unsupported' && <p className="form-hint">Этот браузер не поддерживает всплывающие уведомления. Используйте Google Chrome, а на iPhone — установленное приложение Atlas.</p>}
+    {state === 'unavailable' && <p className="form-hint">{demo ? 'В демо-режиме всплывающие уведомления недоступны.' : 'Всплывающие уведомления ещё не настроены на сервере. Обратитесь к администратору.'}</p>}
     {state === 'blocked' && <p className="form-hint form-hint--danger">Chrome запретил уведомления для Atlas. Нажмите на значок замка слева от адреса, откройте «Настройки сайтов» и выберите «Уведомления: Разрешить», затем обновите страницу.</p>}
     <div className="notification-settings__actions">
-      {state === 'off' && <Button icon={BellRing} disabled={busy} onClick={() => void run(enablePush)}>Включить на этом компьютере</Button>}
+      {state === 'off' && <Button icon={BellRing} disabled={busy} onClick={() => void run(enablePush)}>Включить на этом устройстве</Button>}
       {state === 'on' && <><Button variant="secondary" icon={Send} disabled={busy} onClick={() => void test()}>Проверить</Button><Button variant="ghost" disabled={busy} onClick={() => void run(disablePush)}>Отключить</Button></>}
     </div>
     {message && <div className="notice" role="status">{message}</div>}
     {error && <div className="form-error" role="alert">{error}</div>}
     {preferences && state !== 'unsupported' && state !== 'unavailable' && <div className="settings-form settings-form--single">{groups.map((group) => <label className="switch-row" key={group.key}>
       <span><span><strong>{group.label}</strong><small>{group.hint}</small></span></span>
-      <input type="checkbox" role="switch" aria-label={`${group.label} на рабочем столе`} checked={preferences[group.key]} onChange={(event) => void toggle(group.key, event.target.checked)} />
+      <input type="checkbox" role="switch" aria-label={`${group.label}: всплывающие уведомления`} checked={preferences[group.key]} onChange={(event) => void toggle(group.key, event.target.checked)} />
     </label>)}</div>}
   </Surface>;
 }
