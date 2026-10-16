@@ -151,5 +151,13 @@ describe('role-aware routing', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Задача' });
     expect(within(dialog).getByDisplayValue('Согласовать дату демонстрации')).toBeInTheDocument();
   });
+
+  it('shows online colleagues first in «Кто в сети», each group alphabetically', async () => {
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.director));
+    const { container } = renderAt('/');
+    await screen.findByText('Кто в сети');
+    const names = [...container.querySelectorAll('.presence-list .person-row strong')].map((name) => name.textContent);
+    expect(names).toEqual(['Анна Петрова', 'Елена Морозова', 'Иван Смирнов', 'Михаил Волков', 'Алексей Ким', 'Ольга Соколова']);
+  });
 });
 

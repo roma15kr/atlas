@@ -266,4 +266,14 @@ describe('company directory', () => {
     expect(within(card).getByText('Не в сети')).toBeInTheDocument();
     expect(within(card).queryByText(/назад/)).not.toBeInTheDocument();
   });
+
+  it('lists online people first, then offline, each alphabetically', async () => {
+    localStorage.setItem('atlas.session', JSON.stringify(demoSessions.manager));
+    renderAt('/team');
+    const list = (await screen.findByLabelText('Поиск сотрудников')).closest('.team-list') as HTMLElement;
+    await within(list).findByRole('button', { name: /Иван Смирнов/ });
+    const names = within(list).getAllByRole('button').map((row) => row.querySelector('strong')?.textContent);
+    expect(names).toEqual(['Анна Петрова', 'Елена Морозова', 'Иван Смирнов', 'Михаил Волков', 'Алексей Ким', 'Ольга Соколова']);
+  });
 });
+
