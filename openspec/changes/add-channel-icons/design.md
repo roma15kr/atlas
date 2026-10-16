@@ -13,7 +13,7 @@
    - An archived channel answers 409 `CONVERSATION_ARCHIVED`.
    - A channel outside the caller's view answers 404.
 3. **Display.** `ConversationIcon` renders `<img>` in the 30px `.chat-icon` tile (radius 5px, `object-fit: cover`) when `iconUrl` is set. If the image fails to load, it falls back to «#».
-4. **Live.** The existing `chat:conversation` update event carries the new `iconUrl`.
+4. **Live.** The existing `chat:conversation-updated` event carries the new `iconUrl`.
 
 ## Risks / Trade-offs
 
