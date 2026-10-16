@@ -41,6 +41,7 @@
   - jsdom `Blob` can't be a `Response` body, so pass a string.
 - `Button` has no default `type`, so inside a `<form>` it submits. Use `type="button"` for other actions.
 - Under the full `make check` run, screens that load data (dashboard, client page) can take over 1 s: give such a `findBy…` an explicit `{ timeout: 5_000 }` (or the test a longer limit), never loosen the assertion.
+- To check that text is absent (audit metadata, logs), match the full value (`Цена 150 грн`, `1994-03-12`), never a short number: random uuids contain digit runs and fail the test at random.
 
 ## Tools in this environment
 - Search code with `rg` (ripgrep): fast, respects .gitignore. Prefer it over `grep -r` and `find | xargs grep`.
