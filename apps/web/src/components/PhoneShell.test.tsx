@@ -1,7 +1,7 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../App';
 import { AuthProvider, WorkspaceProvider } from '../context/AppContext';
 import { demoSessions } from '../data/demo';
@@ -43,5 +43,21 @@ describe('phone shell', () => {
     renderAs('employee');
     await screen.findByRole('navigation', { name: 'Основная навигация' });
     expect(screen.queryByRole('navigation', { name: 'Быстрая навигация' })).not.toBeInTheDocument();
+  });
+
+  it('measures the real top and bottom bars, so a conversation fits between them without the page scrolling', async () => {
+    restore = phoneViewport();
+    // An iPhone with a notch: the top bar is taller than on Android.
+    const heights: Record<string, number> = { topbar: 102, 'bottom-nav': 64 };
+    const rect = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      const height = Object.entries(heights).find(([name]) => this.classList.contains(name))?.[1] ?? 0;
+      return { x: 0, y: 0, top: 0, left: 0, right: 0, bottom: height, width: 390, height, toJSON: () => ({}) } as DOMRect;
+    });
+    try {
+      renderAs('employee', '/messages?conversation=ch-general');
+      await screen.findByRole('navigation', { name: 'Быстрая навигация' });
+      await vi.waitFor(() => expect(document.documentElement.style.getPropertyValue('--topbar-height')).toBe('102px'));
+      expect(document.documentElement.style.getPropertyValue('--bottom-nav-height')).toBe('64px');
+    } finally { rect.mockRestore(); }
   });
 });
