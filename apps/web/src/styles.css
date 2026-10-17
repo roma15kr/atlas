@@ -1379,7 +1379,9 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
   /* Chat and Telegram: the list or one conversation, filling the screen between the top and bottom bars. */
   .chat-layout--phone, .tg-layout--phone { display: block; height: auto; }
   .chat-layout--phone .chat-list, .tg-layout--phone .tg-list { max-height: none; }
-  .chat-layout--phone .chat-main, .chat-layout--phone .chat-thread, .tg-layout--phone .tg-chat { height: calc(100dvh - 58px - 84px - 64px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); min-height: 320px; display: flex; flex-direction: column; }
+  /* Pinned between the measured bars, so only the message feed scrolls, never the page around it. */
+  .chat-layout--phone .chat-main, .chat-layout--phone .chat-thread, .tg-layout--phone .tg-chat { position: fixed; z-index: 2; top: calc(var(--topbar-height, 65px) + var(--viewport-offset, 0px) + 8px); bottom: calc(max(var(--bottom-nav-height, 64px), var(--keyboard-height, 0px)) + 8px); left: 8px; right: 8px; height: auto; min-height: 0; display: flex; flex-direction: column; }
+  .chat-main__messages, .chat-thread__messages, .tg-chat__messages { overscroll-behavior: contain; }
   .chat-composer, .tg-composer { position: sticky; bottom: 0; }
   .phone-back { margin: 0 0 8px; }
 }

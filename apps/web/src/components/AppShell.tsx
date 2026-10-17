@@ -64,6 +64,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pageName = useMemo(() => location.pathname.startsWith('/crm/') ? 'Карточка клиента' : /^\/boards\/[^/]+\/settings$/.test(location.pathname) ? 'Настройка досок' : location.pathname.startsWith('/mail/oauth') ? 'Почта' : routeNames[location.pathname] ?? 'Atlas', [location.pathname]);
 
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+  useBarHeights(phone);
   useEffect(() => { localStorage.setItem('atlas.sidebar.collapsed', String(collapsed)); }, [collapsed]);
 
   return <div className={`app-layout ${collapsed ? 'app-layout--collapsed' : ''}`}>
@@ -99,3 +100,33 @@ function BottomNav({ badges, onMore }: { badges: Record<string, number>; onMore:
     <button type="button" onClick={onMore}><span className="bottom-nav__icon"><Menu size={20} aria-hidden /></span>Ещё</button>
   </nav>;
 }
+
+/**
+ * Publishes the real heights of the top bar and the phone's bottom bar as `--topbar-height` and `--bottom-nav-height`,
+ * so screens that fill the space between them (a phone conversation) fit exactly, notch and home bar included; and the
+ * on-screen keyboard as `--keyboard-height` / `--viewport-offset`, so the message box stays above it.
+ */
+function useBarHeights(phone: boolean) {
+  useEffect(() => {
+    const root = document.documentElement.style;
+    const bars: Array<[string, string]> = [['.topbar', '--topbar-height'], ['.bottom-nav', '--bottom-nav-height']];
+    const measure = () => bars.forEach(([selector, name]) => {
+      const bar = document.querySelector(selector);
+      if (bar) root.setProperty(name, `${Math.round(bar.getBoundingClientRect().height)}px`); else root.removeProperty(name);
+    });
+    // An open on-screen keyboard (iOS keeps fixed elements behind it): how much of the layout it covers, and how far iOS panned.
+    const viewport = window.visualViewport;
+    const keyboard = () => {
+      if (!viewport) return;
+      root.setProperty('--keyboard-height', `${Math.max(0, Math.round(window.innerHeight - viewport.height - viewport.offsetTop))}px`);
+      root.setProperty('--viewport-offset', `${Math.round(viewport.offsetTop)}px`);
+    };
+    measure(); keyboard();
+    viewport?.addEventListener('resize', keyboard);
+    viewport?.addEventListener('scroll', keyboard);
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    bars.forEach(([selector]) => { const bar = document.querySelector(selector); if (bar) observer?.observe(bar); });
+    return () => { observer?.disconnect(); viewport?.removeEventListener('resize', keyboard); viewport?.removeEventListener('scroll', keyboard); };
+  }, [phone]);
+}
+
