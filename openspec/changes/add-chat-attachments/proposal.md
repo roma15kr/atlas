@@ -46,7 +46,7 @@ None.
 ## Impact
 
 - **Data:**
-  - migration `023`/`024` (next free number): `chat_attachments`, holding the message, conversation, uploader, name, type, size and storage key;
+  - migration `024_chat_attachments.sql`: `chat_attachments`, holding the message, conversation, uploader, name, type, size and storage key;
   - files go to the existing object storage.
 - **API:**
   - `POST /chat/conversations/:id/attachments` uploads one file;
