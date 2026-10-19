@@ -75,7 +75,7 @@ export function MessagesPage() {
 
   const row = (item: ChatConversation) => <button key={item.id} type="button" className={`${selectedId === item.id ? 'is-active' : ''} ${item.unread ? 'is-unread' : ''}`} onClick={() => open(item.id)} aria-current={selectedId === item.id ? 'true' : undefined}>
     <ConversationIcon conversation={item} myId={me.id} />
-    <span><strong>{conversationTitle(item, me.id)}</strong><small>{item.lastMessage ? `${item.lastMessage.authorId === me.id ? 'Вы' : firstName(item.lastMessage.authorName)}: ${item.lastMessage.body === null ? 'сообщение удалено' : markdownToPlain(item.lastMessage.body)}` : item.kind === 'CHANNEL' ? item.description ?? 'Нет сообщений' : 'Нет сообщений'}</small></span>
+    <span><strong>{conversationTitle(item, me.id)}</strong><small>{item.lastMessage ? `${item.lastMessage.authorId === me.id ? 'Вы' : firstName(item.lastMessage.authorName)}: ${item.lastMessage.body === null ? 'сообщение удалено' : markdownToPlain(item.lastMessage.body) || '📎 Файл'}` : item.kind === 'CHANNEL' ? item.description ?? 'Нет сообщений' : 'Нет сообщений'}</small></span>
     {item.mentions > 0 ? <Badge tone="danger">@{item.mentions}</Badge> : item.unread > 0 ? <Badge tone={item.muted ? 'neutral' : 'info'}>{item.unread}</Badge> : item.muted ? <BellOff size={13} className="chat-row__muted" aria-label="Без уведомлений" /> : null}
   </button>;
 
@@ -188,8 +188,8 @@ function ConversationView({ conversation, threadId, onThread, onSettings, onEdit
   // On a phone, focusing the message box on open would pop the keyboard up over the conversation.
   const phoneScreen = useIsPhone();
 
-  const send = async (body: string) => {
-    try { append(await backend.post(conversation.id, body)); await refresh(); } catch (reason) { onError(chatErrorMessage(reason, 'Сообщение не отправлено')); throw reason; }
+  const send = async (body: string, attachmentIds: string[] = []) => {
+    try { append(await backend.post(conversation.id, body, null, attachmentIds)); await refresh(); } catch (reason) { onError(chatErrorMessage(reason, 'Сообщение не отправлено')); throw reason; }
   };
   const join = async () => { try { await backend.join(conversation.id); await refresh(); } catch (reason) { onError(chatErrorMessage(reason, 'Не удалось вступить в канал')); } };
   const toggleMute = async () => { try { await backend.mute(conversation.id, !conversation.muted); await refresh(); } catch (reason) { onError(chatErrorMessage(reason, 'Настройка не сохранена')); } };
@@ -222,7 +222,7 @@ function ConversationView({ conversation, threadId, onThread, onSettings, onEdit
     {conversation.archivedAt ? <div className="chat-main__notice">Канал в архиве — только чтение</div>
       : inactiveDm ? <div className="chat-main__notice">Сотрудник деактивирован — переписка доступна только для чтения</div>
       : !isMember ? <div className="chat-main__notice"><span>Вы не участник канала</span><Button variant="secondary" onClick={() => void join()}>Вступить</Button></div>
-      : <Composer key={conversation.id} people={mentionable} placeholder={conversation.kind === 'CHANNEL' ? `Написать в #${title}` : `Написать ${title}`} onSend={send} autoFocus={!threadId && !phoneScreen} />}
+      : <Composer key={conversation.id} people={mentionable} placeholder={conversation.kind === 'CHANNEL' ? `Написать в #${title}` : `Написать ${title}`} onSend={send} upload={(file) => backend.uploadAttachment(conversation.id, file)} autoFocus={!threadId && !phoneScreen} />}
   </Surface>;
 }
 
@@ -239,9 +239,9 @@ function ThreadPanel({ conversation, rootId, onClose, onEdit, onDelete }: { conv
     chat.backend.react(message.id, emoji, add).then((reactions) => setReactions(message.id, reactions), (reason) => setError(chatErrorMessage(reason, 'Реакция не сохранена')));
   } : null;
   const canModerate = conversation.kind === 'CHANNEL' && isMember && (conversation.myRole === 'ADMIN' || me.role === 'DIRECTOR');
-  const send = async (body: string) => {
+  const send = async (body: string, attachmentIds: string[] = []) => {
     setError('');
-    try { append(await chat.backend.post(conversation.id, body, rootId)); chat.notify({ type: 'changed', conversationId: conversation.id }); await chat.refresh(); } catch (reason) { setError(chatErrorMessage(reason, 'Ответ не отправлен')); throw reason; }
+    try { append(await chat.backend.post(conversation.id, body, rootId, attachmentIds)); chat.notify({ type: 'changed', conversationId: conversation.id }); await chat.refresh(); } catch (reason) { setError(chatErrorMessage(reason, 'Ответ не отправлен')); throw reason; }
   };
   return <Surface className="chat-thread" aria-label="Обсуждение">
     <SectionHeader title="Обсуждение" meta={items ? <Badge>{items.length}</Badge> : undefined} action={<IconButton label="Закрыть обсуждение" icon={X} onClick={onClose} />} />
@@ -252,7 +252,7 @@ function ThreadPanel({ conversation, rootId, onClose, onEdit, onDelete }: { conv
     </div>
     {error && <div className="form-error" role="alert">{error}</div>}
     {history.newBelow && <button type="button" className="new-messages" onClick={history.scrollToEnd}>Новые сообщения ↓</button>}
-    {isMember && !conversation.archivedAt && <Composer people={chat.people} placeholder="Ответить в обсуждении" label="Ответ в обсуждении" onSend={send} autoFocus />}
+    {isMember && !conversation.archivedAt && <Composer people={chat.people} placeholder="Ответить в обсуждении" label="Ответ в обсуждении" onSend={send} upload={(file) => chat.backend.uploadAttachment(conversation.id, file)} autoFocus />}
   </Surface>;
 }
 

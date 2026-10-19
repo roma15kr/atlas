@@ -22,7 +22,7 @@ import {
   demoBoardUsers,
   fallbackSession,
 } from '../data/demo';
-import type { DirectoryEntry, Achievement, AiAnalysis, AiMode, Alert, AuditEvent, ReportRun, BoardUser, Client, CompanyDocument, DashboardMetrics, Deal, KpiInput, ProfileInput, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Kpi, Report, Role, Session, TaskAssignee, TaskBoard, TaskCategory, TaskPriority, TaskStage, TaskStageSummary, User, WorkTask } from '../types';
+import type { DirectoryEntry, Achievement, AiAnalysis, AiMode, Alert, AuditEvent, ReportRun, BoardUser, Client, CompanyDocument, DashboardMetrics, Deal, DealPatch, KpiInput, ProfileInput, DealStage, DealStageSummary, Funnel, FunnelAccessMode, Kpi, Report, Role, Session, TaskAssignee, TaskBoard, TaskCategory, TaskPriority, TaskStage, TaskStageSummary, User, WorkTask } from '../types';
 
 const roleRank: Record<Role, number> = { EMPLOYEE: 1, MANAGER: 2, DIRECTOR: 3 };
 export const REFRESH_INTERVAL_MS = 180_000;
@@ -409,6 +409,8 @@ interface WorkspaceValue {
   moveDeal: (id: string, stageId: string, funnelId?: string) => Promise<void>;
   /** Saves a deal's Markdown notes; an empty string clears them. */
   updateDealNotes: (id: string, notes: string) => Promise<void>;
+  /** Corrects a deal's details; only the changed fields are sent. */
+  updateDeal: (id: string, patch: DealPatch) => Promise<void>;
   funnelConfig: FunnelConfig;
   addTask: (input: TaskInput) => Promise<WorkTask>;
   updateTask: (id: string, patch: Partial<TaskInput>) => Promise<void>;
@@ -691,6 +693,26 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const raw = await remote(() => api.update<Record<string, unknown>>('deals', id, { notes }));
     setDeals((current) => current.map((deal) => deal.id !== id ? deal : raw ? normalizeDeal(raw) : { ...deal, notes: notes || null }));
   }, [remote]);
+
+  const updateDeal = useCallback(async (id: string, patch: DealPatch) => {
+    const raw = await remote(() => api.update<Record<string, unknown>>('deals', id, patch));
+    setDeals((current) => current.map((deal) => {
+      if (deal.id !== id) return deal;
+      if (raw) return normalizeDeal(raw);
+      // Demo: the same fields locally; an employee's deal stays theirs, as on the server.
+      const stage = patch.stageId ? funnels.flatMap((funnel) => funnel.stages).find((item) => item.id === patch.stageId) : undefined;
+      const owner = patch.ownerId && session?.user.role !== 'EMPLOYEE' ? users.find((member) => member.id === patch.ownerId) : undefined;
+      return {
+        ...deal,
+        ...(patch.title !== undefined ? { title: patch.title } : {}),
+        ...(patch.value !== undefined ? { value: patch.value } : {}),
+        ...(patch.probability !== undefined ? { probability: patch.probability } : {}),
+        ...(patch.expectedCloseAt !== undefined ? { expectedCloseAt: patch.expectedCloseAt } : {}),
+        ...(stage ? { stage: { id: stage.id, name: stage.name, color: stage.color, outcome: stage.outcome } } : {}),
+        ...(owner ? { ownerId: owner.id, ownerName: owner.fullName } : {}),
+      };
+    }));
+  }, [remote, funnels, users, session]);
 
   const moveDeal = useCallback(async (id: string, stageId: string, funnelId?: string) => {
     const raw = await remote(() => api.update<Record<string, unknown>>('deals', id, funnelId ? { funnelId, stageId } : { stageId }));
@@ -1024,10 +1046,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     users: visibleUsers,
     clients: scopedClients, deals: scopedDeals, funnels: visibleFunnels, taskBoards: visibleBoards, tasks: visibleTasks, documents, reports, alerts: visibleAlerts,
     achievements, audit, dashboardMetrics: metrics, refresh,
-    dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, teamDirectory, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, updateDealNotes, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, loadAnalyses,
+    dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, teamDirectory, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, updateDealNotes, updateDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, loadAnalyses,
   // scoped is intentionally derived from current session and collections.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, teamDirectory, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, updateDealNotes, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, loadAnalyses, session]);
+  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, teamDirectory, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, updateDealNotes, updateDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, loadAnalyses, session]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

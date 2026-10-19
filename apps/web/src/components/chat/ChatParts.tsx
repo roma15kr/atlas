@@ -1,6 +1,6 @@
 import { ReactionBar } from '../reactions/ReactionBar';
 import { ReactionPicker } from '../reactions/ReactionPicker';
-import { Copy, MessageSquareReply, Pencil, Plus, Send, Trash2, Users } from 'lucide-react';
+import { Copy, Download, FileArchive, FileImage, FileSpreadsheet, FileText, MessageSquareReply, Paperclip, Pencil, Plus, Presentation, Send, Trash2, Users, X } from 'lucide-react';
 import { useEffect, useRef, useState, type TouchEvent } from 'react';
 import { conversationTitle, type ChatConversation, type ChatMessage, type ChatPerson } from '../../lib/chat';
 import { formatDateTime, plural } from '../../lib/format';
@@ -11,6 +11,9 @@ import { ChannelIconTile } from './ChannelIconPicker';
 import { EmojiPicker } from '../reactions/EmojiPicker';
 import { emojiName, QUICK_REACTIONS } from '../../lib/reactions';
 import { markdownToPlain } from '../../lib/markdown';
+import { ATTACHMENT_ACCEPT, attachmentProblem, ATTACHMENTS_PER_MESSAGE, fileKind, formatFileSize, type ChatAttachment, type FileKind } from '../../lib/chatAttachments';
+import { chatErrorMessage } from '../../lib/chatErrors';
+import { useChat } from '../../context/ChatContext';
 
 /** Characters of Markdown in one chat message (the API limit). */
 export const CHAT_MESSAGE_LIMIT = 4000;
@@ -66,7 +69,8 @@ export function MessageItem({ message, people, me, canModerate, onReply, onEdit,
     <Avatar name={message.author.fullName} src={message.author.avatarUrl ?? undefined} size="sm" />
     <div className="chat-message__main">
       <header><strong>{message.author.fullName}{!message.author.active && <small> · деактивирован</small>}</strong><time dateTime={message.createdAt} title={formatDateTime(message.createdAt)}>{time(message.createdAt)}</time>{message.editedAt && !deleted && <small>изменено</small>}</header>
-      <div className={`chat-message__text${deleted ? ' chat-message__deleted' : ''}`}>{deleted ? 'Сообщение удалено' : <MessageText body={message.body ?? ''} people={people} myUsername={me.username} />}</div>
+      {(deleted || message.body) && <div className={`chat-message__text${deleted ? ' chat-message__deleted' : ''}`}>{deleted ? 'Сообщение удалено' : <MessageText body={message.body ?? ''} people={people} myUsername={me.username} />}</div>}
+      {!deleted && Boolean(message.attachments?.length) && <AttachmentList attachments={message.attachments!} />}
       {!deleted && <ReactionBar reactions={message.reactions} meId={me.id} onToggle={onReact} />}
       {onOpenThread && message.replyCount > 0 && <button type="button" className="text-button chat-message__thread" onClick={onOpenThread}><MessageSquareReply size={13} />{plural(message.replyCount, REPLIES)}{message.lastReplyAt && <span> · {time(message.lastReplyAt)}</span>}</button>}
     </div>
@@ -123,21 +127,91 @@ function MessageSheet({ onClose, onReact, mine, onReply, onCopy, onEdit, onDelet
   </Dialog>;
 }
 
-/** Text input with Enter to send, Shift+Enter for a new line, and `@` autocomplete from `people`. */
-export function Composer({ people, placeholder, onSend, disabled, label = 'Сообщение', autoFocus }: {
-  people: ChatPerson[]; placeholder: string; onSend: (body: string) => Promise<void>; disabled?: boolean; label?: string; autoFocus?: boolean;
+/** A file being attached: uploading, ready (with its id) or failed. */
+interface PendingFile { key: string; name: string; size: number; attachment?: ChatAttachment; error?: string }
+
+/**
+ * Text input with Enter to send, Shift+Enter for a new line, and `@` autocomplete from `people`. With `upload`, files can
+ * be attached with the paper clip or dropped on it; each uploads at once and the message carries their ids.
+ */
+export function Composer({ people, placeholder, onSend, upload, disabled, label = 'Сообщение', autoFocus }: {
+  people: ChatPerson[]; placeholder: string; onSend: (body: string, attachmentIds: string[]) => Promise<void>;
+  upload?: (file: File) => Promise<ChatAttachment>; disabled?: boolean; label?: string; autoFocus?: boolean;
 }) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [files, setFiles] = useState<PendingFile[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const picker = useRef<HTMLInputElement>(null);
+  const uploading = files.some((file) => !file.attachment && !file.error);
+  const ready = files.flatMap((file) => file.attachment ? [file.attachment.id] : []);
+  const attach = (chosen: File[]) => {
+    if (!upload) return;
+    const room = ATTACHMENTS_PER_MESSAGE - files.length;
+    chosen.slice(0, Math.max(0, room)).forEach((file) => {
+      const key = crypto.randomUUID();
+      const problem = attachmentProblem(file);
+      setFiles((current) => [...current, { key, name: file.name, size: file.size, error: problem ?? undefined }]);
+      if (problem) return;
+      upload(file).then(
+        (attachment) => setFiles((current) => current.map((item) => item.key === key ? { ...item, attachment } : item)),
+        (reason) => setFiles((current) => current.map((item) => item.key === key ? { ...item, error: chatErrorMessage(reason, 'Файл не загружен') } : item)),
+      );
+    });
+  };
   const send = async (markdown = text) => {
     const body = markdown.trim();
-    if (!body || sending || disabled || !fitsLimit(body, CHAT_MESSAGE_LIMIT)) return;
+    if ((!body && !ready.length) || uploading || sending || disabled || !fitsLimit(body, CHAT_MESSAGE_LIMIT)) return;
     setSending(true);
-    try { await onSend(body); setText(''); } finally { setSending(false); }
+    try { await onSend(body, ready); setText(''); setFiles([]); } finally { setSending(false); }
   };
-  return <div className="chat-composer">
-    <RichTextEditor value={text} onChange={setText} maxLength={CHAT_MESSAGE_LIMIT} label={label} placeholder={placeholder} people={people}
-      onSubmit={(markdown) => void send(markdown)} autoFocus={autoFocus} disabled={disabled} minRows={1} />
-    <IconButton label="Отправить" icon={Send} className="chat-composer__send" disabled={disabled || sending || !text.trim() || !fitsLimit(text.trim(), CHAT_MESSAGE_LIMIT)} onClick={() => void send()} />
+  return <div className={`chat-composer${dragging ? ' is-dragging' : ''}`}
+    onDragOver={(event) => { if (upload && event.dataTransfer.types.includes('Files')) { event.preventDefault(); setDragging(true); } }}
+    onDragLeave={() => setDragging(false)}
+    onDrop={(event) => { if (!upload || !event.dataTransfer.files.length) return; event.preventDefault(); setDragging(false); attach([...event.dataTransfer.files]); }}>
+    {files.length > 0 && <ul className="chat-composer__files" aria-label="Прикреплённые файлы">{files.map((file) => <li key={file.key} className={file.error ? 'is-failed' : file.attachment ? '' : 'is-uploading'}>
+      <FileIcon name={file.name} /><span className="file-meta"><strong>{file.name}</strong><small>{file.error ?? (file.attachment ? formatFileSize(file.size) : 'Загружается…')}</small></span>
+      <IconButton label={`Убрать ${file.name}`} icon={X} onClick={() => setFiles((current) => current.filter((item) => item.key !== file.key))} />
+    </li>)}</ul>}
+    <div className="chat-composer__row">
+      {upload && <>
+        <IconButton label="Прикрепить файл" icon={Paperclip} className="chat-composer__attach" disabled={disabled || files.length >= ATTACHMENTS_PER_MESSAGE} onClick={() => picker.current?.click()} />
+        <input ref={picker} type="file" hidden multiple accept={ATTACHMENT_ACCEPT} aria-label={`Файлы: ${label}`}
+          onChange={(event) => { const chosen = [...(event.target.files ?? [])]; event.target.value = ''; attach(chosen); }} />
+      </>}
+      <RichTextEditor value={text} onChange={setText} maxLength={CHAT_MESSAGE_LIMIT} label={label} placeholder={placeholder} people={people}
+        onSubmit={(markdown) => void send(markdown)} autoFocus={autoFocus} disabled={disabled} minRows={1} />
+      <IconButton label="Отправить" icon={Send} className="chat-composer__send"
+        disabled={disabled || sending || uploading || (!text.trim() && !ready.length) || !fitsLimit(text.trim(), CHAT_MESSAGE_LIMIT)} onClick={() => void send()} />
+    </div>
+  </div>;
+}
+
+const FILE_ICONS: Record<FileKind, typeof FileText> = { pdf: FileText, sheet: FileSpreadsheet, doc: FileText, slides: Presentation, archive: FileArchive, image: FileImage, text: FileText };
+function FileIcon({ name }: { name: string }) {
+  const kind = fileKind(name);
+  const Icon = FILE_ICONS[kind];
+  return <span className={`file-icon file-icon--${kind}`}><Icon size={18} aria-hidden /></span>;
+}
+
+/** A message's files; a click downloads the original. */
+export function AttachmentList({ attachments }: { attachments: ChatAttachment[] }) {
+  const { backend } = useChat();
+  const [error, setError] = useState('');
+  const download = async (file: ChatAttachment) => {
+    setError('');
+    try {
+      const url = URL.createObjectURL(await backend.downloadAttachment(file.id));
+      const link = document.createElement('a');
+      link.href = url; link.download = file.fileName;
+      document.body.append(link); link.click(); link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    } catch (reason) { setError(chatErrorMessage(reason, 'Файл не скачан')); }
+  };
+  return <div className="chat-attachments">
+    {attachments.map((file) => <button key={file.id} type="button" className="chat-attachment" aria-label={`Скачать ${file.fileName}, ${formatFileSize(file.size)}`} onClick={() => void download(file)}>
+      <FileIcon name={file.fileName} /><span className="file-meta"><strong>{file.fileName}</strong><small>{formatFileSize(file.size)}</small></span><Download size={15} aria-hidden />
+    </button>)}
+    {error && <p className="form-error" role="alert">{error}</p>}
   </div>;
 }

@@ -45,6 +45,24 @@ describe('RichTextEditor', () => {
     await waitFor(() => expect(onChange).toHaveBeenLastCalledWith('- [ ] отправить КП'));
   });
 
+  it('removes a table with a second press instead of putting a table into its cell', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<Harness onChange={onChange} />);
+    const box = await screen.findByRole('textbox', { name: 'Описание' });
+    await user.click(box);
+    await user.click(screen.getByRole('button', { name: 'Таблица' }));
+    expect(box.querySelectorAll('table')).toHaveLength(1);
+    await user.keyboard('Артикул');
+    await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(expect.stringContaining('| Артикул |')));
+
+    await user.click(screen.getByRole('button', { name: 'Удалить таблицу' }));
+    expect(box.querySelectorAll('table')).toHaveLength(0);
+    expect(onChange.mock.lastCall?.[0] ?? '').not.toContain('|');
+    expect(onChange.mock.lastCall?.[0] ?? '').not.toContain('<br>');
+    expect(screen.getByRole('button', { name: 'Таблица' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
   it('shows how far over the limit the text is', async () => {
     render(<Harness initial={'а'.repeat(25)} maxLength={20} />);
     expect(await screen.findByRole('alert')).toHaveTextContent('Текст длиннее допустимого на 5 символов');
