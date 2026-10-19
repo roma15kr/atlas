@@ -6,7 +6,7 @@
 
 **Evidence.** Бабенко Станіслав, 2026-10-19: «В воронке продаж можно вносить корректировки? Заметки корректировать можно, а если мне нужно откорректировать сумму, процент вероятности, дату закрытия?» The API already accepts these changes; only the screen is missing.
 
-**Success metric.** Бабенко changes the amount, probability and close date of one of his deals in under 30 seconds, and the funnel totals update at once.
+**Success metric.** Бабенко changes the amount, probability and close date of a deal they own in under 30 seconds, and the funnel totals update at once.
 
 ## What Changes
 
