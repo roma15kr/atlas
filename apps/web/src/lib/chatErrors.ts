@@ -20,6 +20,10 @@ const messages: Record<string, string> = {
   CHAT_RATE_LIMITED: 'Слишком много сообщений подряд — подождите минуту',
   CHANNEL_NAME_TAKEN: 'Канал с таким названием уже есть',
   CHAT_INVALID_ICON: 'Выберите иконку и цвет из библиотеки',
+  UNSUPPORTED_FILE_TYPE: 'Такой файл не прикрепить: можно PDF, Word, Excel, CSV, PowerPoint, текст, ZIP или изображения',
+  FILE_TOO_LARGE: 'Файл больше 20 МБ',
+  CHAT_INVALID_ATTACHMENT: 'Файл не прикреплён — загрузите его ещё раз',
+  ATTACHMENT_NOT_FOUND: 'Файл недоступен',
   MESSAGE_NOT_FOUND: 'Сообщение недоступно',
   USER_NOT_FOUND: 'Сотрудник не найден',
 };

@@ -2,7 +2,7 @@ import { phoneViewport } from '../test/phone';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import App from '../App';
 import { AuthProvider, WorkspaceProvider } from '../context/AppContext';
 import { demoSessions, demoUsers } from '../data/demo';
@@ -273,6 +273,41 @@ describe('channel icons', () => {
     await within(list()).findByRole('button', { name: /Общий/ });
     const conversation = await screen.findByRole('region', { name: 'Разговор Общий' }, { timeout: 5_000 });
     expect(within(conversation).queryByRole('button', { name: 'Иконка канала' })).not.toBeInTheDocument();
+  });
+});
+
+describe('file attachments', () => {
+  const xlsx = () => new File([new Uint8Array([0x50, 0x4b, 0x03, 0x04, 1, 2, 3])], 'для склада.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+  it('attaches an Excel file, sends it without text, and downloads it from the message', async () => {
+    const user = userEvent.setup({ applyAccept: false });
+    const created = vi.fn(() => 'blob:atlas/file');
+    const original = { create: URL.createObjectURL, revoke: URL.revokeObjectURL };
+    URL.createObjectURL = created; URL.revokeObjectURL = vi.fn();
+    onTestFinished(() => { URL.createObjectURL = original.create; URL.revokeObjectURL = original.revoke; });
+    renderAs('director', '/messages?conversation=ch-general');
+    const conversation = await screen.findByRole('region', { name: 'Разговор Общий' }, { timeout: 5_000 });
+    await user.upload(within(conversation).getByLabelText('Файлы: Сообщение'), xlsx());
+    const pending = within(conversation).getByRole('list', { name: 'Прикреплённые файлы' });
+    expect(await within(pending).findByText('7 Б')).toBeInTheDocument();
+    await user.click(within(conversation).getByRole('button', { name: 'Отправить' }));
+
+    const card = await within(conversation).findByRole('button', { name: /Скачать для склада\.xlsx/ });
+    expect(within(conversation).queryByRole('list', { name: 'Прикреплённые файлы' })).not.toBeInTheDocument();
+    await user.click(card);
+    await waitFor(() => expect(created).toHaveBeenCalled());
+    expect(within(row(/Общий/)).getByText(/📎 Файл/)).toBeInTheDocument();
+  });
+
+  it('refuses a program file with a message, and keeps «Отправить» off for it', async () => {
+    const user = userEvent.setup({ applyAccept: false });
+    renderAs('director', '/messages?conversation=ch-general');
+    const conversation = await screen.findByRole('region', { name: 'Разговор Общий' }, { timeout: 5_000 });
+    await user.upload(within(conversation).getByLabelText('Файлы: Сообщение'), new File(['MZ'], 'setup.exe'));
+    expect(await within(conversation).findByText(/такой файл не прикрепить/)).toBeInTheDocument();
+    expect(within(conversation).getByRole('button', { name: 'Отправить' })).toBeDisabled();
+    await user.click(within(conversation).getByRole('button', { name: 'Убрать setup.exe' }));
+    expect(within(conversation).queryByText(/такой файл не прикрепить/)).not.toBeInTheDocument();
   });
 });
 

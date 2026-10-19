@@ -1,7 +1,8 @@
 import { firstName } from './format';
 import { aggregateReactions, toggleDemoReaction, type Reaction, type ReactionRow } from './reactions';
-import { apiRequest } from './api';
+import { api, apiRequest } from './api';
 import { parseChannelIcon } from './channelIcons';
+import { attachmentProblem, ATTACHMENTS_PER_MESSAGE, type ChatAttachment } from './chatAttachments';
 import type { Role, User } from '../types';
 
 export type ChatKind = 'DM' | 'GROUP' | 'CHANNEL';
@@ -22,6 +23,8 @@ export interface ChatMessage {
   createdAt: string;
   author: ChatAuthor;
   mentionedUserIds: string[];
+  /** Files attached to the message. */
+  attachments?: ChatAttachment[];
   reactions?: Reaction[];
 }
 export interface ChatConversation {
@@ -60,7 +63,10 @@ export interface ChatBackend {
   conversation(id: string): Promise<ChatConversation>;
   messages(id: string, before?: string): Promise<{ items: ChatMessage[]; hasMore: boolean }>;
   replies(messageId: string): Promise<{ root: ChatMessage; replies: ChatMessage[] }>;
-  post(conversationId: string, body: string, parentId?: string | null): Promise<ChatMessage>;
+  post(conversationId: string, body: string, parentId?: string | null, attachmentIds?: string[]): Promise<ChatMessage>;
+  /** Uploads one file for a message about to be sent in this conversation. */
+  uploadAttachment(conversationId: string, file: File): Promise<ChatAttachment>;
+  downloadAttachment(id: string): Promise<Blob>;
   edit(messageId: string, body: string): Promise<ChatMessage>;
   remove(messageId: string): Promise<void>;
   /** Adds or removes the caller's reaction; resolves the message's reactions. */
@@ -91,7 +97,13 @@ export const remoteChat: ChatBackend = {
     return { items: page.data, hasMore: page.meta.hasMore };
   },
   replies: (messageId) => apiRequest(`/chat/messages/${messageId}/replies`),
-  post: (conversationId, body, parentId) => apiRequest(`/chat/conversations/${conversationId}/messages`, { method: 'POST', body: { body, parentId: parentId ?? null } }),
+  post: (conversationId, body, parentId, attachmentIds = []) => apiRequest(`/chat/conversations/${conversationId}/messages`, { method: 'POST', body: { body, parentId: parentId ?? null, attachmentIds } }),
+  uploadAttachment: (conversationId, file) => {
+    const form = new FormData();
+    form.set('file', file);
+    return apiRequest(`/chat/conversations/${conversationId}/attachments`, { method: 'POST', body: form });
+  },
+  downloadAttachment: (id) => api.download(`/chat/attachments/${id}`),
   edit: (messageId, body) => apiRequest(`/chat/messages/${messageId}`, { method: 'PATCH', body: { body } }),
   remove: (messageId) => apiRequest(`/chat/messages/${messageId}`, { method: 'DELETE' }),
   react: (messageId, emoji, add) => apiRequest<Reaction[]>(add ? `/chat/messages/${messageId}/reactions` : `/chat/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`, add ? { method: 'POST', body: { emoji } } : { method: 'DELETE' }),
@@ -201,6 +213,7 @@ export function createDemoChat(users: User[], me: User): ChatBackend {
       createdAt: message.createdAt, author: person(message.authorId),
       mentionedUserIds: store.mentions.filter((item) => item.messageId === message.id).map((item) => item.userId),
       reactions: aggregateReactions(store.reactions, message.id),
+      attachments: message.deletedAt ? [] : store.attachments.filter((item) => item.messageId === message.id).map(({ id, fileName, mimeType, size }) => ({ id, fileName, mimeType, size })),
     };
   };
   const summary = (conversation: DemoConversation): ChatConversation => {
@@ -254,8 +267,11 @@ export function createDemoChat(users: User[], me: User): ChatBackend {
       find(root.conversationId);
       return { root: toMessage(root), replies: store.messages.filter((item) => item.parentId === root.id).map(toMessage) };
     },
-    post: async (conversationId, body, parentId) => {
+    post: async (conversationId, body, parentId, attachmentIds = []) => {
       const { conversation, isMember, myRole } = find(conversationId);
+      const files = [...new Set(attachmentIds)].map((id) => store.attachments.find((item) => item.id === id && item.conversationId === conversationId && item.uploaderId === me.id && !item.messageId));
+      if (files.some((file) => !file) || files.length > ATTACHMENTS_PER_MESSAGE) throw new ChatError('CHAT_INVALID_ATTACHMENT', 'Прикрепите файлы, загруженные в этот разговор');
+      if (!body.trim() && !files.length) throw new ChatError('VALIDATION_ERROR', 'Напишите сообщение или прикрепите файл');
       assertActive(conversation);
       if (!isMember) throw new ChatError('CHAT_JOIN_REQUIRED', 'Вступите в канал, чтобы писать');
       if (parentId) {
@@ -264,6 +280,7 @@ export function createDemoChat(users: User[], me: User): ChatBackend {
       }
       const message: DemoMessage = { id: crypto.randomUUID(), conversationId, authorId: me.id, parentId: parentId ?? null, body: body.trim(), createdAt: now(), editedAt: null, deletedAt: null };
       store.messages.push(message);
+      files.forEach((file) => { file!.messageId = message.id; });
       memberRow(conversationId)!.lastReadAt = message.createdAt;
       mentionIds(conversation, message.body, myRole).forEach((userId) => store.mentions.push({ messageId: message.id, userId, readAt: null }));
       return toMessage(message);
@@ -305,7 +322,23 @@ export function createDemoChat(users: User[], me: User): ChatBackend {
       }
       store.messages = store.messages.filter((item) => !erased.has(item.id));
       store.reactions = store.reactions.filter((item) => item.targetId !== messageId && !erased.has(item.targetId));
+      store.attachments = store.attachments.filter((item) => item.messageId !== messageId && !(item.messageId && erased.has(item.messageId)));
       store.mentions = store.mentions.filter((item) => item.messageId !== messageId);
+    },
+    uploadAttachment: async (conversationId, file) => {
+      const { conversation, isMember } = find(conversationId);
+      assertActive(conversation);
+      if (!isMember) throw new ChatError('CHAT_JOIN_REQUIRED', 'Вступите в канал, чтобы писать');
+      const problem = attachmentProblem(file);
+      if (problem) throw new ChatError('UNSUPPORTED_FILE_TYPE', problem);
+      const attachment: DemoAttachment = { id: crypto.randomUUID(), fileName: file.name, mimeType: file.type || 'application/octet-stream', size: file.size, conversationId, messageId: null, uploaderId: me.id, blob: file };
+      store.attachments.push(attachment);
+      return { id: attachment.id, fileName: attachment.fileName, mimeType: attachment.mimeType, size: attachment.size };
+    },
+    downloadAttachment: async (id) => {
+      const attachment = store.attachments.find((item) => item.id === id && (item.messageId ? find(item.conversationId).canRead : item.uploaderId === me.id));
+      if (!attachment) throw new ChatError('ATTACHMENT_NOT_FOUND', 'Файл не найден');
+      return attachment.blob;
     },
     direct: async (userId) => {
       const existing = store.conversations.find((item) => item.kind === 'DM' && memberRow(item.id) && memberRow(item.id, userId));
@@ -439,7 +472,8 @@ function parseDemoMentions(body: string): { usernames: string[]; channel: boolea
 }
 
 /** One shared store per page load, keyed by the user list, so switching demo users keeps the conversation history. */
-let sharedStore: { conversations: DemoConversation[]; members: DemoMember[]; messages: DemoMessage[]; mentions: DemoMentionRow[]; reactions: ReactionRow[] } | null = null;
+interface DemoAttachment extends ChatAttachment { conversationId: string; messageId: string | null; uploaderId: string; blob: Blob }
+let sharedStore: { conversations: DemoConversation[]; members: DemoMember[]; messages: DemoMessage[]; mentions: DemoMentionRow[]; reactions: ReactionRow[]; attachments: DemoAttachment[] } | null = null;
 
 export function resetDemoChat(): void { sharedStore = null; }
 
@@ -478,6 +512,6 @@ function demoStore(users: User[]) {
     { id: 'm7', conversationId: 'dm-director-employee', authorId: director, parentId: null, body: 'Анна, как прошла встреча с клиентом?', createdAt: minutesAgo(30), editedAt: null, deletedAt: null },
   ];
   const mentions: DemoMentionRow[] = [{ messageId: 'm3', userId: employee, readAt: null }];
-  sharedStore = { conversations, members, messages, mentions, reactions: [] };
+  sharedStore = { conversations, members, messages, mentions, reactions: [], attachments: [] };
   return sharedStore;
 }
