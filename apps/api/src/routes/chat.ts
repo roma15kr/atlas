@@ -1,4 +1,5 @@
 import { Router, type Request } from "express";
+import multer from "multer";
 import type { PoolClient } from "pg";
 import { z } from "zod";
 import { chatPermissions, loadConversation, type ChatConversationRow, type ChatPermissions } from "../access";
@@ -11,7 +12,10 @@ import { notify, removeNotifications } from "../notifications/notify";
 import { plainPreview } from "../notifications/preview";
 import { addReaction, CHAT_REACTIONS, reactionEmoji, reactionInput, reactionsSql, removeReaction, type Reaction } from "../reactions/reactions";
 import { emitToUsers } from "../realtime";
+import { attachmentType, CHAT_ATTACHMENTS_PER_MESSAGE, uploadedFileName } from "../chat/attachments";
 import { isChannelIcon } from "../chat/channelIcons";
+import { config } from "../config";
+import { objectStorage } from "../storage";
 import { deleteStoredImages, forgetUnusedImages } from "./images";
 import { chatAccessSql } from "../scope";
 import type { AuthContext } from "../types";
@@ -42,7 +46,11 @@ export const groupCreateSchema = z.object({
   userIds: userIdsSchema,
   name: z.string().trim().max(80).nullable().optional()
 });
-const messageSchema = z.object({ body: bodySchema, parentId: z.string().uuid().nullable().optional() });
+const messageSchema = z.object({
+  body: z.string().trim().max(4000).default(""),
+  parentId: z.string().uuid().nullable().optional(),
+  attachmentIds: z.array(z.string().uuid()).max(CHAT_ATTACHMENTS_PER_MESSAGE).default([])
+}).refine((input) => input.body.length > 0 || input.attachmentIds.length > 0, { message: "Write a message or attach a file", path: ["body"] });
 
 type Conversation = ChatConversationRow & ChatPermissions;
 
@@ -147,7 +155,9 @@ const messageColumns = `x.id, x.conversation_id AS "conversationId", x.parent_id
   x.reply_count AS "replyCount", x.last_reply_at AS "lastReplyAt", x.edited_at AS "editedAt",
   x.deleted_at AS "deletedAt", x.created_at AS "createdAt", ${authorJson} AS author,
   ARRAY(SELECT mm.user_id FROM chat_mentions mm WHERE mm.message_id = x.id) AS "mentionedUserIds",
-  ${reactionsSql(CHAT_REACTIONS, "x.id")} AS reactions`;
+  ${reactionsSql(CHAT_REACTIONS, "x.id")} AS reactions,
+  CASE WHEN x.deleted_at IS NULL THEN (SELECT coalesce(json_agg(json_build_object('id', a.id, 'fileName', a.file_name, 'mimeType', a.mime_type, 'size', a.size_bytes)
+    ORDER BY a.created_at, a.id), '[]'::json) FROM chat_attachments a WHERE a.message_id = x.id) ELSE '[]'::json END AS attachments`;
 
 async function messageById(id: string): Promise<Record<string, unknown>> {
   const result = await query(`SELECT ${messageColumns} FROM chat_messages x JOIN users u ON u.id = x.author_id WHERE x.id = $1`, [id]);
@@ -635,10 +645,8 @@ async function notifyChat(auth: AuthContext, conversation: { id: string; kind: s
   });
 }
 
-chatRouter.post("/conversations/:id/messages", chatPostLimiter, asyncHandler(async (req, res) => {
-  const auth = requireAuth(req);
-  const conversation = await loadConversation(auth, idSchema.parse(req.params.id));
-  const input = messageSchema.parse(req.body);
+/** Posting (a message or a file for one) needs membership of an active conversation, and an active DM partner. */
+async function assertCanPost(conversation: Conversation): Promise<void> {
   assertActive(conversation);
   if (!conversation.isMember) throw new ApiError(409, "CHAT_JOIN_REQUIRED", "Join the channel to post");
   if (conversation.kind === "DM") {
@@ -648,6 +656,67 @@ chatRouter.post("/conversations/:id/messages", chatPostLimiter, asyncHandler(asy
     );
     if (inactive.rowCount) throw new ApiError(409, "CONVERSATION_ARCHIVED", "This colleague is no longer active");
   }
+}
+
+const attachmentUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.maxUploadBytes, files: 1 } });
+
+/** `POST /chat/conversations/:id/attachments`: one file (`file`) for a message the caller is about to send. */
+chatRouter.post("/conversations/:id/attachments", chatPostLimiter, (req, res, next) => attachmentUpload.single("file")(req, res, (error: unknown) => {
+  if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") next(new ApiError(413, "FILE_TOO_LARGE", `Files can be up to ${config.MAX_UPLOAD_MB} MB`));
+  else next(error);
+}), asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const conversation = await loadConversation(auth, idSchema.parse(req.params.id));
+  await assertCanPost(conversation);
+  if (!req.file) throw new ApiError(400, "FILE_REQUIRED", "Attach a file as `file`");
+  const fileName = uploadedFileName(req.file.originalname);
+  const mime = attachmentType(fileName, req.file.buffer);
+  if (!mime) throw new ApiError(400, "UNSUPPORTED_FILE_TYPE", "PDF, Word, Excel, CSV, PowerPoint, text, ZIP or images only");
+  const stored = await objectStorage.put({ companyId: auth.companyId, fileName, body: req.file.buffer });
+  let id: string;
+  try {
+    id = (await query<{ id: string }>(
+      `INSERT INTO chat_attachments (company_id, conversation_id, uploaded_by, file_name, mime_type, size_bytes, storage_key)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [auth.companyId, conversation.id, auth.userId, fileName, mime, req.file.size, stored.key]
+    )).rows[0]!.id;
+  } catch (error) {
+    await objectStorage.delete(stored.key).catch(() => undefined);
+    throw error;
+  }
+  await audit(req, auth, "CHAT_ATTACHMENT_UPLOADED", conversation.id, { attachmentId: id, mimeType: mime, size: req.file.size });
+  res.status(201).json({ data: { id, fileName, mimeType: mime, size: req.file.size } });
+}));
+
+/** `GET /chat/attachments/:id`: the original file, for whoever may read its conversation (an unsent one: its uploader). */
+chatRouter.get("/attachments/:id", asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const id = z.string().uuid().safeParse(req.params.id);
+  if (!id.success) throw new ApiError(404, "ATTACHMENT_NOT_FOUND", "File not found");
+  const access = chatAccessSql(auth, "a.conversation_id", 4);
+  const file = (await query<{ file_name: string; mime_type: string; storage_key: string }>(
+    `SELECT a.file_name, a.mime_type, a.storage_key FROM chat_attachments a
+     LEFT JOIN chat_messages x ON x.id = a.message_id
+     WHERE a.id = $1 AND a.company_id = $2 AND (x.deleted_at IS NULL OR x.id IS NULL)
+       AND (a.message_id IS NOT NULL OR a.uploaded_by = $3) AND ${access.sql}`,
+    [id.data, auth.companyId, auth.userId, ...access.values]
+  )).rows[0];
+  if (!file) throw new ApiError(404, "ATTACHMENT_NOT_FOUND", "File not found");
+  const stream = await objectStorage.get(file.storage_key).catch(() => null);
+  if (!stream) throw new ApiError(404, "ATTACHMENT_NOT_FOUND", "File not found");
+  res.setHeader("Content-Type", file.mime_type);
+  res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(file.file_name)}`);
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Cache-Control", "private, no-store");
+  stream.on("error", (error) => res.destroy(error));
+  stream.pipe(res);
+}));
+
+chatRouter.post("/conversations/:id/messages", chatPostLimiter, asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const conversation = await loadConversation(auth, idSchema.parse(req.params.id));
+  const input = messageSchema.parse(req.body);
+  await assertCanPost(conversation);
   const { id, mentioned } = await transaction(async (client) => {
     if (input.parentId) {
       const parent = await client.query<{ parent_id: string | null }>(
@@ -666,6 +735,15 @@ chatRouter.post("/conversations/:id/messages", chatPostLimiter, asyncHandler(asy
     }
     await client.query("UPDATE chat_conversations SET last_message_at = $2 WHERE id = $1", [conversation.id, message.created_at]);
     await client.query("UPDATE chat_members SET last_read_at = greatest(last_read_at, $3) WHERE conversation_id = $1 AND user_id = $2", [conversation.id, auth.userId, message.created_at]);
+    if (input.attachmentIds.length) {
+      const wanted = [...new Set(input.attachmentIds)];
+      const linked = await client.query(
+        `UPDATE chat_attachments SET message_id = $1
+         WHERE id = ANY($2::uuid[]) AND conversation_id = $3 AND uploaded_by = $4 AND message_id IS NULL`,
+        [message.id, wanted, conversation.id, auth.userId]
+      );
+      if (linked.rowCount !== wanted.length) throw new ApiError(400, "CHAT_INVALID_ATTACHMENT", "Attach files uploaded to this conversation");
+    }
     const mentionedIds = await resolveMentions(auth, conversation, input.body, client);
     if (mentionedIds.length) await client.query("INSERT INTO chat_mentions (message_id, user_id) SELECT $1, unnest($2::uuid[])", [message.id, mentionedIds]);
     return { id: message.id, mentioned: mentionedIds };
@@ -675,15 +753,18 @@ chatRouter.post("/conversations/:id/messages", chatPostLimiter, asyncHandler(asy
   emitToUsers(members, "chat:message", { conversationId: conversation.id, message });
   const outsiders = mentioned.filter((user) => !members.includes(user));
   emitToUsers(outsiders, "chat:mention", { conversationId: conversation.id, messageId: id });
-  await notifyChat(auth, conversation, { id, parentId: input.parentId ?? null, body: input.body }, mentioned);
+  const preview = input.body || (message as { attachments?: Array<{ fileName: string }> }).attachments?.map((file) => `📎 ${file.fileName}`).join(", ") || "";
+  await notifyChat(auth, conversation, { id, parentId: input.parentId ?? null, body: preview }, mentioned);
   res.status(201).json({ data: message });
 }));
 
 chatRouter.patch("/messages/:id", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
   const { message, conversation } = await messageContext(auth, idSchema.parse(req.params.id));
-  const { body } = z.object({ body: bodySchema }).parse(req.body);
+  const { body } = z.object({ body: z.string().trim().max(4000) }).parse(req.body);
   if (message.author_id !== auth.userId) throw new ApiError(403, "CHAT_FORBIDDEN", "Only the author can edit a message");
+  // A message may lose its text only if it still carries files.
+  if (!body && !(await query("SELECT 1 FROM chat_attachments WHERE message_id = $1 LIMIT 1", [message.id])).rowCount) bodySchema.parse(body);
   if (message.deleted_at) throw new ApiError(409, "CHAT_MESSAGE_DELETED", "The message was deleted");
   assertActive(conversation);
   await transaction(async (client) => {
@@ -710,6 +791,8 @@ chatRouter.delete("/messages/:id", asyncHandler(async (req, res) => {
       const row = (await client.query<{ body: string; deleted_at: Date | null }>(
         "SELECT body, deleted_at FROM chat_messages WHERE id = $1 FOR UPDATE", [message.id])).rows[0];
       if (!row || row.deleted_at) return { removed: [] as string[], anchored: false, images: [] as string[] };
+      // Its attached files go first (an anchor keeps none): the rows would cascade with the message, the objects would not.
+      const files = await client.query<{ storage_key: string }>("DELETE FROM chat_attachments WHERE message_id = $1 RETURNING storage_key", [message.id]);
       const removedIds: string[] = [];
       let anchor = false;
       if (message.parent_id) {
@@ -738,7 +821,7 @@ chatRouter.delete("/messages/:id", asyncHandler(async (req, res) => {
         `UPDATE chat_conversations c SET last_message_at = coalesce((SELECT max(created_at) FROM chat_messages WHERE conversation_id = c.id), c.created_at)
          WHERE c.id = $1`, [conversation.id]);
       const keys = await forgetUnusedImages(client, auth.companyId, message.author_id, row.body);
-      return { removed: removedIds, anchored: anchor, images: keys };
+      return { removed: removedIds, anchored: anchor, images: [...keys, ...files.rows.map((file) => file.storage_key)] };
     });
     await deleteStoredImages(images);
     await removeNotifications("chat_message", [...removed, ...(anchored ? [message.id] : [])]);
