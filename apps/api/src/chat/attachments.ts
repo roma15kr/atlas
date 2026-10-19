@@ -44,6 +44,8 @@ export function attachmentType(fileName: string, body: Buffer): string | null {
 /** Multer reads multipart file names as Latin-1; browsers send UTF-8, so Cyrillic names need re-decoding. */
 export function uploadedFileName(original: string): string {
   const decoded = Buffer.from(original, "latin1").toString("utf8");
-  const name = (decoded.includes("�") ? original : decoded).replace(/[\u0000-\u001f\u007f/\\]/g, "_").trim();
+  // Control characters and path separators become «_».
+  const name = [...(decoded.includes("�") ? original : decoded)]
+    .map((char) => char.charCodeAt(0) < 0x20 || char.charCodeAt(0) === 0x7f || char === "/" || char === "\\" ? "_" : char).join("").trim();
   return (name || "файл").slice(-255);
 }
