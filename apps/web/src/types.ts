@@ -107,6 +107,9 @@ export interface Deal {
   notes?: string | null;
 }
 
+/** The deal fields that can be corrected after creation. */
+export interface DealPatch { title?: string; value?: number; probability?: number; expectedCloseAt?: string; stageId?: string; ownerId?: string }
+
 export type StageOutcome = 'OPEN' | 'WON' | 'LOST';
 
 export interface DealStageSummary {
