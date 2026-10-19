@@ -24,6 +24,7 @@
 - While working, run only the tests you touched (fast feedback), then `make check` at the end:
   - `cd apps/api && npx vitest run src/routes/team.test.ts -t "test name"`, or the same under `apps/web`.
 - Never skip, weaken or delete a test, and never loosen lint or type settings to make the gate pass.
+- Commit only through `make check && git commit …`; never pipe the gate (`make check | tail` hides a failure) unless `set -o pipefail` is on.
 - Run the app locally:
   - `npm run dev` runs the full stack in Docker at http://localhost:8080, with the accounts `director`, `manager` and `employee` (password `AtlasDemo2026!`).
   - Or run `apps/web` `npm run dev`, which uses demo data or proxies to the API on port 3000.
