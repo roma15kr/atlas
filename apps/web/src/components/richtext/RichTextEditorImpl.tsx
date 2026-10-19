@@ -176,7 +176,10 @@ export default function RichTextEditorImpl({ value, onChange, maxLength, label, 
     { label: 'Цитата', icon: Quote, active: state.quote, run: () => editor.chain().focus().toggleBlockquote().run() },
     { label: 'Код', icon: Code, active: state.code, run: () => editor.chain().focus().toggleCode().run() },
     { label: 'Ссылка', icon: Link2, active: state.link, run: () => setLinkOpen(true) },
-    { label: 'Таблица', icon: Table2, active: state.table, run: () => editor.chain().focus().insertTable({ rows: 3, cols: 2, withHeaderRow: true }).run() },
+    // Inside a table the button removes it: a second table can't go into a cell (Markdown has no nested tables).
+    state.table
+      ? { label: 'Удалить таблицу', icon: Table2, active: true, run: () => editor.chain().focus().deleteTable().run() }
+      : { label: 'Таблица', icon: Table2, active: false, run: () => editor.chain().focus().insertTable({ rows: 3, cols: 2, withHeaderRow: true }).run() },
     { label: 'Изображение', icon: ImagePlus, active: false, run: () => fileInput.current?.click() }
   ];
 
