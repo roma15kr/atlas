@@ -1,6 +1,10 @@
 import { ApiError } from './api';
 
 const messages: Record<string, string> = {
+  UNSUPPORTED_FILE_TYPE: 'Такой файл не прикрепить: можно PDF, Word, Excel, CSV, PowerPoint, текст, ZIP или изображения',
+  FILE_TOO_LARGE: 'Файл больше 20 МБ',
+  TASK_INVALID_ATTACHMENT: 'Файл не прикреплён — загрузите его ещё раз',
+  ATTACHMENT_NOT_FOUND: 'Файл недоступен',
   BOARD_MANAGER_ONLY: 'Настраивать доску может директор или руководитель её отдела',
   BOARD_NAME_TAKEN: 'В отделе уже есть доска с таким названием',
   BOARD_NOT_FOUND: 'Доска недоступна',

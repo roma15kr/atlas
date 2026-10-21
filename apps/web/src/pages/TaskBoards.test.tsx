@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import App from '../App';
 import { AuthProvider, WorkspaceProvider } from '../context/AppContext';
 import { demoSessions } from '../data/demo';
@@ -120,6 +120,37 @@ describe('my tasks', () => {
     expect(await within(comments).findByText('ждём ответа', { selector: 'strong' })).toBeInTheDocument();
     expect(within(comments).getByText('Анна Петрова')).toBeInTheDocument();
     await waitFor(() => expect(within(comments).getByRole('textbox', { name: 'Новый комментарий' })).toHaveTextContent(''));
+  });
+
+  it('attaches a file to a comment, posts it without text, and downloads it', async () => {
+    const user = userEvent.setup({ applyAccept: false });
+    const created = vi.fn(() => 'blob:atlas/price');
+    const original = { create: URL.createObjectURL, revoke: URL.revokeObjectURL };
+    URL.createObjectURL = created; URL.revokeObjectURL = vi.fn();
+    onTestFinished(() => { URL.createObjectURL = original.create; URL.revokeObjectURL = original.revoke; });
+    renderAs('employee', '/tasks');
+    await user.click(await screen.findByRole('button', { name: 'Прайс для партнёров' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Задача' });
+    const comments = within(dialog).getByRole('region', { name: 'Комментарии' });
+    await within(comments).findByText('Комментариев пока нет');
+    await user.upload(within(comments).getByLabelText('Файлы: Новый комментарий'), new File([new Uint8Array([0x50, 0x4b, 0x03, 0x04, 9])], 'прайс.xlsx'));
+    expect(await within(comments).findByText('5 Б')).toBeInTheDocument();
+    await user.click(within(comments).getByRole('button', { name: 'Добавить комментарий' }));
+
+    const file = await within(comments).findByRole('button', { name: /Скачать прайс\.xlsx/ });
+    expect(within(comments).queryByRole('list', { name: 'Прикреплённые файлы' })).not.toBeInTheDocument();
+    await user.click(file);
+    await waitFor(() => expect(created).toHaveBeenCalled());
+  });
+
+  it('refuses a program file in a comment with a Russian message', async () => {
+    const user = userEvent.setup({ applyAccept: false });
+    renderAs('employee', '/tasks');
+    await user.click(await screen.findByRole('button', { name: 'Прайс для партнёров' }));
+    const comments = within(await screen.findByRole('dialog', { name: 'Задача' })).getByRole('region', { name: 'Комментарии' });
+    await user.upload(within(comments).getByLabelText('Файлы: Новый комментарий'), new File(['MZ'], 'setup.exe'));
+    expect(await within(comments).findByText(/такой файл не прикрепить/)).toBeInTheDocument();
+    expect(within(comments).getByRole('button', { name: 'Добавить комментарий' })).toBeDisabled();
   });
 
   it('preselects the current user and offers the whole company, grouped by department', async () => {
