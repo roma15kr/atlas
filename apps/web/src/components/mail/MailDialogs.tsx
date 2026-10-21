@@ -84,7 +84,7 @@ export function CreateDealFromMailDialog({ thread, onClose, onSaved }: { thread:
     <form id="mail-deal-form" className="form-grid" onSubmit={(event) => void submit(event)}>
       <Field label="Название" className="field--wide"><input value={title} required maxLength={200} onChange={(event) => setTitle(event.target.value)} /></Field>
       <SelectField label="Воронка" value={funnelId} onChange={(event) => setFunnelId(event.target.value)}>{funnels.map((funnel) => <option key={funnel.id} value={funnel.id}>{funnel.name}</option>)}</SelectField>
-      <Field label="Сумма, ₴"><input type="number" min="0" step="1000" value={value} onChange={(event) => setValue(event.target.value)} /></Field>
+      <Field label="Сумма, ₴"><input type="number" min="0" max="1000000000" step="0.01" value={value} onChange={(event) => setValue(event.target.value)} /></Field>
       {error && <div className="form-error field--wide" role="alert">{error}</div>}
     </form>
   </Dialog>;
