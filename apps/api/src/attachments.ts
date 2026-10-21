@@ -1,6 +1,6 @@
-import { detectRichImageType } from "../routes/images";
+import { detectRichImageType } from "./routes/images";
 
-/** Files that may be attached to a chat message, by extension, with the check their content must pass. */
+/** Files that may be attached to a chat message or a task comment, by extension, with the check their content must pass. */
 const TYPES: Record<string, { mime: string; content: "pdf" | "zip" | "ole" | "text" | "image" }> = {
   pdf: { mime: "application/pdf", content: "pdf" },
   docx: { mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", content: "zip" },
@@ -18,7 +18,8 @@ const TYPES: Record<string, { mime: string; content: "pdf" | "zip" | "ole" | "te
   webp: { mime: "image/webp", content: "image" }
 };
 
-export const CHAT_ATTACHMENTS_PER_MESSAGE = 10;
+/** Files per chat message or task comment. */
+export const ATTACHMENTS_PER_ITEM = 10;
 
 const startsWith = (body: Buffer, bytes: number[]) => bytes.every((byte, index) => body[index] === byte);
 

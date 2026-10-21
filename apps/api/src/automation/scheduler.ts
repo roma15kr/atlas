@@ -6,7 +6,7 @@ import { processFeedback } from "./feedback";
 import { recomputeKpis } from "./kpis";
 import { runDueReports } from "./reports";
 import { runTaskReminders } from "./taskReminders";
-import { cleanupStaleChatUploads } from "./chatUploads";
+import { cleanupStaleUploads } from "./uploads";
 
 export interface AutomationStep { name: string; run: () => Promise<unknown> }
 
@@ -18,7 +18,7 @@ const steps: AutomationStep[] = [
   { name: "feedback", run: () => processFeedback() },
   { name: "reports", run: () => runDueReports() },
   { name: "task-reminders", run: () => runTaskReminders() },
-  { name: "chat-uploads", run: () => cleanupStaleChatUploads() }
+  { name: "attachment-uploads", run: () => cleanupStaleUploads() }
 ];
 
 export function registerAutomationStep(step: AutomationStep): void {

@@ -30,7 +30,7 @@ function textBeforeCursor(editor: Editor): string {
 /** Lists, code blocks and tables keep Enter for a new line or item instead of sending. */
 const insideStructure = (editor: Editor) => ['bulletList', 'orderedList', 'taskList', 'codeBlock', 'table'].some((name) => editor.isActive(name));
 
-export default function RichTextEditorImpl({ value, onChange, maxLength, label, placeholder, people, onSubmit, autoFocus, disabled, minRows = 3 }: RichTextEditorProps) {
+export default function RichTextEditorImpl({ value, onChange, maxLength, label, placeholder, people, onSubmit, autoFocus, disabled, minRows = 3, onFiles }: RichTextEditorProps) {
   // Values this editor emitted that the parent may still pass back (possibly an older one while typing fast).
   const pending = useRef<string[]>([value]);
   const [linkOpen, setLinkOpen] = useState(false);
@@ -38,8 +38,8 @@ export default function RichTextEditorImpl({ value, onChange, maxLength, label, 
   const [imageError, setImageError] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
   const [mention, setMention] = useState<{ query: string; highlight: number; dismissed: boolean } | null>(null);
-  const live = useRef({ onSubmit, onChange, people, mention, setLinkOpen, addImages: (_files: File[], _at?: number) => {} });
-  live.current = { onSubmit, onChange, people, mention, setLinkOpen, addImages: (files, at) => void addImages(files, at) };
+  const live = useRef({ onSubmit, onChange, people, mention, setLinkOpen, onFiles, addImages: (_files: File[], _at?: number) => {} });
+  live.current = { onSubmit, onChange, people, mention, setLinkOpen, onFiles, addImages: (files, at) => void addImages(files, at) };
 
   const suggestions = useMemo(() => {
     if (!mention || mention.dismissed || !people) return [];
@@ -129,10 +129,12 @@ export default function RichTextEditorImpl({ value, onChange, maxLength, label, 
     setMention(null);
   }
 
-  /** Uploads images and inserts each where the cursor (or the drop) was; anything else gets a message. */
+  /** Uploads images and inserts each where the cursor (or the drop) was; other files go to `onFiles`, or get a message. */
   async function addImages(files: File[], at?: number) {
     const images = files.filter(acceptableImage);
-    setImageError(images.length === files.length ? '' : IMAGE_RULES_MESSAGE);
+    const others = files.filter((file) => !acceptableImage(file));
+    if (others.length && live.current.onFiles) live.current.onFiles(others);
+    setImageError(!others.length || live.current.onFiles ? '' : IMAGE_RULES_MESSAGE);
     for (const file of images) {
       setUploads((count) => count + 1);
       try {

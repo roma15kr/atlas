@@ -127,8 +127,8 @@ describe("chat attachments", () => {
   it("cleans up uploads that were never sent after a day", async () => {
     const uploaded = await upload(hisham, general, PDF, "забуто.pdf");
     await harness.query("UPDATE chat_attachments SET created_at = now() - interval '25 hours' WHERE id = $1", [uploaded.body.data.id]);
-    const { cleanupStaleChatUploads } = await import("../automation/chatUploads");
-    expect(await cleanupStaleChatUploads()).toBeGreaterThanOrEqual(1);
+    const { cleanupStaleUploads } = await import("../automation/uploads");
+    expect(await cleanupStaleUploads()).toBeGreaterThanOrEqual(1);
     expect((await harness.query("SELECT 1 FROM chat_attachments WHERE id = $1", [uploaded.body.data.id])).rowCount).toBe(0);
   });
 });

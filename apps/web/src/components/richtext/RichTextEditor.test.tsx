@@ -8,9 +8,9 @@ import { RichTextEditor } from './RichTextEditor';
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
-function Harness({ initial = '', maxLength = 200, onChange, onSubmit }: { initial?: string; maxLength?: number; onChange?: (md: string) => void; onSubmit?: () => void }) {
+function Harness({ initial = '', maxLength = 200, onChange, onSubmit, onFiles }: { initial?: string; maxLength?: number; onChange?: (md: string) => void; onSubmit?: () => void; onFiles?: (files: File[]) => void }) {
   const [value, setValue] = useState(initial);
-  return <RichTextEditor value={value} maxLength={maxLength} label="Описание" onSubmit={onSubmit} onChange={(md) => { setValue(md); onChange?.(md); }} />;
+  return <RichTextEditor value={value} maxLength={maxLength} label="Описание" onSubmit={onSubmit} onFiles={onFiles} onChange={(md) => { setValue(md); onChange?.(md); }} />;
 }
 
 describe('RichTextEditor', () => {
@@ -88,6 +88,18 @@ describe('RichTextEditor', () => {
     const pdf = new File(['%PDF-1.7'], 'price.pdf', { type: 'application/pdf' });
     fireEvent.change(screen.getByLabelText('Изображение: Описание'), { target: { files: [pdf] } });
     expect(await screen.findByRole('alert')).toHaveTextContent('Можно добавить только изображение PNG, JPEG, GIF или WebP до 5 МБ');
+    expect(onChange.mock.calls.every(([markdown]) => markdown === '')).toBe(true);
+  });
+
+  it('hands a pasted spreadsheet to the attachments instead of refusing it', async () => {
+    const onFiles = vi.fn();
+    const onChange = vi.fn();
+    render(<Harness onChange={onChange} onFiles={onFiles} />);
+    const box = await screen.findByRole('textbox', { name: 'Описание' });
+    const xlsx = new File(['PK'], 'прайс.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    fireEvent.paste(box, { clipboardData: { files: [xlsx], types: ['Files'], getData: () => '' } });
+    expect(onFiles).toHaveBeenCalledWith([xlsx]);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(onChange.mock.calls.every(([markdown]) => markdown === '')).toBe(true);
   });
 

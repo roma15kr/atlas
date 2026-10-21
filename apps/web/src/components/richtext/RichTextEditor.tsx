@@ -16,6 +16,8 @@ export interface RichTextEditorProps {
   autoFocus?: boolean;
   disabled?: boolean;
   minRows?: number;
+  /** Receives dropped or pasted files that aren't images (images go inline); without it they get a message. */
+  onFiles?: (files: File[]) => void;
 }
 
 const Impl = lazy(() => import('./RichTextEditorImpl'));
