@@ -12,7 +12,7 @@ import { notify, removeNotifications } from "../notifications/notify";
 import { plainPreview } from "../notifications/preview";
 import { addReaction, CHAT_REACTIONS, reactionEmoji, reactionInput, reactionsSql, removeReaction, type Reaction } from "../reactions/reactions";
 import { emitToUsers } from "../realtime";
-import { attachmentType, CHAT_ATTACHMENTS_PER_MESSAGE, uploadedFileName } from "../chat/attachments";
+import { attachmentType, ATTACHMENTS_PER_ITEM, uploadedFileName } from "../attachments";
 import { isChannelIcon } from "../chat/channelIcons";
 import { config } from "../config";
 import { objectStorage } from "../storage";
@@ -49,7 +49,7 @@ export const groupCreateSchema = z.object({
 const messageSchema = z.object({
   body: z.string().trim().max(4000).default(""),
   parentId: z.string().uuid().nullable().optional(),
-  attachmentIds: z.array(z.string().uuid()).max(CHAT_ATTACHMENTS_PER_MESSAGE).default([])
+  attachmentIds: z.array(z.string().uuid()).max(ATTACHMENTS_PER_ITEM).default([])
 }).refine((input) => input.body.length > 0 || input.attachmentIds.length > 0, { message: "Write a message or attach a file", path: ["body"] });
 
 type Conversation = ChatConversationRow & ChatPermissions;
