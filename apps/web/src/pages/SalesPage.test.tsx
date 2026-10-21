@@ -73,3 +73,26 @@ describe('editing a deal', () => {
   }, 15_000);
 });
 
+describe('deal amounts', () => {
+  it('accepts an exact amount such as 10 550 ₴ (or with kopecks) when creating and editing a deal', async () => {
+    const user = userEvent.setup();
+    renderSales('employee');
+    await user.click(await screen.findByRole('button', { name: /Новая сделка/ }, { timeout: 5_000 }));
+    const amount = within(screen.getByRole('dialog', { name: 'Новая сделка' })).getByLabelText('Сумма, ₴') as HTMLInputElement;
+    await user.type(amount, '10550');
+    expect(amount.checkValidity()).toBe(true);
+    await user.clear(amount);
+    await user.type(amount, '10550.50');
+    expect(amount.checkValidity()).toBe(true);
+    await user.click(screen.getByRole('button', { name: 'Отмена' }));
+
+    await user.click(await screen.findByRole('button', { name: 'Сделка: Годовой план' }));
+    const dialog = screen.getByRole('dialog', { name: 'Сделка: Годовой план' });
+    await user.click(within(dialog).getByRole('button', { name: 'Изменить сделку' }));
+    const edit = within(dialog).getByLabelText('Сумма, ₴') as HTMLInputElement;
+    await user.clear(edit);
+    await user.type(edit, '10550');
+    expect(edit.checkValidity()).toBe(true);
+  }, 15_000);
+});
+
