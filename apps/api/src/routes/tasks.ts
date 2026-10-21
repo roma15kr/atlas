@@ -1,12 +1,16 @@
 import { Router } from "express";
+import multer from "multer";
 import type { PoolClient } from "pg";
 import { z } from "zod";
 import { assertAssignableUsers, canAccessBoard } from "../access";
+import { attachmentType, ATTACHMENTS_PER_ITEM, uploadedFileName } from "../attachments";
 import { writeAudit } from "../audit";
 import { requireAuth } from "../auth";
+import { config } from "../config";
 import { query, transaction } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { asOptionalDate, pagination } from "../http";
+import { objectStorage } from "../storage";
 import { boardAccessSql, funnelAccessSql, taskAccessSql } from "../scope";
 import type { AuthContext } from "../types";
 import { notify } from "../notifications/notify";
@@ -244,7 +248,10 @@ tasksRouter.delete("/:id", asyncHandler(async (req, res) => {
   if (task.created_by !== auth.userId && !canManageBoard(auth, { department_id: task.board_department_id })) {
     throw new ApiError(403, "TASK_DELETE_FORBIDDEN", "Only the task's creator or the board's manager can delete it");
   }
+  // Its comments' files go with it: the rows cascade, the stored objects are removed here.
+  const files = await query<{ storage_key: string }>("SELECT storage_key FROM task_comment_attachments WHERE task_id = $1", [id]);
   await query("DELETE FROM tasks WHERE id = $1 AND company_id = $2", [id, auth.companyId]);
+  for (const file of files.rows) await objectStorage.delete(file.storage_key).catch((error) => console.error("Task file removal failed", error));
   await writeAudit(req, { auth, action: "TASK_DELETED", entityType: "task", entityId: id, departmentId: task.board_department_id, metadata: { boardId: task.board_id } });
   res.status(204).send();
 }));
@@ -333,7 +340,9 @@ async function assertDealVisible(auth: AuthContext, id: string): Promise<void> {
 
 const COMMENT_COLUMNS = `c.id, c.body, c.created_at AS "createdAt",
   json_build_object('id', u.id, 'fullName', u.full_name, 'avatarUrl', u.avatar_url) AS author,
-  ${reactionsSql(COMMENT_REACTIONS, "c.id")} AS reactions`;
+  ${reactionsSql(COMMENT_REACTIONS, "c.id")} AS reactions,
+  (SELECT coalesce(json_agg(json_build_object('id', a.id, 'fileName', a.file_name, 'mimeType', a.mime_type, 'size', a.size_bytes)
+    ORDER BY a.created_at, a.id), '[]'::json) FROM task_comment_attachments a WHERE a.comment_id = c.id) AS attachments`;
 
 /** A comment on a task the caller can see; anything else is 404, like the task itself. */
 async function visibleComment(auth: AuthContext, commentId: string): Promise<string> {
@@ -357,6 +366,60 @@ tasksRouter.delete("/comments/:id/reactions/:emoji", asyncHandler(async (req, re
   res.json({ data: await removeReaction(COMMENT_REACTIONS, id, auth.userId, reactionEmoji.parse(req.params.emoji)) });
 }));
 
+const attachmentUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.maxUploadBytes, files: 1 } });
+
+/** `POST /api/v1/tasks/:id/attachments`: one file (`file`) for a comment the caller is about to post on a task they can see. */
+tasksRouter.post("/:id/attachments", (req, res, next) => attachmentUpload.single("file")(req, res, (error: unknown) => {
+  if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") next(new ApiError(413, "FILE_TOO_LARGE", `Files can be up to ${config.MAX_UPLOAD_MB} MB`));
+  else next(error);
+}), asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const id = idSchema.parse(req.params.id);
+  const task = await scopedTask(auth, id);
+  if (!req.file) throw new ApiError(400, "FILE_REQUIRED", "Attach a file as `file`");
+  const fileName = uploadedFileName(req.file.originalname);
+  const mime = attachmentType(fileName, req.file.buffer);
+  if (!mime) throw new ApiError(400, "UNSUPPORTED_FILE_TYPE", "PDF, Word, Excel, CSV, PowerPoint, text, ZIP or images only");
+  const stored = await objectStorage.put({ companyId: auth.companyId, fileName, body: req.file.buffer });
+  let attachmentId: string;
+  try {
+    attachmentId = (await query<{ id: string }>(
+      `INSERT INTO task_comment_attachments (company_id, task_id, uploaded_by, file_name, mime_type, size_bytes, storage_key)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [auth.companyId, id, auth.userId, fileName, mime, req.file.size, stored.key]
+    )).rows[0]!.id;
+  } catch (error) {
+    await objectStorage.delete(stored.key).catch(() => undefined);
+    throw error;
+  }
+  await writeAudit(req, { auth, action: "TASK_ATTACHMENT_UPLOADED", entityType: "task", entityId: id, departmentId: (task.departmentId as string | null) ?? null,
+    metadata: { attachmentId, mimeType: mime, size: req.file.size } });
+  res.status(201).json({ data: { id: attachmentId, fileName, mimeType: mime, size: req.file.size } });
+}));
+
+/** `GET /api/v1/tasks/attachments/:id`: the original file, for whoever can see its task (an unposted one: its uploader). */
+tasksRouter.get("/attachments/:id", asyncHandler(async (req, res) => {
+  const auth = requireAuth(req);
+  const parsed = z.string().uuid().safeParse(req.params.id);
+  const notFound = new ApiError(404, "ATTACHMENT_NOT_FOUND", "File not found");
+  if (!parsed.success) throw notFound;
+  const file = (await query<{ task_id: string; file_name: string; mime_type: string; storage_key: string }>(
+    `SELECT task_id, file_name, mime_type, storage_key FROM task_comment_attachments
+     WHERE id = $1 AND company_id = $2 AND (comment_id IS NOT NULL OR uploaded_by = $3)`,
+    [parsed.data, auth.companyId, auth.userId]
+  )).rows[0];
+  if (!file) throw notFound;
+  await scopedTask(auth, file.task_id).catch(() => { throw notFound; });
+  const stream = await objectStorage.get(file.storage_key).catch(() => null);
+  if (!stream) throw notFound;
+  res.setHeader("Content-Type", file.mime_type);
+  res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(file.file_name)}`);
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Cache-Control", "private, no-store");
+  stream.on("error", (error) => res.destroy(error));
+  stream.pipe(res);
+}));
+
 /** `GET /api/v1/tasks/:id/comments`: oldest first, for everyone who can open the task's board. */
 tasksRouter.get("/:id/comments", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
@@ -375,15 +438,30 @@ tasksRouter.post("/:id/comments", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
   const id = z.string().uuid().parse(req.params.id);
   await scopedTask(auth, id);
-  const input = z.object({ body: z.string().trim().min(1).max(5000) }).strict().parse(req.body);
-  const created = await query<{ id: string; department_id: string | null }>(
-    `WITH inserted AS (
-       INSERT INTO task_comments (company_id, task_id, author_id, body) VALUES ($1, $2, $3, $4) RETURNING id, task_id
-     )
-     SELECT inserted.id, b.department_id FROM inserted JOIN tasks t ON t.id = inserted.task_id JOIN task_boards b ON b.id = t.board_id`,
-    [auth.companyId, id, auth.userId, input.body]
-  );
-  const comment = created.rows[0]!;
+  const input = z.object({
+    body: z.string().trim().max(5000).default(""),
+    attachmentIds: z.array(z.string().uuid()).max(ATTACHMENTS_PER_ITEM).default([])
+  }).strict().refine((value) => value.body.length > 0 || value.attachmentIds.length > 0, { message: "Write a comment or attach a file", path: ["body"] }).parse(req.body);
+  const comment = await transaction(async (client) => {
+    const created = await client.query<{ id: string; department_id: string | null }>(
+      `WITH inserted AS (
+         INSERT INTO task_comments (company_id, task_id, author_id, body) VALUES ($1, $2, $3, $4) RETURNING id, task_id
+       )
+       SELECT inserted.id, b.department_id FROM inserted JOIN tasks t ON t.id = inserted.task_id JOIN task_boards b ON b.id = t.board_id`,
+      [auth.companyId, id, auth.userId, input.body]
+    );
+    const row = created.rows[0]!;
+    const wanted = [...new Set(input.attachmentIds)];
+    if (wanted.length) {
+      const linked = await client.query(
+        `UPDATE task_comment_attachments SET comment_id = $1
+         WHERE id = ANY($2::uuid[]) AND task_id = $3 AND uploaded_by = $4 AND comment_id IS NULL`,
+        [row.id, wanted, id, auth.userId]
+      );
+      if (linked.rowCount !== wanted.length) throw new ApiError(400, "TASK_INVALID_ATTACHMENT", "Attach files uploaded to this task");
+    }
+    return row;
+  });
   await writeAudit(req, { auth, action: "TASK_COMMENT_CREATED", entityType: "task", entityId: id, departmentId: comment.department_id, metadata: { commentId: comment.id } });
   // The task's author and assignees can always open it, personal or not.
   const people = await query<{ title: string; created_by: string; author: string; assignee_ids: string[] }>(
@@ -392,7 +470,7 @@ tasksRouter.post("/:id/comments", asyncHandler(async (req, res) => {
      FROM tasks t WHERE t.id = $1`, [id, auth.userId]);
   const task = people.rows[0];
   if (task) await notify(auth.companyId, [task.created_by, ...task.assignee_ids], auth.userId, {
-    kind: "TASK_COMMENTED", title: `${task.author}: комментарий к «${task.title}»`, body: input.body,
+    kind: "TASK_COMMENTED", title: `${task.author}: комментарий к «${task.title}»`, body: input.body || await filePreview(comment.id),
     link: `/tasks?task=${id}`, entityType: "task", entityId: id
   });
   const row = await query(`SELECT ${COMMENT_COLUMNS} FROM task_comments c JOIN users u ON u.id = c.author_id WHERE c.id = $1`, [comment.id]);
@@ -441,4 +519,10 @@ function presentTask(auth: AuthContext, row: Record<string, unknown>): Record<st
   const { totalCount: _total, boardDepartmentId, ...rest } = row;
   const canDelete = rest.createdBy === auth.userId || canManageBoard(auth, { department_id: (boardDepartmentId as string | null) ?? null });
   return { ...rest, canDelete };
+}
+
+/** A file-only comment's notification preview: «📎 name», for each file. */
+async function filePreview(commentId: string): Promise<string> {
+  const files = await query<{ file_name: string }>("SELECT file_name FROM task_comment_attachments WHERE comment_id = $1 ORDER BY created_at, id", [commentId]);
+  return files.rows.map((file) => `📎 ${file.file_name}`).join(", ");
 }
