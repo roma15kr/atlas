@@ -702,6 +702,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       // Demo: the same fields locally; an employee's deal stays theirs, as on the server.
       const stage = patch.stageId ? funnels.flatMap((funnel) => funnel.stages).find((item) => item.id === patch.stageId) : undefined;
       const owner = patch.ownerId && session?.user.role !== 'EMPLOYEE' ? users.find((member) => member.id === patch.ownerId) : undefined;
+      const client = patch.clientId ? clients.find((item) => item.id === patch.clientId) : undefined;
       return {
         ...deal,
         ...(patch.title !== undefined ? { title: patch.title } : {}),
@@ -710,9 +711,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         ...(patch.expectedCloseAt !== undefined ? { expectedCloseAt: patch.expectedCloseAt } : {}),
         ...(stage ? { stage: { id: stage.id, name: stage.name, color: stage.color, outcome: stage.outcome } } : {}),
         ...(owner ? { ownerId: owner.id, ownerName: owner.fullName } : {}),
+        ...(client ? { clientId: client.id, companyName: client.companyName } : {}),
       };
     }));
-  }, [remote, funnels, users, session]);
+  }, [remote, funnels, users, clients, session]);
 
   const moveDeal = useCallback(async (id: string, stageId: string, funnelId?: string) => {
     const raw = await remote(() => api.update<Record<string, unknown>>('deals', id, funnelId ? { funnelId, stageId } : { stageId }));

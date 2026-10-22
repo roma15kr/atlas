@@ -24,7 +24,7 @@ export const dealInputSchema = z.object({
   /** Markdown. */
   notes: z.string().trim().max(10_000).nullable().optional()
 });
-const dealPatch = dealInputSchema.omit({ clientId: true }).partial();
+const dealPatch = dealInputSchema.partial();
 const idSchema = z.string().uuid();
 
 export const dealsRouter = Router();
@@ -105,6 +105,8 @@ dealsRouter.patch("/:id", asyncHandler(async (req, res) => {
     if (!input.stageId) throw new ApiError(400, "INVALID_DEAL_STAGE", "Choose a stage in the target funnel");
   }
   if (input.stageId) data.stageId = await resolveStage(auth.companyId, funnelId, input.stageId);
+  // A deal moves to another client only if the caller could pick that client for a new deal.
+  if (input.clientId) await assertClientVisible(auth, input.clientId);
   let owner: TargetUser | null = null;
   if (input.ownerId) {
     owner = await manageableUser(auth, input.ownerId);
@@ -116,7 +118,7 @@ dealsRouter.patch("/:id", asyncHandler(async (req, res) => {
     await assertOwnerFunnelAccess(owner, funnelId);
   }
   const update = updatedFields(data, {
-    ownerId: "owner_id", departmentId: "department_id", title: "title", funnelId: "funnel_id", stageId: "stage_id", value: "value",
+    clientId: "client_id", ownerId: "owner_id", departmentId: "department_id", title: "title", funnelId: "funnel_id", stageId: "stage_id", value: "value",
     currency: "currency", probability: "probability", expectedCloseAt: "expected_close_at", closedAt: "closed_at", notes: "notes"
   });
   if (!update.values.length) throw new ApiError(400, "NO_CHANGES", "No fields to update");
