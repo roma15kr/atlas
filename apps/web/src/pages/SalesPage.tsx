@@ -155,10 +155,11 @@ function DealDetailsDialog({ deal, onClose }: { deal: Deal; onClose: () => void 
 /** The deal's fields as a form; sends only what changed. The owner can be changed by heads and directors only. */
 function DealDetailsForm({ deal, onCancel, onSaved }: { deal: Deal; onCancel: () => void; onSaved: () => void }) {
   const { session } = useAuth();
-  const { funnels, users, updateDeal } = useWorkspace();
+  const { funnels, users, clients, updateDeal } = useWorkspace();
   const stages = funnels.find((item) => item.id === deal.funnelId)?.stages ?? [];
   const canAssign = session!.user.role !== 'EMPLOYEE';
   const [title, setTitle] = useState(deal.title);
+  const [clientId, setClientId] = useState(deal.clientId);
   const [value, setValue] = useState(String(deal.value));
   const [probability, setProbability] = useState(String(deal.probability));
   const [closeDate, setCloseDate] = useState(deal.expectedCloseAt ? deal.expectedCloseAt.slice(0, 10) : '');
@@ -170,6 +171,7 @@ function DealDetailsForm({ deal, onCancel, onSaved }: { deal: Deal; onCancel: ()
     event.preventDefault();
     const patch: DealPatch = {};
     if (title.trim() !== deal.title) patch.title = title.trim();
+    if (clientId !== deal.clientId) patch.clientId = clientId;
     if (Number(value) !== deal.value) patch.value = Number(value);
     if (Number(probability) !== deal.probability) patch.probability = Number(probability);
     if (closeDate && closeDate !== deal.expectedCloseAt?.slice(0, 10)) patch.expectedCloseAt = new Date(`${closeDate}T00:00:00.000Z`).toISOString();
@@ -183,6 +185,10 @@ function DealDetailsForm({ deal, onCancel, onSaved }: { deal: Deal; onCancel: ()
   };
   return <form className="form-grid deal-edit" aria-label="Изменение сделки" onSubmit={(event) => void submit(event)}>
     <Field label="Название" className="field--wide"><input value={title} required maxLength={200} onChange={(event) => setTitle(event.target.value)} /></Field>
+    <SelectField label="Клиент" value={clientId} onChange={(event) => setClientId(event.target.value)}>
+      {clients.some((client) => client.id === deal.clientId) ? null : <option value={deal.clientId}>{deal.companyName}</option>}
+      {[...clients].sort((a, b) => a.companyName.localeCompare(b.companyName, 'ru')).map((client) => <option value={client.id} key={client.id}>{client.companyName}</option>)}
+    </SelectField>
     <Field label="Сумма, ₴"><input type="number" min="0" max="1000000000" step="0.01" required value={value} onChange={(event) => setValue(event.target.value)} /></Field>
     <Field label="Вероятность, %"><input type="number" min="0" max="100" step="1" required value={probability} onChange={(event) => setProbability(event.target.value)} /></Field>
     <Field label="Ожидаемое закрытие"><input type="date" required value={closeDate} onChange={(event) => setCloseDate(event.target.value)} /></Field>
