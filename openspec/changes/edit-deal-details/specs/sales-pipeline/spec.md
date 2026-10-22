@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Editing a deal from the funnel
-Clicking a deal on the funnel SHALL open its details: title, client, stage, amount, probability, expected close date, owner and notes. Whoever may edit the deal SHALL be able to change its title, amount, probability, expected close date and stage there; only a head of the owner's department or a DIRECTOR SHALL be able to change its owner. Changes SHALL be audited as `DEAL_UPDATED` with field names, and funnel totals SHALL reflect them at once.
+Clicking a deal on the funnel SHALL open its details: title, client, stage, amount, probability, expected close date, owner and notes. Whoever may edit the deal SHALL be able to change its title, client (to a client they can see), amount, probability, expected close date and stage there; only a head of the owner's department or a DIRECTOR SHALL be able to change its owner. Changes SHALL be audited as `DEAL_UPDATED` with field names, and funnel totals SHALL reflect them at once.
 
 #### Scenario: Owner corrects the amount
 - **WHEN** Бабенко opens a deal they own on «Воронка», changes the amount from 120 000 ₴ to 95 000 ₴ and the probability to 60 %, and saves
@@ -14,3 +14,8 @@ Clicking a deal on the funnel SHALL open its details: title, client, stage, amou
 #### Scenario: Deal outside scope
 - **WHEN** an employee tries to change a colleague's deal
 - **THEN** the response is 404 and nothing changes
+
+#### Scenario: Deal moved to the right client
+- **WHEN** Бабенко changes the client of a deal created for the wrong company to another client they can see
+- **THEN** the deal shows the new company, and `DEAL_UPDATED` is audited with `clientId`
+

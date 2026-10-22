@@ -96,3 +96,22 @@ describe('deal amounts', () => {
   }, 15_000);
 });
 
+describe('changing a deal\'s client', () => {
+  it('moves a deal to another client the owner can see', async () => {
+    const user = userEvent.setup();
+    renderSales('employee');
+    await user.click(await screen.findByRole('button', { name: 'Сделка: Годовой план' }, { timeout: 5_000 }));
+    const dialog = screen.getByRole('dialog', { name: 'Сделка: Годовой план' });
+    await user.click(within(dialog).getByRole('button', { name: 'Изменить сделку' }));
+    const client = within(dialog).getByRole('combobox', { name: 'Клиент' }) as HTMLSelectElement;
+    expect(client.selectedOptions[0]!.textContent).toBe('Northstar Labs');
+    await user.selectOptions(client, 'Arbor Group');
+    await user.click(within(dialog).getByRole('button', { name: 'Сохранить' }));
+    // Saved: the form closes back to the deal's details.
+    await within(dialog).findByRole('button', { name: 'Изменить сделку' });
+    await user.click(within(dialog).getByRole('button', { name: 'Готово' }));
+    const card = screen.getByRole('button', { name: 'Сделка: Годовой план' }).closest('article') as HTMLElement;
+    expect(within(card).getByText('Arbor Group')).toBeInTheDocument();
+  }, 15_000);
+});
+

@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 let harness: Awaited<ReturnType<typeof startDbHarness>>;
 let app: Express;
 let babenko: TestUser, trubylo: TestUser, head: TestUser;
-let funnel: string, qualification: string, proposal: string, dealId: string;
+let funnel: string, qualification: string, proposal: string, dealId: string, otherClient: string, colleaguesClient: string;
 
 const as = (who: TestUser) => ({
   get: (path: string) => request(app).get(`/api/v1${path}`).set("Authorization", `Bearer ${who.token}`),
@@ -30,6 +30,10 @@ beforeAll(async () => {
   proposal = await stage("КП отправлено", 20);
   const client = (await harness.query<{ id: string }>(
     "INSERT INTO clients (company_id, department_id, owner_id, name) VALUES ($1, $2, $3, 'ТОВ Тепло') RETURNING id", [harness.company, babenko.departmentId, babenko.id])).rows[0]!.id;
+  const client2 = async (owner: TestUser, name: string) => (await harness.query<{ id: string }>(
+    "INSERT INTO clients (company_id, department_id, owner_id, name) VALUES ($1, $2, $3, $4) RETURNING id", [harness.company, owner.departmentId, owner.id, name])).rows[0]!.id;
+  otherClient = await client2(babenko, "Сумиенергосервіс ТОВ");
+  colleaguesClient = await client2(trubylo, "ФОП Чужий");
   const created = await as(babenko).post("/deals", { clientId: client, funnelId: funnel, stageId: qualification, title: "Кабель для складу", value: 120000, probability: 30, expectedCloseAt: "2026-11-01T00:00:00.000Z" });
   expect(created.status).toBe(201);
   dealId = created.body.data.id;
@@ -68,4 +72,22 @@ describe("editing a deal", () => {
     expect((await as(head).patch(`/deals/${dealId}`, { ownerId: trubylo.id })).status).toBe(200);
     expect((await stored()).owner_id).toBe(trubylo.id);
   });
+
+  it("moves the deal to another client the owner can see, and refuses one they can't", async () => {
+    const firstClient = (await harness.query<{ client_id: string }>("SELECT client_id FROM deals WHERE id = $1", [dealId])).rows[0]!.client_id;
+    const own = (await as(babenko).post("/deals", { clientId: firstClient, funnelId: funnel, title: "Відвантаження обладнання", value: 25116.3 })).body.data.id as string;
+    const moved = await as(babenko).patch(`/deals/${own}`, { clientId: otherClient });
+    expect(moved.status).toBe(200);
+    expect(moved.body.data.clientId).toBe(otherClient);
+    expect(moved.body.data.client).toMatchObject({ id: otherClient });
+    const audit = (await harness.query<{ metadata: { fields: string[] } }>(
+      "SELECT metadata FROM audit_logs WHERE action = 'DEAL_UPDATED' AND entity_id = $1 ORDER BY created_at DESC LIMIT 1", [own])).rows[0]!;
+    expect(audit.metadata.fields).toEqual(["clientId"]);
+
+    const refused = await as(babenko).patch(`/deals/${own}`, { clientId: colleaguesClient });
+    expect(refused.status).toBe(404);
+    expect(refused.body.error.code).toBe("CLIENT_NOT_FOUND");
+    expect((await harness.query<{ client_id: string }>("SELECT client_id FROM deals WHERE id = $1", [own])).rows[0]!.client_id).toBe(otherClient);
+  });
 });
+

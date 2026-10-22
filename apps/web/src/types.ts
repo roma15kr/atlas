@@ -108,7 +108,7 @@ export interface Deal {
 }
 
 /** The deal fields that can be corrected after creation. */
-export interface DealPatch { title?: string; value?: number; probability?: number; expectedCloseAt?: string; stageId?: string; ownerId?: string }
+export interface DealPatch { clientId?: string; title?: string; value?: number; probability?: number; expectedCloseAt?: string; stageId?: string; ownerId?: string }
 
 export type StageOutcome = 'OPEN' | 'WON' | 'LOST';
 
