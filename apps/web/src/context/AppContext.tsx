@@ -672,14 +672,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }, [remote, session]);
 
   const addClient = useCallback(async (input: Omit<Client, 'id' | 'updatedAt'>) => {
-    const created = await remote(() => api.create<Client>('clients', input));
+    // An empty email is no email: the API accepts null, not an empty address.
+    const created = await remote(() => api.create<Client>('clients', { ...input, email: input.email?.trim() || null }));
     const client: Client = created ?? { ...input, id: crypto.randomUUID(), updatedAt: new Date().toISOString() };
     setClients((current) => [client, ...current]);
     return client;
   }, [remote]);
 
   const updateClient = useCallback(async (id: string, patch: Partial<Client>) => {
-    await remote(() => api.update<Client>('clients', id, patch));
+    await remote(() => api.update<Client>('clients', id, patch.email !== undefined ? { ...patch, email: patch.email.trim() || null } : patch));
     setClients((current) => current.map((client) => client.id === id ? { ...client, ...patch, updatedAt: new Date().toISOString() } : client));
   }, [remote]);
 
