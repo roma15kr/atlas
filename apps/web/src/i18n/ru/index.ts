@@ -4,6 +4,7 @@ import { profile } from './profile';
 import { sales } from './sales';
 import { shell } from './shell';
 import { stages } from './stages';
+import { tasks } from './tasks';
 
 /** All namespaces of this language. */
-export const ru = { common, crm, profile, sales, shell, stages };
+export const ru = { common, crm, profile, sales, shell, stages, tasks };

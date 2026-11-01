@@ -1,27 +1,37 @@
-import type { KindOptions } from '../components/stageSettings';
+import type { KindOptions, StageRecords } from '../components/stageSettings';
+import i18n, { localeOf } from '../i18n';
 import type { TaskBoard, TaskCategory, TaskStage, User, WorkTask } from '../types';
 
-export const TASKS: [string, string, string] = ['задача', 'задачи', 'задач'];
-export const STAGES: [string, string, string] = ['этап', 'этапа', 'этапов'];
-export const BOARDS: [string, string, string] = ['доска', 'доски', 'досок'];
+/** Counted words of the task screens, in the interface language. */
+export const countTasks = (count: number) => i18n.t('tasks:count.tasks', { count });
+export const countStages = (count: number) => i18n.t('tasks:count.stages', { count });
+export const countBoards = (count: number) => i18n.t('tasks:count.boards', { count });
+/** How the stage editor names tasks: «3 задачи», none of them, moving them. */
+export const taskRecords = (): StageRecords => ({ count: countTasks, none: i18n.t('tasks:count.tasksNone'), move: i18n.t('tasks:count.tasksMove') });
 
-export const categories: KindOptions<TaskCategory> = {
-  TODO: { label: 'Не начато', tone: 'neutral', hint: 'Задачи ещё не взяты в работу. Сюда попадают новые задачи.' },
-  ACTIVE: { label: 'В работе', tone: 'info', hint: 'Задачи в процессе выполнения.' },
-  DONE: { label: 'Готово', tone: 'success', hint: 'Выполненные задачи: в отчётах и на дашборде считаются завершёнными.' },
-};
+const category = (key: TaskCategory, tone: KindOptions<TaskCategory>[TaskCategory]['tone']) => ({
+  get label() { return i18n.t(`tasks:categories.${key}.label`); },
+  tone,
+  get hint() { return i18n.t(`tasks:categories.${key}.hint`); },
+});
+/** Task stage categories; labels and hints follow the interface language. */
+export const categories: KindOptions<TaskCategory> = { TODO: category('TODO', 'neutral'), ACTIVE: category('ACTIVE', 'info'), DONE: category('DONE', 'success') };
 
 export const categoryOrder: TaskCategory[] = ['TODO', 'ACTIVE', 'DONE'];
 
-export const priorityLabels: Record<WorkTask['priority'], string> = { HIGH: 'Высокий', NORMAL: 'Обычный', LOW: 'Низкий' };
+export const priorityLabels: Record<WorkTask['priority'], string> = {
+  get HIGH() { return i18n.t('tasks:priority.HIGH'); },
+  get NORMAL() { return i18n.t('tasks:priority.NORMAL'); },
+  get LOW() { return i18n.t('tasks:priority.LOW'); },
+};
 
-/** Director boards have no department and are listed under "Руководство". */
-export const boardGroupName = (board: Pick<TaskBoard, 'departmentName'>) => board.departmentName ?? 'Руководство';
+/** Director boards have no department and are listed under «Керівництво» (in the interface language). */
+export const boardGroupName = (board: Pick<TaskBoard, 'departmentName'>) => board.departmentName ?? i18n.t('tasks:board.leadership');
 
 export function groupBoards(boards: TaskBoard[]): Array<{ label: string; boards: TaskBoard[] }> {
   const groups = new Map<string, TaskBoard[]>();
   for (const board of boards) groups.set(boardGroupName(board), [...(groups.get(boardGroupName(board)) ?? []), board]);
-  return [...groups.entries()].map(([label, items]) => ({ label, boards: [...items].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, 'ru')) }));
+  return [...groups.entries()].map(([label, items]) => ({ label, boards: [...items].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, localeOf())) }));
 }
 
 export const orderedStages = (board: Pick<TaskBoard, 'stages'>): TaskStage[] => [...board.stages].sort((a, b) => a.sortOrder - b.sortOrder);
@@ -45,8 +55,8 @@ export function defaultBoard(boards: TaskBoard[], user: User, preferredId?: stri
     ?? boards[0];
 }
 
-/** "на 1 доске", "на 3 досках". */
-export const onBoards = (count: number) => `${count} ${count % 10 === 1 && count % 100 !== 11 ? 'доске' : 'досках'}`;
+/** «на 1 дошці», «on 3 boards». */
+export const onBoards = (count: number) => i18n.t('tasks:count.onBoards', { count });
 
 const boardKey = (userId: string) => `atlas.tasks.board.${userId}`;
 
