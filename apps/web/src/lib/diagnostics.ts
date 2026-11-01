@@ -1,3 +1,4 @@
+import i18n from '../i18n';
 import { APP_VERSION } from './version';
 
 /**
@@ -84,9 +85,9 @@ export function summarizeDiagnostics(snapshot: DiagnosticsSnapshot): string[] {
   const failed = requests.filter((event) => event.status === 0 || event.status >= 400).length;
   const routes = snapshot.events.filter((event) => event.type === 'route').length;
   return [
-    `Ошибок приложения: ${errors}; запросов к серверу: ${requests.length}${failed ? ` (с ошибкой: ${failed})` : ''}`,
-    `Переходов по страницам: ${routes}; состояние подключения к серверу`,
-    `Версия Atlas ${snapshot.version}, ${snapshot.viewport}, ${snapshot.language}, ${snapshot.timeZone}`,
+    i18n.t('shell:feedback.logSummary.errors', { errors, requests: requests.length }) + (failed ? i18n.t('shell:feedback.logSummary.failed', { failed }) : ''),
+    i18n.t('shell:feedback.logSummary.routes', { routes }),
+    i18n.t('shell:feedback.logSummary.version', { version: snapshot.version, viewport: snapshot.viewport, language: snapshot.language, timeZone: snapshot.timeZone }),
   ];
 }
 

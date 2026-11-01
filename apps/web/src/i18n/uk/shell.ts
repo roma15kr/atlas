@@ -1,0 +1,61 @@
+/** The app frame: navigation, top bar, sign-in, notifications bell and «Повідомити про проблему». */
+export const shell = {
+  nav: {
+    dashboard: 'Дашборд', crm: 'CRM', sales: 'Воронка', tasks: 'Мої задачі', boards: 'Дошки', documents: 'Документи',
+    team: 'Співробітники', reports: 'Звіти', achievements: 'Досягнення',
+    messages: 'Повідомлення', mail: 'Пошта', telegram: 'Telegram', feedback: 'Звернення', audit: 'Аудит', profile: 'Профіль',
+    groupTeam: 'КОМАНДА', groupCommunication: 'ЗВ’ЯЗОК І КОНТРОЛЬ',
+  },
+  pages: {
+    dashboard: 'Дашборд', crm: 'CRM', client: 'Картка клієнта', sales: 'Воронка продажів', salesSettings: 'Налаштування воронок',
+    tasks: 'Мої задачі', boards: 'Дошки задач', boardSettings: 'Налаштування дошок', documents: 'Документи', team: 'Команда',
+    reports: 'Звіти', achievements: 'Досягнення', messages: 'Повідомлення', mail: 'Пошта', mailSettings: 'Налаштування пошти',
+    telegram: 'Telegram', telegramSettings: 'Налаштування Telegram', audit: 'Журнал аудиту', feedback: 'Звернення', profile: 'Профіль',
+  },
+  frame: {
+    mainNav: 'Основна навігація', openMenu: 'Відкрити меню', closeMenu: 'Закрити меню', expandMenu: 'Розгорнути меню', collapseMenu: 'Згорнути меню',
+    logout: 'Вийти', workspace: 'Робочий простір', search: 'Пошук', offlineData: 'Офлайн-дані', online: 'У мережі · {{time}}',
+    unreadIn: '{{label}}: непрочитаних {{count}}', quickNav: 'Швидка навігація', unread: 'непрочитаних: {{count}}', tasks: 'Задачі', more: 'Ще',
+  },
+  login: {
+    visual: 'Робочий простір Atlas', photo: 'Сучасний офіс команди Atlas', day: 'Робочий день', tagline1: 'Команда, клієнти й рішення', tagline2: 'в одному робочому просторі.',
+    demoReady: 'Демо-команда готова', demoData: 'Дані для огляду завантажено', welcome: 'Ласкаво просимо', title: 'Вхід до робочого простору',
+    subtitle: 'Використовуйте корпоративний обліковий запис', username: 'Логін', usernamePlaceholder: 'Ваш логін', password: 'Пароль', passwordPlaceholder: 'Ваш пароль',
+    showPassword: 'Показати пароль', hidePassword: 'Сховати пароль', capsLock: 'Увімкнено Caps Lock', submit: 'Увійти', submitting: 'Входимо…',
+    demoProfiles: 'Демо-профілі', footer: 'Atlas Virtual Office · захищене з’єднання', language: 'Мова',
+    contactHint: 'Входьте за логіном (наприклад, ivanenko), а не за телефоном чи email. Логін видає керівник.',
+    cyrillicHint: 'Логін вводиться латиницею — перемкніть розкладку.',
+    errors: {
+      network: 'Не вдалося увійти. Перевірте підключення до інтернету й повторіть спробу.',
+      rateLimited: 'Забагато спроб входу. Повторіть через {{minutes}} хв.',
+      invalid: 'Неправильний логін або пароль. Після 5 невдалих спроб вхід блокується на 15 хвилин.',
+      noDepartment: 'Обліковий запис керівника не прив’язаний до відділу. Зверніться до директора.',
+      badInput: 'Перевірте логін і пароль: пароль не коротший за 8 символів.',
+      unavailable: 'Сервер зараз недоступний. Повторіть спробу за хвилину.',
+    },
+  },
+  bell: {
+    title: 'Сповіщення', unreadLabel_one: 'Сповіщення: {{count}} непрочитане', unreadLabel_few: 'Сповіщення: {{count}} непрочитані', unreadLabel_many: 'Сповіщення: {{count}} непрочитаних', unreadLabel_other: 'Сповіщення: {{count}} непрочитаних',
+    fresh_one: '{{count}} нове', fresh_few: '{{count}} нові', fresh_many: '{{count}} нових', fresh_other: '{{count}} нових',
+    readAll: 'Прочитати все', unreadMark: 'Не прочитано', emptyTitle: 'Сповіщень немає', emptyText: 'Тут з’являться задачі, повідомлення й нагадування', settings: 'Налаштування сповіщень',
+  },
+  feedback: {
+    button: 'Повідомити про проблему', buttonTitle: 'Повідомити про проблему (Ctrl+Shift+F)',
+    kinds: { PROBLEM: 'Проблема', COMPLAINT: 'Скарга', IDEA: 'Ідея' },
+    title: 'Повідомити про проблему', description: 'Пишіть своїми словами — українською, російською чи англійською', kind: 'Тип звернення',
+    what: 'Що сталося?', counter: '{{length}} / {{max}} · Сторінка: {{page}}', placeholder: 'Що ви робили, чого очікували і що сталося',
+    shotAlt: 'Попередній перегляд знімка екрана', shotAttached: 'Знімок екрана додано', shotNote: 'Сторінка до відкриття цього вікна. Поля паролів приховано.',
+    shotRemove: 'Не додавати знімок', shotNotAttached: 'Знімок екрана не додано', shotAdd: 'Додати знімок', shotFailed: 'Знімок екрана не вдалося зробити',
+    shotFailedNote: 'Опишіть, що було на екрані, — звернення все одно можна надіслати.',
+    log: 'Додати технічний журнал', logNote: 'Помилки й запити до сервера за останні 15 хвилин — без введеного тексту й даних записів.', logContents: 'Що входить у журнал',
+    privacy: 'Звернення бачать лише директори компанії. У GitHub потрапить знеособлений переклад.',
+    cancel: 'Скасувати', send: 'Надіслати', sending: 'Надсилаємо…',
+    sentTitle: 'Звернення надіслано', sentText: 'Дякуємо! Команда розробки отримає звернення в перекладеному й знеособленому вигляді. Статус видно в розділі «Мої звернення».',
+    close: 'Закрити', mine: 'Мої звернення', tooMany: 'Забагато звернень, спробуйте пізніше', failed: 'Звернення не надіслано. Спробуйте ще раз.',
+    tooShort: 'Опишіть проблему докладніше', tooLong: 'Не довше за {{max}} символів', notFound: 'Звернення не знайдено',
+    logSummary: {
+      errors: 'Помилок застосунку: {{errors}}; запитів до сервера: {{requests}}', failed: ' (з помилкою: {{failed}})',
+      routes: 'Переходів сторінками: {{routes}}; стан підключення до сервера', version: 'Версія Atlas {{version}}, {{viewport}}, {{language}}, {{timeZone}}',
+    },
+  },
+};

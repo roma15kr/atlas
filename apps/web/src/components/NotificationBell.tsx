@@ -2,7 +2,8 @@ import { AtSign, Bell, BellRing, CheckCheck, ClipboardList, Hash, MessageSquare,
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AppContext';
-import { plural, relativeTime } from '../lib/format';
+import { relativeTime } from '../lib/format';
+import { useTranslation } from 'react-i18next';
 import { demoNotifications, remoteNotifications, type AppNotification, type NotificationKind } from '../lib/notifications';
 import { Badge, EmptyState } from './ui';
 
@@ -20,6 +21,7 @@ const tones: Partial<Record<NotificationKind, string>> = {
 /** The bell in the top bar: unread count, and a panel listing the user's notifications, updated live. */
 export function NotificationBell() {
   const { session } = useAuth();
+  const { t } = useTranslation('shell');
   const navigate = useNavigate();
   const backend = useMemo(() => session?.accessToken.startsWith('demo-') ? demoNotifications : remoteNotifications, [session]);
   const [items, setItems] = useState<AppNotification[]>([]);
@@ -79,20 +81,20 @@ export function NotificationBell() {
   };
 
   return <div className="notification-bell" ref={root}>
-    <button type="button" className="topbar__alerts" aria-label={unread ? `Уведомления: ${plural(unread, ['непрочитанное', 'непрочитанных', 'непрочитанных'])}` : 'Уведомления'} aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+    <button type="button" className="topbar__alerts" aria-label={unread ? t('bell.unreadLabel', { count: unread }) : t('bell.title')} aria-expanded={open} onClick={() => setOpen((value) => !value)}>
       <Bell size={18} />{unread > 0 && <i>{unread > 99 ? '99+' : unread}</i>}
     </button>
-    {open && <div className="notification-panel" role="dialog" aria-label="Уведомления">
-      <header><strong>Уведомления</strong>{unread > 0 && <Badge tone="info">{plural(unread, ['новое', 'новых', 'новых'])}</Badge>}{unread > 0 && <button type="button" className="text-button" onClick={readAll}><CheckCheck size={14} /> Прочитать все</button>}</header>
+    {open && <div className="notification-panel" role="dialog" aria-label={t('bell.title')}>
+      <header><strong>{t('bell.title')}</strong>{unread > 0 && <Badge tone="info">{t('bell.fresh', { count: unread })}</Badge>}{unread > 0 && <button type="button" className="text-button" onClick={readAll}><CheckCheck size={14} /> {t('bell.readAll')}</button>}</header>
       {items.length ? <ul>{items.map((item) => {
         const Icon = icons[item.kind] ?? Bell;
         return <li key={item.id}><button type="button" className={item.readAt ? '' : 'is-unread'} onClick={() => openItem(item)}>
           <span className={`notification-icon notification-icon--${tones[item.kind] ?? 'primary'}`}><Icon size={15} aria-hidden /></span>
           <span className="notification-text"><strong>{item.title}</strong>{item.body && <small>{item.body}</small>}</span>
-          <span className="notification-meta"><time dateTime={item.createdAt}>{relativeTime(item.createdAt)}</time>{!item.readAt && <i aria-label="Не прочитано" />}</span>
+          <span className="notification-meta"><time dateTime={item.createdAt}>{relativeTime(item.createdAt)}</time>{!item.readAt && <i aria-label={t('bell.unreadMark')} />}</span>
         </button></li>;
-      })}</ul> : <EmptyState title="Уведомлений нет" description="Здесь появятся задачи, сообщения и напоминания" icon={Bell} />}
-      <footer><button type="button" className="text-button" onClick={() => { setOpen(false); navigate('/profile#notifications'); }}><Settings2 size={14} /> Настройки уведомлений</button></footer>
+      })}</ul> : <EmptyState title={t('bell.emptyTitle')} description={t('bell.emptyText')} icon={Bell} />}
+      <footer><button type="button" className="text-button" onClick={() => { setOpen(false); navigate('/profile#notifications'); }}><Settings2 size={14} /> {t('bell.settings')}</button></footer>
     </div>}
   </div>;
 }

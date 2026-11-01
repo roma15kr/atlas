@@ -1,3 +1,4 @@
+import i18n, { localeOf } from '../i18n';
 import { api, apiRequest, sessionStore } from './api';
 import { diagnosticsSnapshot } from './diagnostics';
 import { APP_VERSION } from './version';
@@ -20,8 +21,8 @@ let demoReports: FeedbackReport[] = [];
 
 export function feedbackError(message: string): string | null {
   const length = message.trim().length;
-  if (length < FEEDBACK_MIN_LENGTH) return 'Опишите проблему подробнее';
-  if (length > FEEDBACK_MAX_LENGTH) return `Не длиннее ${FEEDBACK_MAX_LENGTH.toLocaleString('ru-RU')} символов`;
+  if (length < FEEDBACK_MIN_LENGTH) return i18n.t('shell:feedback.tooShort');
+  if (length > FEEDBACK_MAX_LENGTH) return i18n.t('shell:feedback.tooLong', { max: FEEDBACK_MAX_LENGTH.toLocaleString(localeOf()) });
   return null;
 }
 
@@ -68,7 +69,7 @@ export async function loadAllFeedback(status?: FeedbackStatus): Promise<Feedback
 export async function loadFeedback(id: string): Promise<FeedbackDetail> {
   if (isDemo()) {
     const found = demoReports.find((report) => report.id === id);
-    if (!found) throw new Error('Обращение не найдено');
+    if (!found) throw new Error(i18n.t('shell:feedback.notFound'));
     return { ...demoDetail(found), diagnostics: { events: [] } };
   }
   return apiRequest<FeedbackDetail>(`/feedback/${id}`);
