@@ -12,4 +12,9 @@ export const common = {
   },
   size: { bytes: '{{value}} B', kilobytes: '{{value}} KB', megabytes: '{{value}} MB' },
   empty: '—',
+  actions: {
+    cancel: 'Cancel', save: 'Save', saving: 'Saving…', close: 'Close', delete: 'Delete', edit: 'Edit', add: 'Add', adding: 'Adding…', create: 'Create', retry: 'Try again', done: 'Done', back: 'Back',
+  },
+  optional: 'Optional',
+  loading: 'Loading…',
 } satisfies Dictionary<typeof source>;

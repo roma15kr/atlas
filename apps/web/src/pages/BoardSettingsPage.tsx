@@ -106,7 +106,7 @@ export function BoardSettingsPage() {
         <Surface className="funnel-card">
           <SectionHeader title="Этапы" meta={<Badge tone="info">{stages.length}</Badge>} action={<Button variant="secondary" icon={Plus} onClick={() => setDialog({ kind: 'stage' })}>Добавить этап</Button>} />
           <p className="funnel-card__hint">Этапы — колонки доски. Категория определяет, считается ли задача начатой или выполненной в «Моих задачах» и отчётах.</p>
-          <StageRows stages={stages} kinds={categories} countForms={TASKS} deleteBlockedReason={deleteBlocked} onReorder={reorder}
+          <StageRows stages={stages} kinds={categories} countLabel={(count) => plural(count, TASKS)} deleteBlockedReason={deleteBlocked} onReorder={reorder}
             onEdit={(stage) => setDialog({ kind: 'stage', stage })} onDelete={(stage) => setDialog({ kind: 'delete-stage', stage })} />
         </Surface>
 
@@ -127,7 +127,7 @@ export function BoardSettingsPage() {
     {dialog?.kind === 'delete-board' && board && <DeleteBoardDialog board={board} taskCount={boardTaskCount(board)} onClose={close} onDelete={async () => { await taskBoardConfig.deleteBoard(board.id); navigate('/boards/settings'); }} />}
     {dialog?.kind === 'stage' && board && <StageDialog stage={dialog.stage} kinds={categories} kindLabel="Категория" defaultKind="ACTIVE" placement="Этап появится последней колонкой на доске. Порядок можно изменить." describeError={boardErrorMessage} onClose={close}
       onSubmit={(input) => dialog.stage ? taskBoardConfig.updateStage(board.id, dialog.stage.id, changedFields(dialog.stage, toInput(input))) : taskBoardConfig.addStage(board.id, toInput(input))} />}
-    {dialog?.kind === 'delete-stage' && board && <DeleteStageDialog stage={dialog.stage} stages={stages} countForms={TASKS} recordsLabel="задачи" describeError={boardErrorMessage} onClose={close} onDelete={(target) => taskBoardConfig.deleteStage(board.id, dialog.stage.id, target)} />}
+    {dialog?.kind === 'delete-stage' && board && <DeleteStageDialog stage={dialog.stage} stages={stages} records={{ count: (count) => plural(count, TASKS), none: TASKS[2], move: 'задачи' }} describeError={boardErrorMessage} onClose={close} onDelete={(target) => taskBoardConfig.deleteStage(board.id, dialog.stage.id, target)} />}
     {dialog?.kind === 'members' && board && <MembersDialog board={board} onClose={close} />}
   </>;
 

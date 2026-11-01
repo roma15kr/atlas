@@ -9,4 +9,9 @@ export const common = {
   },
   size: { bytes: '{{value}} Б', kilobytes: '{{value}} КБ', megabytes: '{{value}} МБ' },
   empty: '—',
+  actions: {
+    cancel: 'Скасувати', save: 'Зберегти', saving: 'Зберігаємо…', close: 'Закрити', delete: 'Видалити', edit: 'Редагувати', add: 'Додати', adding: 'Додаємо…', create: 'Створити', retry: 'Повторити', done: 'Готово', back: 'Назад',
+  },
+  optional: 'Необов’язково',
+  loading: 'Завантажуємо…',
 };

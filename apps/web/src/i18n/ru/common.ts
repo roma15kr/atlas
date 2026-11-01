@@ -11,4 +11,9 @@ export const common = {
   },
   size: { bytes: '{{value}} Б', kilobytes: '{{value}} КБ', megabytes: '{{value}} МБ' },
   empty: '—',
+  actions: {
+    cancel: 'Отмена', save: 'Сохранить', saving: 'Сохраняем…', close: 'Закрыть', delete: 'Удалить', edit: 'Редактировать', add: 'Добавить', adding: 'Добавляем…', create: 'Создать', retry: 'Повторить', done: 'Готово', back: 'Назад',
+  },
+  optional: 'Необязательно',
+  loading: 'Загружаем…',
 } satisfies Dictionary<typeof source>;
