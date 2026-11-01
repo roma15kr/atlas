@@ -1,3 +1,4 @@
+import i18n, { localeOf } from '../i18n';
 /** Files that can be attached to a chat message: the same list and limits as the API (`apps/api/src/chat/attachments.ts`). */
 export interface ChatAttachment { id: string; fileName: string; mimeType: string; size: number }
 
@@ -5,15 +6,14 @@ export const ATTACHMENT_EXTENSIONS = ['pdf', 'docx', 'doc', 'xlsx', 'xls', 'csv'
 export const ATTACHMENT_ACCEPT = ATTACHMENT_EXTENSIONS.map((extension) => `.${extension}`).join(',');
 export const ATTACHMENT_MAX_BYTES = 20 * 1024 * 1024;
 export const ATTACHMENTS_PER_MESSAGE = 10;
-export const ATTACHMENT_RULES = 'PDF, Word, Excel, CSV, PowerPoint, текст, ZIP или изображения до 20 МБ';
 
 const extensionOf = (name: string) => name.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? '';
 
 /** Why a file can't be attached (in Russian), or null when it can. The server checks again by content. */
 export function attachmentProblem(file: Pick<File, 'name' | 'size'>): string | null {
-  if (!ATTACHMENT_EXTENSIONS.includes(extensionOf(file.name))) return `«${file.name}»: такой файл не прикрепить. Можно: ${ATTACHMENT_RULES}.`;
-  if (file.size > ATTACHMENT_MAX_BYTES) return `«${file.name}» больше 20 МБ.`;
-  if (!file.size) return `«${file.name}» пустой.`;
+  if (!ATTACHMENT_EXTENSIONS.includes(extensionOf(file.name))) return i18n.t('attachments.notAllowed', { name: file.name, rules: i18n.t('attachments.rules') });
+  if (file.size > ATTACHMENT_MAX_BYTES) return i18n.t('attachments.tooBig', { name: file.name });
+  if (!file.size) return i18n.t('attachments.empty', { name: file.name });
   return null;
 }
 
@@ -31,7 +31,7 @@ export function fileKind(name: string): FileKind {
 
 /** «850 КБ», «1,2 МБ». */
 export function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} Б`;
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} КБ`;
-  return `${(bytes / 1024 / 1024).toLocaleString('ru-RU', { maximumFractionDigits: 1 })} МБ`;
+  if (bytes < 1024) return i18n.t('size.bytes', { value: bytes });
+  if (bytes < 1024 * 1024) return i18n.t('size.kilobytes', { value: Math.max(1, Math.round(bytes / 1024)) });
+  return i18n.t('size.megabytes', { value: (bytes / 1024 / 1024).toLocaleString(localeOf(), { maximumFractionDigits: 1 }) });
 }

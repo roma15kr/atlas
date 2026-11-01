@@ -10,7 +10,7 @@
 - [x] 2.1 Shell, login, navigation, notifications bell, feedback, offline page and manifest. Verify tests in `uk` and `en`. Commit.
 - [x] 2.2 CRM, client card, sales funnel and deal windows, funnel settings. Verify tests. Commit.
 - [x] 2.3 Tasks, boards, task dialog and comments, board settings. Verify tests. Commit.
-- [ ] 2.4 Chat, channels, groups, reactions and attachments. Verify tests. Commit.
+- [x] 2.4 Chat, channels, groups, reactions and attachments. Verify tests. Commit.
 - [ ] 2.5 Mail and Telegram inboxes and settings. Verify tests. Commit.
 - [ ] 2.6 Dashboard, team, profile, documents, reports, achievements, audit, AI analysis, feedback inbox. Verify tests. Commit.
 - [ ] 2.7 Error codes in one `errors` namespace, replacing the per-area maps. Verify every code used by the web exists in three languages. Commit.

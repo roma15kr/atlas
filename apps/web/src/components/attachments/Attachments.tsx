@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Download, FileArchive, FileImage, FileSpreadsheet, FileText, Paperclip, Presentation, X } from 'lucide-react';
 import { useRef, useState, type DragEvent } from 'react';
 import { ATTACHMENT_ACCEPT, attachmentProblem, ATTACHMENTS_PER_MESSAGE, fileKind, formatFileSize, type ChatAttachment, type FileKind } from '../../lib/chatAttachments';
@@ -45,20 +46,22 @@ export function useAttachmentDraft(upload: ((file: File) => Promise<ChatAttachme
 
 /** The paper clip: opens the file picker (any number of files, the allowed types). */
 export function AttachButton({ label, disabled, onFiles, className = '' }: { label: string; disabled?: boolean; onFiles: (files: File[]) => void; className?: string }) {
+  const { t } = useTranslation('common');
   const picker = useRef<HTMLInputElement>(null);
   return <>
-    <IconButton label="Прикрепить файл" icon={Paperclip} className={className} disabled={disabled} onClick={() => picker.current?.click()} />
-    <input ref={picker} type="file" hidden multiple accept={ATTACHMENT_ACCEPT} aria-label={`Файлы: ${label}`}
+    <IconButton label={t('attachments.attach')} icon={Paperclip} className={className} disabled={disabled} onClick={() => picker.current?.click()} />
+    <input ref={picker} type="file" hidden multiple accept={ATTACHMENT_ACCEPT} aria-label={t('attachments.input', { label })}
       onChange={(event) => { const chosen = [...(event.target.files ?? [])]; event.target.value = ''; onFiles(chosen); }} />
   </>;
 }
 
 /** Files waiting to be sent, with progress or the reason they failed, and «×». */
 export function PendingFiles({ files, onRemove }: { files: PendingFile[]; onRemove: (key: string) => void }) {
+  const { t } = useTranslation('common');
   if (!files.length) return null;
-  return <ul className="chat-composer__files" aria-label="Прикреплённые файлы">{files.map((file) => <li key={file.key} className={file.error ? 'is-failed' : file.attachment ? '' : 'is-uploading'}>
-    <FileIcon name={file.name} /><span className="file-meta"><strong>{file.name}</strong><small>{file.error ?? (file.attachment ? formatFileSize(file.size) : 'Загружается…')}</small></span>
-    <IconButton label={`Убрать ${file.name}`} icon={X} onClick={() => onRemove(file.key)} />
+  return <ul className="chat-composer__files" aria-label={t('attachments.pending')}>{files.map((file) => <li key={file.key} className={file.error ? 'is-failed' : file.attachment ? '' : 'is-uploading'}>
+    <FileIcon name={file.name} /><span className="file-meta"><strong>{file.name}</strong><small>{file.error ?? (file.attachment ? formatFileSize(file.size) : t('attachments.uploading'))}</small></span>
+    <IconButton label={t('attachments.remove', { name: file.name })} icon={X} onClick={() => onRemove(file.key)} />
   </li>)}</ul>;
 }
 
@@ -73,6 +76,7 @@ export function FileIcon({ name }: { name: string }) {
 export function AttachmentList({ attachments, download, errorMessage }: {
   attachments: ChatAttachment[]; download: (id: string) => Promise<Blob>; errorMessage: (reason: unknown) => string;
 }) {
+  const { t } = useTranslation('common');
   const [error, setError] = useState('');
   const save = async (file: ChatAttachment) => {
     setError('');
@@ -85,7 +89,7 @@ export function AttachmentList({ attachments, download, errorMessage }: {
     } catch (reason) { setError(errorMessage(reason)); }
   };
   return <div className="chat-attachments">
-    {attachments.map((file) => <button key={file.id} type="button" className="chat-attachment" aria-label={`Скачать ${file.fileName}, ${formatFileSize(file.size)}`} onClick={() => void save(file)}>
+    {attachments.map((file) => <button key={file.id} type="button" className="chat-attachment" aria-label={t('attachments.download', { name: file.fileName, size: formatFileSize(file.size) })} onClick={() => void save(file)}>
       <FileIcon name={file.fileName} /><span className="file-meta"><strong>{file.fileName}</strong><small>{formatFileSize(file.size)}</small></span><Download size={15} aria-hidden />
     </button>)}
     {error && <p className="form-error" role="alert">{error}</p>}

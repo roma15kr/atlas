@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useScrollBack } from '../lib/useScrollBack';
 import type { Reaction } from '../lib/reactions';
 import { useIsPhone } from '../lib/useIsPhone';
@@ -12,19 +13,17 @@ import { useAuth } from '../context/AppContext';
 import { useChat } from '../context/ChatContext';
 import { conversationTitle, type ChatConversation, type ChatMessage } from '../lib/chat';
 import { chatErrorMessage } from '../lib/chatErrors';
-import { firstName, plural, relativeTime } from '../lib/format';
+import { firstName, relativeTime } from '../lib/format';
 import { markdownToPlain } from '../lib/markdown';
 
 type Selection = { kind: 'conversation'; id: string } | { kind: 'mentions' };
 type Dialogs = { type: 'new' } | { type: 'browse' } | { type: 'channel' } | { type: 'settings' } | { type: 'edit'; message: ChatMessage } | { type: 'delete'; message: ChatMessage } | null;
 
-const UNREAD: [string, string, string] = ['непрочитанное', 'непрочитанных', 'непрочитанных'];
-const MENTIONS: [string, string, string] = ['упоминание', 'упоминания', 'упоминаний'];
-const MEMBERS: [string, string, string] = ['участник', 'участника', 'участников'];
 const SELECTED_KEY = 'atlas.chat.selected';
 
 /** Team chat: channels, groups and direct messages with threads and mentions. */
 export function MessagesPage() {
+  const { t } = useTranslation(['chat', 'common']);
   const { session } = useAuth();
   const me = session!.user;
   const chat = useChat();
@@ -75,33 +74,33 @@ export function MessagesPage() {
 
   const row = (item: ChatConversation) => <button key={item.id} type="button" className={`${selectedId === item.id ? 'is-active' : ''} ${item.unread ? 'is-unread' : ''}`} onClick={() => open(item.id)} aria-current={selectedId === item.id ? 'true' : undefined}>
     <ConversationIcon conversation={item} myId={me.id} />
-    <span><strong>{conversationTitle(item, me.id)}</strong><small>{item.lastMessage ? `${item.lastMessage.authorId === me.id ? 'Вы' : firstName(item.lastMessage.authorName)}: ${item.lastMessage.body === null ? 'сообщение удалено' : markdownToPlain(item.lastMessage.body) || '📎 Файл'}` : item.kind === 'CHANNEL' ? item.description ?? 'Нет сообщений' : 'Нет сообщений'}</small></span>
-    {item.mentions > 0 ? <Badge tone="danger">@{item.mentions}</Badge> : item.unread > 0 ? <Badge tone={item.muted ? 'neutral' : 'info'}>{item.unread}</Badge> : item.muted ? <BellOff size={13} className="chat-row__muted" aria-label="Без уведомлений" /> : null}
+    <span><strong>{conversationTitle(item, me.id)}</strong><small>{item.lastMessage ? `${item.lastMessage.authorId === me.id ? t('row.you') : firstName(item.lastMessage.authorName)}: ${item.lastMessage.body === null ? t('row.deleted') : markdownToPlain(item.lastMessage.body) || t('row.file')}` : item.kind === 'CHANNEL' ? item.description ?? t('row.empty') : t('row.empty')}</small></span>
+    {item.mentions > 0 ? <Badge tone="danger">@{item.mentions}</Badge> : item.unread > 0 ? <Badge tone={item.muted ? 'neutral' : 'info'}>{item.unread}</Badge> : item.muted ? <BellOff size={13} className="chat-row__muted" aria-label={t('row.muted')} /> : null}
   </button>;
 
   // On a phone the list and a conversation take turns; a conversation opened from a notification shows at once.
   const showList = !phone || phoneList;
   const showConversation = !phone || !phoneList;
   return <>
-    {showList && <PageHeader title="Сообщения" description={`${plural(totals.unread, UNREAD)} · ${plural(totals.mentions, MENTIONS)}`} action={<Button icon={Plus} onClick={() => setDialog({ type: 'new' })}>Новое сообщение</Button>} />}
-    {error && <div className="notice notice--danger" role="alert">{error}<button onClick={() => setError('')}>Закрыть</button></div>}
+    {showList && <PageHeader title={t('page.title')} description={`${t('count.unread', { count: totals.unread })} · ${t('count.mentions', { count: totals.mentions })}`} action={<Button icon={Plus} onClick={() => setDialog({ type: 'new' })}>{t('page.newMessage')}</Button>} />}
+    {error && <div className="notice notice--danger" role="alert">{error}<button onClick={() => setError('')}>{t('common:actions.close')}</button></div>}
     <div className={`chat-layout ${threadId ? 'chat-layout--thread' : ''} ${phone ? 'chat-layout--phone' : ''}`}>
-      {showList && <Surface className="chat-list" aria-label="Разговоры">
-        <label className="table-search"><Search size={16} /><input aria-label="Поиск разговоров" placeholder="Поиск" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
+      {showList && <Surface className="chat-list" aria-label={t('page.conversations')}>
+        <label className="table-search"><Search size={16} /><input aria-label={t('page.search')} placeholder={t('page.searchPlaceholder')} value={query} onChange={(event) => setQuery(event.target.value)} /></label>
         <div className="chat-list__rows">
           <button type="button" className={selection?.kind === 'mentions' ? 'is-active' : ''} onClick={() => { setSelection({ kind: 'mentions' }); setPhoneList(false); }}>
-            <span className="chat-icon"><AtSign size={15} /></span><span><strong>Упоминания</strong><small>Сообщения, где упомянули вас</small></span>{unreadMentions > 0 && <Badge tone="danger">{unreadMentions}</Badge>}
+            <span className="chat-icon"><AtSign size={15} /></span><span><strong>{t('page.mentions')}</strong><small>{t('page.mentionsHint')}</small></span>{unreadMentions > 0 && <Badge tone="danger">{unreadMentions}</Badge>}
           </button>
-          <div className="chat-list__section"><span>Каналы</span><button type="button" className="text-button" onClick={() => setDialog({ type: 'browse' })}>Все каналы</button></div>
+          <div className="chat-list__section"><span>{t('page.channels')}</span><button type="button" className="text-button" onClick={() => setDialog({ type: 'browse' })}>{t('page.allChannels')}</button></div>
           {channels.map(row)}
-          <div className="chat-list__section"><span>Личные сообщения</span></div>
+          <div className="chat-list__section"><span>{t('page.direct')}</span></div>
           {direct.map(row)}
-          {loaded && !direct.length && <p className="chat-list__empty">Напишите коллеге — нажмите «Новое сообщение»</p>}
+          {loaded && !direct.length && <p className="chat-list__empty">{t('page.emptyList')}</p>}
         </div>
       </Surface>}
-      {showConversation && phone && selection?.kind === 'mentions' && <IconButton label="К списку" icon={ArrowLeft} className="phone-back" onClick={() => { setPhoneList(true); setThreadId(null); }} />}
+      {showConversation && phone && selection?.kind === 'mentions' && <IconButton label={t('page.back')} icon={ArrowLeft} className="phone-back" onClick={() => { setPhoneList(true); setThreadId(null); }} />}
       {!showConversation || (phone && threadId) ? null : selection?.kind === 'mentions' ? <MentionsView onOpen={open} /> : current ? <ConversationView key={current.id} conversation={current} threadId={threadId} onThread={setThreadId} onSettings={() => setDialog({ type: 'settings' })} onEdit={(message) => setDialog({ type: 'edit', message })} onDelete={(message) => setDialog({ type: 'delete', message })} onError={setError}  onBack={phone ? () => { setPhoneList(true); setThreadId(null); } : undefined} />
-        : <Surface className="chat-main">{loaded ? <EmptyState title="Выберите разговор" description="Каналы, группы и личные сообщения появятся слева" icon={MessageSquare} /> : <LoadingState label="Загружаем разговоры" />}</Surface>}
+        : <Surface className="chat-main">{loaded ? <EmptyState title={t('page.chooseTitle')} description={t('page.chooseText')} icon={MessageSquare} /> : <LoadingState label={t('page.loading')} />}</Surface>}
       {threadId && current && <ThreadPanel key={threadId} conversation={current} rootId={threadId} onClose={() => setThreadId(null)} onEdit={(message) => setDialog({ type: 'edit', message })} onDelete={(message) => setDialog({ type: 'delete', message })} />}
     </div>
     {dialog?.type === 'new' && <NewMessageDialog onClose={() => setDialog(null)} onOpened={(conversation) => open(conversation.id)} />}
@@ -109,7 +108,7 @@ export function MessagesPage() {
     {dialog?.type === 'channel' && <ChannelFormDialog onClose={() => setDialog(null)} onSaved={open} />}
     {dialog?.type === 'settings' && current && <ConversationSettingsDialog conversation={current} onClose={() => { setDialog(null); setPreview(null); }} onLeft={() => { setDialog(null); setPreview(null); setSelection(null); }} />}
     {dialog?.type === 'edit' && <EditMessageDialog message={dialog.message} onClose={() => setDialog(null)} />}
-    {dialog?.type === 'delete' && <ConfirmDialog title="Удалить сообщение?" description={dialog.message.author.id === me.id ? 'Сообщение будет удалено навсегда вместе с изображениями и реакциями. Если на него ответили, останется строка «Сообщение удалено», чтобы ответы не потеряли смысл.' : `Сообщение ${dialog.message.author.fullName} будет удалено для всех участников канала.`} confirm="Удалить" onClose={() => setDialog(null)} onConfirm={async () => { await chat.backend.remove(dialog.message.id); chat.notify({ type: 'changed' }); setDialog(null); }} />}
+    {dialog?.type === 'delete' && <ConfirmDialog title={t('delete.title')} description={dialog.message.author.id === me.id ? t('delete.own') : t('delete.other', { author: dialog.message.author.fullName })} confirm={t('common:actions.delete')} onClose={() => setDialog(null)} onConfirm={async () => { await chat.backend.remove(dialog.message.id); chat.notify({ type: 'changed' }); setDialog(null); }} />}
   </>;
 }
 
@@ -158,6 +157,7 @@ function ConversationView({ conversation, threadId, onThread, onSettings, onEdit
   conversation: ChatConversation; threadId: string | null; onThread: (id: string | null) => void; onSettings: () => void; onBack?: () => void;
   onEdit: (message: ChatMessage) => void; onDelete: (message: ChatMessage) => void; onError: (message: string) => void;
 }) {
+  const { t } = useTranslation(['chat', 'common']);
   const { session } = useAuth();
   const me = session!.user;
   const chat = useChat();
@@ -165,7 +165,7 @@ function ConversationView({ conversation, threadId, onThread, onSettings, onEdit
   const { items, hasMore, loadOlder, append, setReactions } = useLiveMessages(conversation.id, null);
   const isMember = conversation.myRole !== null || conversation.isMember === true;
   const react = isMember && !conversation.archivedAt ? (message: ChatMessage) => (emoji: string, add: boolean) => {
-    chat.backend.react(message.id, emoji, add).then((reactions) => setReactions(message.id, reactions), (reason) => onError(chatErrorMessage(reason, 'Реакция не сохранена')));
+    chat.backend.react(message.id, emoji, add).then((reactions) => setReactions(message.id, reactions), (reason) => onError(chatErrorMessage(reason, t('errors.reaction'))));
   } : null;
   const participants = conversation.participants ?? [];
   const inactiveDm = conversation.kind === 'DM' && participants.some((person) => !person.active);
@@ -174,7 +174,7 @@ function ConversationView({ conversation, threadId, onThread, onSettings, onEdit
   // The list doesn't carry `canManage`; the rule is the server's: a channel admin or a director.
   const canManageChannel = conversation.kind === 'CHANNEL' && (conversation.canManage ?? (conversation.myRole === 'ADMIN' || me.role === 'DIRECTOR'));
   const setIcon = async (icon: string | null) => {
-    try { await backend.updateChannel(conversation.id, { icon }); await refresh(); } catch (reason) { onError(chatErrorMessage(reason, 'Иконка не сохранена')); }
+    try { await backend.updateChannel(conversation.id, { icon }); await refresh(); } catch (reason) { onError(chatErrorMessage(reason, t('errors.icon'))); }
   };
 
   useEffect(() => { setActive(conversation.id); return () => setActive(null); }, [conversation.id, setActive]);
@@ -189,44 +189,45 @@ function ConversationView({ conversation, threadId, onThread, onSettings, onEdit
   const phoneScreen = useIsPhone();
 
   const send = async (body: string, attachmentIds: string[] = []) => {
-    try { append(await backend.post(conversation.id, body, null, attachmentIds)); await refresh(); } catch (reason) { onError(chatErrorMessage(reason, 'Сообщение не отправлено')); throw reason; }
+    try { append(await backend.post(conversation.id, body, null, attachmentIds)); await refresh(); } catch (reason) { onError(chatErrorMessage(reason, t('errors.send'))); throw reason; }
   };
-  const join = async () => { try { await backend.join(conversation.id); await refresh(); } catch (reason) { onError(chatErrorMessage(reason, 'Не удалось вступить в канал')); } };
-  const toggleMute = async () => { try { await backend.mute(conversation.id, !conversation.muted); await refresh(); } catch (reason) { onError(chatErrorMessage(reason, 'Настройка не сохранена')); } };
+  const join = async () => { try { await backend.join(conversation.id); await refresh(); } catch (reason) { onError(chatErrorMessage(reason, t('errors.join'))); } };
+  const toggleMute = async () => { try { await backend.mute(conversation.id, !conversation.muted); await refresh(); } catch (reason) { onError(chatErrorMessage(reason, t('errors.mute'))); } };
   const canModerate = conversation.kind === 'CHANNEL' && isMember && (conversation.myRole === 'ADMIN' || me.role === 'DIRECTOR');
   const mentionable = conversation.kind === 'CHANNEL' && conversation.visibility === 'PUBLIC' ? chat.people : chat.people.filter((person) => conversation.kind === 'CHANNEL' || participants.some((item) => item.id === person.id));
   const meta = conversation.kind === 'CHANNEL'
-    ? `${conversation.visibility === 'PRIVATE' ? 'Закрытый канал' : 'Публичный канал'} · ${plural(conversation.memberCount, MEMBERS)}`
-    : conversation.kind === 'GROUP' ? plural(conversation.memberCount, MEMBERS) : participants.find((person) => person.id !== me.id)?.username ? `@${participants.find((person) => person.id !== me.id)!.username}` : '';
+    ? `${conversation.visibility === 'PRIVATE' ? t('view.private') : t('view.public')} · ${t('count.members', { count: conversation.memberCount })}`
+    : conversation.kind === 'GROUP' ? t('count.members', { count: conversation.memberCount }) : participants.find((person) => person.id !== me.id)?.username ? `@${participants.find((person) => person.id !== me.id)!.username}` : '';
 
-  return <Surface className="chat-main" aria-label={`Разговор ${title}`}>
+  return <Surface className="chat-main" aria-label={t('view.region', { title })}>
     <header className="chat-main__header">
-      {onBack && <IconButton label="К списку" icon={ArrowLeft} onClick={onBack} />}
+      {onBack && <IconButton label={t('page.back')} icon={ArrowLeft} onClick={onBack} />}
       {canManageChannel && !conversation.archivedAt
         ? <ChannelIconPicker value={conversation.icon} visibility={conversation.visibility} onChange={(icon) => void setIcon(icon)} />
         : <ConversationIcon conversation={conversation} myId={me.id} />}
       <div><h2>{title}</h2><span>{meta}{conversation.kind === 'CHANNEL' && conversation.description ? ` · ${conversation.description}` : ''}</span></div>
-      {isMember && <IconButton label={conversation.muted ? 'Включить уведомления' : 'Без уведомлений'} icon={conversation.muted ? BellOff : Bell} onClick={() => void toggleMute()} />}
-      {conversation.kind !== 'DM' && <IconButton label={conversation.kind === 'CHANNEL' ? 'Настройки канала' : 'Участники группы'} icon={conversation.kind === 'CHANNEL' ? Settings2 : Users} onClick={onSettings} />}
+      {isMember && <IconButton label={conversation.muted ? t('view.unmute') : t('view.mute')} icon={conversation.muted ? BellOff : Bell} onClick={() => void toggleMute()} />}
+      {conversation.kind !== 'DM' && <IconButton label={conversation.kind === 'CHANNEL' ? t('view.channelSettings') : t('view.groupMembers')} icon={conversation.kind === 'CHANNEL' ? Settings2 : Users} onClick={onSettings} />}
     </header>
     <div className="chat-main__messages" aria-live="polite" ref={history.container} onScroll={history.onScroll}>
       <div ref={history.sentinel} aria-hidden />
-      {hasMore ? <button type="button" className="text-button chat-main__older" disabled={history.busy} onClick={() => void history.older()}>{history.busy ? 'Загружаем ранние сообщения…' : 'Показать более ранние'}</button>
-        : items && items.length > 0 && <div className="chat-main__start">Начало переписки</div>}
-      {!items ? <LoadingState label="Загружаем сообщения" /> : items.length ? items.map((message) => <MessageItem key={message.id} message={message} people={people} me={me} canModerate={canModerate}
+      {hasMore ? <button type="button" className="text-button chat-main__older" disabled={history.busy} onClick={() => void history.older()}>{history.busy ? t('view.loadingOlder') : t('view.showOlder')}</button>
+        : items && items.length > 0 && <div className="chat-main__start">{t('view.start')}</div>}
+      {!items ? <LoadingState label={t('view.loadingMessages')} /> : items.length ? items.map((message) => <MessageItem key={message.id} message={message} people={people} me={me} canModerate={canModerate}
         onReply={isMember && !conversation.archivedAt ? () => onThread(message.id) : undefined} onOpenThread={() => onThread(message.id)}
         onEdit={() => onEdit(message)} onDelete={() => onDelete(message)}  onReact={react?.(message)} />)
-        : <EmptyState title="Сообщений пока нет" description={conversation.kind === 'DM' ? `Начните разговор с ${title}` : 'Напишите первое сообщение'} icon={conversation.kind === 'CHANNEL' ? Hash : MessageSquare} />}
+        : <EmptyState title={t('view.emptyTitle')} description={conversation.kind === 'DM' ? t('view.emptyDm', { title }) : t('view.emptyChannel')} icon={conversation.kind === 'CHANNEL' ? Hash : MessageSquare} />}
     </div>
-    {history.newBelow && <button type="button" className="new-messages" onClick={history.scrollToEnd}>Новые сообщения ↓</button>}
-    {conversation.archivedAt ? <div className="chat-main__notice">Канал в архиве — только чтение</div>
-      : inactiveDm ? <div className="chat-main__notice">Сотрудник деактивирован — переписка доступна только для чтения</div>
-      : !isMember ? <div className="chat-main__notice"><span>Вы не участник канала</span><Button variant="secondary" onClick={() => void join()}>Вступить</Button></div>
-      : <Composer key={conversation.id} people={mentionable} placeholder={conversation.kind === 'CHANNEL' ? `Написать в #${title}` : `Написать ${title}`} onSend={send} upload={(file) => backend.uploadAttachment(conversation.id, file)} autoFocus={!threadId && !phoneScreen} />}
+    {history.newBelow && <button type="button" className="new-messages" onClick={history.scrollToEnd}>{t('view.newBelow')}</button>}
+    {conversation.archivedAt ? <div className="chat-main__notice">{t('view.archived')}</div>
+      : inactiveDm ? <div className="chat-main__notice">{t('view.deactivated')}</div>
+      : !isMember ? <div className="chat-main__notice"><span>{t('view.notMember')}</span><Button variant="secondary" onClick={() => void join()}>{t('view.join')}</Button></div>
+      : <Composer key={conversation.id} people={mentionable} placeholder={conversation.kind === 'CHANNEL' ? t('view.writeChannel', { title }) : t('view.writeTo', { title })} onSend={send} upload={(file) => backend.uploadAttachment(conversation.id, file)} autoFocus={!threadId && !phoneScreen} />}
   </Surface>;
 }
 
 function ThreadPanel({ conversation, rootId, onClose, onEdit, onDelete }: { conversation: ChatConversation; rootId: string; onClose: () => void; onEdit: (message: ChatMessage) => void; onDelete: (message: ChatMessage) => void }) {
+  const { t } = useTranslation(['chat', 'common']);
   const { session } = useAuth();
   const me = session!.user;
   const chat = useChat();
@@ -236,37 +237,38 @@ function ThreadPanel({ conversation, rootId, onClose, onEdit, onDelete }: { conv
   const [error, setError] = useState('');
   const isMember = conversation.myRole !== null;
   const react = isMember && !conversation.archivedAt ? (message: ChatMessage) => (emoji: string, add: boolean) => {
-    chat.backend.react(message.id, emoji, add).then((reactions) => setReactions(message.id, reactions), (reason) => setError(chatErrorMessage(reason, 'Реакция не сохранена')));
+    chat.backend.react(message.id, emoji, add).then((reactions) => setReactions(message.id, reactions), (reason) => setError(chatErrorMessage(reason, t('errors.reaction'))));
   } : null;
   const canModerate = conversation.kind === 'CHANNEL' && isMember && (conversation.myRole === 'ADMIN' || me.role === 'DIRECTOR');
   const send = async (body: string, attachmentIds: string[] = []) => {
     setError('');
-    try { append(await chat.backend.post(conversation.id, body, rootId, attachmentIds)); chat.notify({ type: 'changed', conversationId: conversation.id }); await chat.refresh(); } catch (reason) { setError(chatErrorMessage(reason, 'Ответ не отправлен')); throw reason; }
+    try { append(await chat.backend.post(conversation.id, body, rootId, attachmentIds)); chat.notify({ type: 'changed', conversationId: conversation.id }); await chat.refresh(); } catch (reason) { setError(chatErrorMessage(reason, t('errors.reply'))); throw reason; }
   };
-  return <Surface className="chat-thread" aria-label="Обсуждение">
-    <SectionHeader title="Обсуждение" meta={items ? <Badge>{items.length}</Badge> : undefined} action={<IconButton label="Закрыть обсуждение" icon={X} onClick={onClose} />} />
+  return <Surface className="chat-thread" aria-label={t('thread.title')}>
+    <SectionHeader title={t('thread.title')} meta={items ? <Badge>{items.length}</Badge> : undefined} action={<IconButton label={t('thread.close')} icon={X} onClick={onClose} />} />
     <div className="chat-thread__messages" ref={history.container} onScroll={history.onScroll}>
       {root && <MessageItem message={root} people={people} me={me} canModerate={canModerate} onEdit={() => onEdit(root)} onDelete={() => onDelete(root)} onReact={react?.(root)} />}
-      {items && items.length > 0 && <div className="chat-thread__divider">{plural(items.length, ['ответ', 'ответа', 'ответов'])}</div>}
+      {items && items.length > 0 && <div className="chat-thread__divider">{t('count.replies', { count: items.length })}</div>}
       {items?.map((message) => <MessageItem key={message.id} message={message} people={people} me={me} canModerate={canModerate} onEdit={() => onEdit(message)} onDelete={() => onDelete(message)} onReact={react?.(message)} />)}
     </div>
     {error && <div className="form-error" role="alert">{error}</div>}
-    {history.newBelow && <button type="button" className="new-messages" onClick={history.scrollToEnd}>Новые сообщения ↓</button>}
-    {isMember && !conversation.archivedAt && <Composer people={chat.people} placeholder="Ответить в обсуждении" label="Ответ в обсуждении" onSend={send} upload={(file) => chat.backend.uploadAttachment(conversation.id, file)} autoFocus />}
+    {history.newBelow && <button type="button" className="new-messages" onClick={history.scrollToEnd}>{t('view.newBelow')}</button>}
+    {isMember && !conversation.archivedAt && <Composer people={chat.people} placeholder={t('thread.placeholder')} label={t('thread.label')} onSend={send} upload={(file) => chat.backend.uploadAttachment(conversation.id, file)} autoFocus />}
   </Surface>;
 }
 
 function MentionsView({ onOpen }: { onOpen: (conversationId: string) => void }) {
+  const { t } = useTranslation(['chat', 'common']);
   const chat = useChat();
   useEffect(() => { void chat.refresh(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  return <Surface className="chat-main" aria-label="Упоминания">
-    <header className="chat-main__header"><span className="chat-icon"><AtSign size={15} /></span><div><h2>Упоминания</h2><span>Последние 50 сообщений, где упомянули вас</span></div></header>
+  return <Surface className="chat-main" aria-label={t('page.mentions')}>
+    <header className="chat-main__header"><span className="chat-icon"><AtSign size={15} /></span><div><h2>{t('page.mentions')}</h2><span>{t('mentions.recent')}</span></div></header>
     <div className="chat-main__messages">
       {chat.mentions.length ? chat.mentions.map((mention) => <button key={mention.id} type="button" className={`chat-mention ${mention.unread ? 'is-unread' : ''}`} onClick={() => onOpen(mention.conversation.id)}>
-        <span className="chat-mention__where">{mention.conversation.kind === 'CHANNEL' ? `# ${mention.conversation.name}` : mention.conversation.name ?? 'Личные сообщения'} · {relativeTime(mention.createdAt)}</span>
+        <span className="chat-mention__where">{mention.conversation.kind === 'CHANNEL' ? `# ${mention.conversation.name}` : mention.conversation.name ?? t('page.direct')} · {relativeTime(mention.createdAt)}</span>
         <strong>{mention.author.fullName}</strong>
         <p>{markdownToPlain(mention.body ?? '')}</p>
-      </button>) : <EmptyState title="Упоминаний нет" description="Когда коллеги отметят вас через @, сообщение появится здесь" icon={AtSign} />}
+      </button>) : <EmptyState title={t('mentions.emptyTitle')} description={t('mentions.emptyText')} icon={AtSign} />}
     </div>
   </Surface>;
 }

@@ -1,3 +1,4 @@
+import { chat } from './chat';
 import { common } from './common';
 import { crm } from './crm';
 import { profile } from './profile';
@@ -7,4 +8,4 @@ import { stages } from './stages';
 import { tasks } from './tasks';
 
 /** All namespaces of this language. */
-export const ru = { common, crm, profile, sales, shell, stages, tasks };
+export const ru = { chat, common, crm, profile, sales, shell, stages, tasks };

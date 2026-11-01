@@ -14,6 +14,13 @@ export const common = {
   actions: {
     cancel: 'Отмена', save: 'Сохранить', saving: 'Сохраняем…', close: 'Закрыть', delete: 'Удалить', edit: 'Редактировать', add: 'Добавить', adding: 'Добавляем…', create: 'Создать', retry: 'Повторить', done: 'Готово', back: 'Назад',
   },
+  attachments: {
+    uploading: 'Загружается…', attach: 'Прикрепить файл', pending: 'Прикреплённые файлы', input: 'Файлы: {{label}}', remove: 'Убрать {{name}}', download: 'Скачать {{name}}, {{size}}',
+    rules: 'PDF, Word, Excel, CSV, PowerPoint, текст, ZIP или изображения до 20 МБ', notAllowed: '«{{name}}»: такой файл не прикрепить. Можно: {{rules}}.', tooBig: '«{{name}}» больше 20 МБ.', empty: '«{{name}}» пустой.',
+  },
+  reactions: {
+    unknown: 'Такой реакции нет', limit: 'Не больше {{max}} разных реакций', label: 'Реакции', you: 'Вы', andMore: ' и ещё {{count}}', add: 'Добавить реакцию', picker: 'Выбор реакции', all: 'Все эмодзи', search: 'Найти эмодзи', searchPlaceholder: 'Найти: огонь, спасибо, готово…', nothing: 'Ничего не нашлось',
+  },
   optional: 'Необязательно',
   loading: 'Загружаем…',
 } satisfies Dictionary<typeof source>;

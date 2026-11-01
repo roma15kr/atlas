@@ -15,6 +15,13 @@ export const common = {
   actions: {
     cancel: 'Cancel', save: 'Save', saving: 'Saving…', close: 'Close', delete: 'Delete', edit: 'Edit', add: 'Add', adding: 'Adding…', create: 'Create', retry: 'Try again', done: 'Done', back: 'Back',
   },
+  attachments: {
+    uploading: 'Uploading…', attach: 'Attach a file', pending: 'Attached files', input: 'Files: {{label}}', remove: 'Remove {{name}}', download: 'Download {{name}}, {{size}}',
+    rules: 'PDF, Word, Excel, CSV, PowerPoint, text, ZIP or images up to 20 MB', notAllowed: '«{{name}}»: this file can’t be attached. Allowed: {{rules}}.', tooBig: '«{{name}}» is larger than 20 MB.', empty: '«{{name}}» is empty.',
+  },
+  reactions: {
+    unknown: 'There is no such reaction', limit: 'At most {{max}} different reactions', label: 'Reactions', you: 'You', andMore: ' and {{count}} more', add: 'Add reaction', picker: 'Choose a reaction', all: 'All emoji', search: 'Find an emoji', searchPlaceholder: 'Find: fire, thanks, done…', nothing: 'Nothing found',
+  },
   optional: 'Optional',
   loading: 'Loading…',
 } satisfies Dictionary<typeof source>;
