@@ -1,3 +1,5 @@
+import i18n, { localeOf } from '../i18n';
+
 export const formatMoney = (value: number, currency: 'UAH' = 'UAH') =>
   new Intl.NumberFormat('uk-UA', {
     style: 'currency',
@@ -9,11 +11,11 @@ export const formatMoney = (value: number, currency: 'UAH' = 'UAH') =>
 export const formatKpiValue = (value: number, unit: string) =>
   unit.toUpperCase() === 'UAH'
     ? formatMoney(value)
-    : `${new Intl.NumberFormat('ru-RU').format(value)} ${unit}`;
+    : `${new Intl.NumberFormat(localeOf()).format(value)} ${unit}`;
 
 export const formatDate = (value?: string, options?: Intl.DateTimeFormatOptions) => {
   if (!value) return '—';
-  return new Intl.DateTimeFormat('ru-RU', options ?? { day: '2-digit', month: 'short' }).format(new Date(value));
+  return new Intl.DateTimeFormat(localeOf(), options ?? { day: '2-digit', month: 'short' }).format(new Date(value));
 };
 
 export const formatDateTime = (value?: string) =>
@@ -27,25 +29,26 @@ export const initials = (name: string) =>
     .slice(0, 2)
     .toUpperCase();
 
+/** Role names in the interface language. */
 export const roleLabel = {
-  DIRECTOR: 'Директор',
-  MANAGER: 'Руководитель',
-  EMPLOYEE: 'Сотрудник',
-} as const;
+  get DIRECTOR() { return i18n.t('roles.DIRECTOR'); },
+  get MANAGER() { return i18n.t('roles.MANAGER'); },
+  get EMPLOYEE() { return i18n.t('roles.EMPLOYEE'); },
+};
 
 export const relativeTime = (value?: string) => {
-  if (!value) return 'нет данных';
+  if (!value) return i18n.t('time.noData');
   const minutes = Math.max(1, Math.round((Date.now() - new Date(value).getTime()) / 60000));
-  if (minutes < 60) return `${minutes} мин назад`;
+  if (minutes < 60) return i18n.t('time.minutesAgo', { count: minutes });
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} ч назад`;
+  if (hours < 24) return i18n.t('time.hoursAgo', { count: hours });
   return formatDate(value);
 };
 
 export const fileSize = (bytes: number) => {
-  if (bytes < 1024) return `${bytes} Б`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} КБ`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} МБ`;
+  if (bytes < 1024) return i18n.t('size.bytes', { value: bytes });
+  if (bytes < 1024 * 1024) return i18n.t('size.kilobytes', { value: Math.round(bytes / 1024) });
+  return i18n.t('size.megabytes', { value: (bytes / 1024 / 1024).toFixed(1) });
 };
 
 /** Russian plural: plural(3, ['этап', 'этапа', 'этапов']) → '3 этапа'. */

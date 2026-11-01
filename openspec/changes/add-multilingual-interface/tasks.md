@@ -2,7 +2,7 @@
 
 ## 1. Foundation
 
-- [ ] 1.1 Add `i18next`, `react-i18next`, the typed dictionaries (`uk` source, `ru`, `en`), language detection, `<html lang>`, locale-aware `lib/format.ts` and plural keys; set the test language to `ru`. Verify: a dictionary test (same keys and placeholders in all three) and format tests per language. Commit.
+- [x] 1.1 Add `i18next`, `react-i18next`, the typed dictionaries (`uk` source, `ru`, `en`), language detection, `<html lang>`, locale-aware `lib/format.ts` and plural keys; set the test language to `ru`. Verify: a dictionary test (same keys and placeholders in all three) and format tests per language. Commit.
 - [ ] 1.2 Add migration `026_user_language.sql`, `language` on the session user and `PATCH /profile`, and the «Мова інтерфейсу» switch in «Профиль» (the demo mirrors it). Verify: an API case (an invalid language gets 400); `Profile` tests where switching to English changes the shell at once and survives a reload. Commit.
 
 ## 2. Screens
