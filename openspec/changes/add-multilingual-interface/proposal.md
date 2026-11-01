@@ -52,7 +52,7 @@ Atlas now speaks Ukrainian, Russian and English. It starts in Ukrainian; to chan
 - **Dependencies:** `i18next` and `react-i18next` (approved by the director; ADR 0006).
 - **Data:** migration `026_user_language.sql` adds `users.language` (`uk`, `ru` or `en`; default `uk`).
 - **API:**
-  - `PATCH /api/v1/profile` accepts `language`, and the session's user carries it;
+  - `PATCH /api/v1/team/me` (the own profile) accepts `language`, and the session's user carries it;
   - notifications, reminders, alerts and AI answers are written per recipient's language.
 - **Web:**
   - dictionaries under `apps/web/src/i18n/{uk,ru,en}`;

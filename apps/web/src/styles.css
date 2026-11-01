@@ -1495,3 +1495,5 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
   .section-header { flex-wrap: wrap; }
 }
 @media (max-width: 640px) { .mail-crm > svg { display: none; } }
+.language-settings__choices { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; margin-top: 10px; }
+.language-settings__choices button { min-height: 34px; }

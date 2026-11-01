@@ -1,4 +1,5 @@
 import { common } from './common';
+import { profile } from './profile';
 
 /** All namespaces of this language. */
-export const uk = { common };
+export const uk = { common, profile };

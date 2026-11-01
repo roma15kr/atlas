@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { trackActivity } from '../lib/activity';
+import { applyLanguage, isLanguage } from '../i18n';
 import { recordDiagnostic } from '../lib/diagnostics';
 import { involvesColleagues } from '../lib/boards';
 import { api, ApiError, apiRequest, listAll, listPage, renewAccessToken, restoreSession, sessionStore } from '../lib/api';
@@ -94,6 +95,7 @@ const optionalText = (value: unknown): string | undefined => typeof value === 's
 
 const normalizeUser = (source: Record<string, unknown>): User => ({
   id: String(source.id ?? ''),
+  ...(isLanguage(source.language) ? { language: source.language } : {}),
   username: String(source.username ?? ''),
   fullName: String(source.fullName ?? source.full_name ?? source.username ?? ''),
   role: (source.role as Role) ?? 'EMPLOYEE',
@@ -189,6 +191,9 @@ const normalizeSession = (source: unknown): Session => {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(() => sessionStore.get());
+  // The account's language wins over the browser's once someone is signed in, on every device.
+  const sessionLanguage = session?.user.language;
+  useEffect(() => { if (sessionLanguage) void applyLanguage(sessionLanguage); }, [sessionLanguage]);
   // A reload keeps no token in storage; the session comes back through the refresh cookie.
   const [loading, setLoading] = useState(() => sessionStore.canRestore());
 
@@ -282,7 +287,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     const saved = normalizeUser({ ...session.user, ...await api.update<Record<string, unknown>>('team', 'me', patch) });
-    applyToSessionUser({ fullName: saved.fullName, specialty: saved.specialty, birthDate: saved.birthDate, birthday: saved.birthday, showBirthday: saved.showBirthday, phone: saved.phone, contactEmail: saved.contactEmail, city: saved.city, about: saved.about });
+    applyToSessionUser({ fullName: saved.fullName, specialty: saved.specialty, birthDate: saved.birthDate, birthday: saved.birthday, showBirthday: saved.showBirthday, phone: saved.phone, contactEmail: saved.contactEmail, city: saved.city, about: saved.about, language: saved.language });
   }, [session, applyToSessionUser]);
 
   const uploadAvatar = useCallback(async (photo: Blob) => {

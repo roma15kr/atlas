@@ -14,7 +14,7 @@
 2. **Choosing the language.**
    - Before sign-in: `localStorage['atlas.language']` (only a convenience, never auth), else `navigator.languages` (`uk`, `ru` or `en`), else `uk`.
    - After sign-in: `user.language` from the session wins, and is written back to `localStorage`.
-   - The profile switch calls `PATCH /profile { language }`, then `i18n.changeLanguage()`, which re-renders at once.
+   - The profile switch calls `PATCH /team/me { language }`, then `i18n.changeLanguage()`, which re-renders at once.
    - `<html lang>` follows the language.
 3. **Formatting.**
    - `lib/format.ts` (`formatDate`, `formatDateTime`, `relativeTime`, `formatMoney`, `plural`) reads the active language. It uses `Intl` with `uk-UA`, `ru-RU` and `en-GB` (day-month dates, 24-hour clock).

@@ -3,7 +3,8 @@ import type { ProfileInput, User } from '../types';
 export const MIN_AGE_YEARS = 14;
 export const ABOUT_MAX = 500;
 
-export type ProfileForm = Required<Omit<ProfileInput, 'showBirthday'>> & { showBirthday: boolean };
+// The language has its own section («Мова інтерфейсу»), outside the personal-data form.
+export type ProfileForm = Required<Omit<ProfileInput, 'showBirthday' | 'language'>> & { showBirthday: boolean };
 export type ProfileErrors = Partial<Record<keyof ProfileForm, string>>;
 
 const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];

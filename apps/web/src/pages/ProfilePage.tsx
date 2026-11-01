@@ -6,6 +6,7 @@ import { AiAnalysisDialog } from '../components/AiAnalysisDialog';
 import { ChangePasswordDialog } from '../components/team/MemberDialogs';
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Avatar, Badge, Button, Field, Meter, PageHeader, SectionHeader, Surface } from '../components/ui';
+import { LanguageSettings } from '../components/LanguageSettings';
 import { useAuth } from '../context/AppContext';
 import { ApiError } from '../lib/api';
 import { formatDate, roleLabel } from '../lib/format';
@@ -137,6 +138,7 @@ export function ProfilePage() {
           <div className="consent-meta"><ShieldCheck size={18} /><span><strong>Политика 2026-01</strong><small>{user.monitoringConsentAt ? `Согласие дано ${formatDate(user.monitoringConsentAt)}` : 'Ознакомьтесь и подтвердите согласие'}</small></span></div>
           {!user.monitoringConsentAt && <Button icon={Check} disabled={consenting} onClick={() => void accept()}>{consenting ? 'Подтверждаем…' : 'Принять политику'}</Button>}
         </Surface>
+        <LanguageSettings />
         <AppInstall />
         <NotificationSettings />
         <Surface>
