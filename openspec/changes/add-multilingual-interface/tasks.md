@@ -12,7 +12,7 @@
 - [x] 2.3 Tasks, boards, task dialog and comments, board settings. Verify tests. Commit.
 - [x] 2.4 Chat, channels, groups, reactions and attachments. Verify tests. Commit.
 - [x] 2.5 Mail and Telegram inboxes and settings. Verify tests. Commit.
-- [ ] 2.6 Dashboard, team, profile, documents, reports, achievements, audit, AI analysis, feedback inbox. Verify tests. Commit.
+- [x] 2.6 Dashboard, team, profile, documents, reports, achievements, audit, AI analysis, feedback inbox. Verify tests. Commit.
 - [ ] 2.7 Error codes in one `errors` namespace, replacing the per-area maps. Verify every code used by the web exists in three languages. Commit.
 
 ## 3. Server texts

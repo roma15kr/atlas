@@ -30,6 +30,9 @@ export const initials = (name: string) =>
     .toUpperCase();
 
 /** Role names in the interface language. */
+/** The department shown for someone without one, in the interface language. */
+export const noDepartment = () => i18n.t('common:noDepartment');
+
 export const roleLabel = {
   get DIRECTOR() { return i18n.t('roles.DIRECTOR'); },
   get MANAGER() { return i18n.t('roles.MANAGER'); },

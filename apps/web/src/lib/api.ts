@@ -1,5 +1,6 @@
 import type { Session } from '../types';
 import { recordRequest } from './diagnostics';
+import i18n from '../i18n';
 
 type ApiErrorBody = { message?: string; error?: string | { code?: string; message?: string; details?: unknown } };
 export class ApiError extends Error {
@@ -164,7 +165,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     let body: ApiErrorBody | undefined;
     try { body = (await response.json()) as ApiErrorBody; } catch { body = undefined; }
     const nested = typeof body?.error === 'object' ? body.error : undefined;
-    const message = body?.message ?? nested?.message ?? (typeof body?.error === 'string' ? body.error : undefined) ?? 'Не удалось выполнить запрос';
+    const message = body?.message ?? nested?.message ?? (typeof body?.error === 'string' ? body.error : undefined) ?? i18n.t('ui:api.failed');
     const error = new ApiError(message, response.status, nested?.details ?? body, nested?.code);
     if (response.status === 429) error.retryAfterSeconds = retryAfter(response);
     throw error;
@@ -186,7 +187,7 @@ export async function apiBlob(path: string, retry = true): Promise<Blob> {
     const token = await refreshAccessToken();
     if (token) return apiBlob(path, false);
   }
-  if (!response.ok) throw new ApiError('Не удалось загрузить файл', response.status);
+  if (!response.ok) throw new ApiError(i18n.t('ui:api.uploadFailed'), response.status);
   return response.blob();
 }
 
@@ -236,7 +237,7 @@ export const api = {
       let body: ApiErrorBody | undefined;
       try { body = await response.json() as ApiErrorBody; } catch { body = undefined; }
       const nested = typeof body?.error === 'object' ? body.error : undefined;
-      throw new ApiError(body?.message ?? nested?.message ?? 'Не удалось скачать файл', response.status, nested?.details, nested?.code);
+      throw new ApiError(body?.message ?? nested?.message ?? i18n.t('ui:api.downloadFailed'), response.status, nested?.details, nested?.code);
     }
     return response.blob();
   },

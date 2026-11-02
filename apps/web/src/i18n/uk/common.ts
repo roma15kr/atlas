@@ -20,5 +20,6 @@ export const common = {
     unknown: 'Такої реакції немає', limit: 'Не більше {{max}} різних реакцій', label: 'Реакції', you: 'Ви', andMore: ' і ще {{count}}', add: 'Додати реакцію', picker: 'Вибір реакції', all: 'Усі емодзі', search: 'Знайти емодзі', searchPlaceholder: 'Знайти: вогонь, дякую, готово…', nothing: 'Нічого не знайшлося',
   },
   optional: 'Необов’язково',
+  noDepartment: 'Без відділу',
   loading: 'Завантажуємо…',
 };

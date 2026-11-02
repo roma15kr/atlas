@@ -23,5 +23,6 @@ export const common = {
     unknown: 'There is no such reaction', limit: 'At most {{max}} different reactions', label: 'Reactions', you: 'You', andMore: ' and {{count}} more', add: 'Add reaction', picker: 'Choose a reaction', all: 'All emoji', search: 'Find an emoji', searchPlaceholder: 'Find: fire, thanks, done…', nothing: 'Nothing found',
   },
   optional: 'Optional',
+  noDepartment: 'No department',
   loading: 'Loading…',
 } satisfies Dictionary<typeof source>;

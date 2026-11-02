@@ -1,6 +1,7 @@
 import { api, ApiError, apiRequest } from './api';
 import { attachmentProblem, type ChatAttachment } from './chatAttachments';
 import { aggregateReactions, toggleDemoReaction, type Reaction, type ReactionRow } from './reactions';
+import i18n from '../i18n';
 
 export interface TaskComment { id: string; body: string; createdAt: string; author: { id: string; fullName: string; avatarUrl: string | null }; reactions?: Reaction[]; attachments?: ChatAttachment[] }
 
@@ -43,7 +44,7 @@ export function demoTaskComments(author: TaskComment['author']): TaskCommentsBac
     list: async (taskId) => (demoStore.get(taskId) ?? []).map((comment) => withFiles({ ...comment, reactions: aggregateReactions(demoReactions, comment.id) })),
     add: async (taskId, body, attachmentIds = []) => {
       const files = attachmentIds.map((id) => demoFiles.find((file) => file.id === id && file.taskId === taskId && !file.commentId));
-      if (files.some((file) => !file)) throw new ApiError('Файл не прикреплён — загрузите его ещё раз', 400, undefined, 'TASK_INVALID_ATTACHMENT');
+      if (files.some((file) => !file)) throw new ApiError(i18n.t('ui:files.notAttached'), 400, undefined, 'TASK_INVALID_ATTACHMENT');
       const comment: TaskComment = { id: `tc-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, body: body.trim(), createdAt: new Date().toISOString(), author };
       files.forEach((file) => { file!.commentId = comment.id; });
       demoStore.set(taskId, [...(demoStore.get(taskId) ?? []), comment]);
@@ -58,7 +59,7 @@ export function demoTaskComments(author: TaskComment['author']): TaskCommentsBac
     },
     downloadAttachment: async (id) => {
       const file = demoFiles.find((item) => item.id === id);
-      if (!file) throw new ApiError('Файл недоступен', 404, undefined, 'ATTACHMENT_NOT_FOUND');
+      if (!file) throw new ApiError(i18n.t('ui:files.unavailable'), 404, undefined, 'ATTACHMENT_NOT_FOUND');
       return file.blob;
     },
     react: async (commentId, emoji, add) => {

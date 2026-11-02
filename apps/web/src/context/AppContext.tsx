@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { trackActivity } from '../lib/activity';
-import { applyLanguage, isLanguage } from '../i18n';
+import i18n, { applyLanguage, isLanguage } from '../i18n';
 import { recordDiagnostic } from '../lib/diagnostics';
+import { noDepartment } from '../lib/format';
 import { involvesColleagues } from '../lib/boards';
 import { api, ApiError, apiRequest, listAll, listPage, renewAccessToken, restoreSession, sessionStore } from '../lib/api';
 import {
@@ -61,7 +62,7 @@ export const autoUnit = (source: KpiInput['source']): string =>
   ({ MANUAL: '', DEALS_WON_VALUE: 'UAH', DEALS_WON_COUNT: 'сделок', TASKS_DONE: 'задач', TASKS_ON_TIME_RATE: '%' })[source];
 
 export function constrainTeamMemberInput(actor: User, input: CreateTeamMemberInput): CreateTeamMemberInput {
-  if (actor.role === 'EMPLOYEE') throw new Error('Недостаточно прав для добавления сотрудников');
+  if (actor.role === 'EMPLOYEE') throw new Error(i18n.t('ui:app.noRights'));
   if (actor.role === 'MANAGER') return { ...input, role: 'EMPLOYEE', departmentName: undefined };
   return { ...input, departmentName: input.departmentName?.trim() || undefined };
 }
@@ -99,7 +100,7 @@ const normalizeUser = (source: Record<string, unknown>): User => ({
   username: String(source.username ?? ''),
   fullName: String(source.fullName ?? source.full_name ?? source.username ?? ''),
   role: (source.role as Role) ?? 'EMPLOYEE',
-  department: String(source.department ?? source.departmentName ?? source.department_name ?? 'Без отдела'),
+  department: String(source.department ?? source.departmentName ?? source.department_name ?? noDepartment()),
   departmentId: (source.departmentId ?? source.department_id ?? undefined) as string | undefined,
   jobTitle: String(source.jobTitle ?? source.job_title ?? ''),
   jobDescription: (source.jobDescription ?? source.job_description) as string | undefined,
@@ -164,7 +165,7 @@ const normalizeDocument = (source: Record<string, unknown>): CompanyDocument => 
 const normalizeReport = (source: Record<string, unknown>): Report => ({
   result: (source.result ?? undefined) as Report['result'], active: source.active === undefined ? true : Boolean(source.active),
   nextRunAt: (source.nextRunAt ?? null) as string | null, lastRunAt: (source.lastRunAt ?? null) as string | null,
-  id: String(source.id), name: String(source.name ?? ''), targetUserId: source.targetUserId as string | undefined, targetUserName: String(source.targetUserName ?? (source.targetUser as { fullName?: string } | undefined)?.fullName ?? 'Команда'), metrics: (Array.isArray(source.metrics) ? source.metrics : []) as Report['metrics'], periodStart: String(source.periodStart ?? ''), periodEnd: String(source.periodEnd ?? ''), schedule: (source.schedule as Report['schedule']) ?? 'ONCE', status: (source.status as Report['status']) ?? 'PENDING', createdAt: String(source.createdAt ?? ''),
+  id: String(source.id), name: String(source.name ?? ''), targetUserId: source.targetUserId as string | undefined, targetUserName: String(source.targetUserName ?? (source.targetUser as { fullName?: string } | undefined)?.fullName ?? i18n.t('ui:app.team')), metrics: (Array.isArray(source.metrics) ? source.metrics : []) as Report['metrics'], periodStart: String(source.periodStart ?? ''), periodEnd: String(source.periodEnd ?? ''), schedule: (source.schedule as Report['schedule']) ?? 'ONCE', status: (source.status as Report['status']) ?? 'PENDING', createdAt: String(source.createdAt ?? ''),
 });
 
 const normalizeAlert = (source: Record<string, unknown>): Alert => ({
@@ -176,7 +177,7 @@ const normalizeAlert = (source: Record<string, unknown>): Alert => ({
 
 
 const normalizeAudit = (source: Record<string, unknown>): AuditEvent => ({
-  id: String(source.id), actorName: String(source.actorName ?? (source.actor as { fullName?: string } | undefined)?.fullName ?? 'Система'), action: String(source.action ?? ''), entityType: String(source.entityType ?? ''), entityId: source.entityId as string | undefined, ip: String(source.ip ?? ''), createdAt: String(source.createdAt ?? ''), result: (source.result as AuditEvent['result']) ?? (String(source.action).includes('DENIED') ? 'DENIED' : 'SUCCESS'),
+  id: String(source.id), actorName: String(source.actorName ?? (source.actor as { fullName?: string } | undefined)?.fullName ?? i18n.t('ui:app.system')), action: String(source.action ?? ''), entityType: String(source.entityType ?? ''), entityId: source.entityId as string | undefined, ip: String(source.ip ?? ''), createdAt: String(source.createdAt ?? ''), result: (source.result as AuditEvent['result']) ?? (String(source.action).includes('DENIED') ? 'DENIED' : 'SUCCESS'),
 });
 
 const normalizeSession = (source: unknown): Session => {
@@ -223,7 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       let next: Session;
       try {
         next = normalizeSession(await api.login(username.trim(), password));
-        if (!next.accessToken || !next.user.id) throw new Error('Некорректный ответ сервера');
+        if (!next.accessToken || !next.user.id) throw new Error(i18n.t('ui:app.badResponse'));
       } catch (error) {
         const demo = DEMO_MODE ? fallbackSession(username.trim(), password) : null;
         if (!demo || (error instanceof ApiError && error.status > 0 && error.status < 500)) throw error;
@@ -664,12 +665,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   ), [changeKpis]);
 
   const createTeamMember = useCallback(async (input: CreateTeamMemberInput) => {
-    if (!session) throw new Error('Сессия завершена');
+    if (!session) throw new Error(i18n.t('ui:app.sessionEnded'));
     const payload = constrainTeamMemberInput(session.user, input);
     const raw = await remote(() => api.create<Record<string, unknown>>('team', payload));
     const created = raw ? normalizeUser(raw) : {
       id: crypto.randomUUID(), username: payload.username, fullName: payload.fullName, role: payload.role,
-      department: payload.departmentName ?? (session.user.role === 'MANAGER' ? session.user.department : 'Без отдела'), jobTitle: payload.jobTitle ?? '',
+      department: payload.departmentName ?? (session.user.role === 'MANAGER' ? session.user.department : noDepartment()), jobTitle: payload.jobTitle ?? '',
       jobDescription: payload.jobDescription, specialty: payload.specialty, online: false, rating: 0, kpis: [],
     };
     setUsers((current) => [...current, created].sort((left, right) => left.fullName.localeCompare(right.fullName, 'ru')));
@@ -814,7 +815,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     else {
       const board = taskBoards.find((item) => item.id === input.boardId);
       const stage = board?.stages.find((item) => item.id === input.stageId) ?? board?.stages.find((item) => item.category === 'TODO');
-      if (!board || !stage) throw new Error('Доска недоступна');
+      if (!board || !stage) throw new Error(i18n.t('ui:app.boardUnavailable'));
       created = {
         id: crypto.randomUUID(), title: input.title, description: input.description ?? '', boardId: board.id, boardName: board.name,
         stage: stageSummary(stage), assignees: demoPeople(input.assigneeIds.length ? input.assigneeIds : [session!.user.id]), createdBy: session?.user.id,
@@ -957,12 +958,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const target = users.find((user) => user.id === targetUserId);
     const rating = target?.rating ?? 0;
     const summary = mode === 'FORECAST'
-      ? `Прогноз: при текущем темпе рейтинг ${target?.fullName ?? 'сотрудника'} останется около ${rating} из 100.`
-      : mode === 'EVALUATION' ? `Оценка: рейтинг ${rating} из 100 по взвешенным KPI.` : `Совет: сфокусируйтесь на KPI с наименьшим выполнением.`;
+      ? i18n.t('ui:app.ai.forecast', { name: target?.fullName ?? i18n.t('ui:app.ai.employee'), rating })
+      : mode === 'EVALUATION' ? i18n.t('ui:app.ai.evaluation', { rating }) : i18n.t('ui:app.ai.advice');
     const analysis: AiAnalysis = {
       id: crypto.randomUUID(), mode, createdAt: new Date().toISOString(), subjectId: targetUserId,
       requestedById: session?.user.id ?? '', requestedByName: session?.user.fullName,
-      summary, recommendations: ['Проверьте задачи с ближайшим сроком', 'Обновите следующий шаг по открытым сделкам'], source: 'RULES',
+      summary, recommendations: [i18n.t('ui:app.ai.rec1'), i18n.t('ui:app.ai.rec2')], source: 'RULES',
     };
     demoAnalyses.current = [analysis, ...demoAnalyses.current];
     return analysis;

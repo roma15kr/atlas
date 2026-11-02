@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Download, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'react';
 import { createPortal } from 'react-dom';
@@ -12,6 +13,7 @@ const SWIPE = 50;
 export function ImageViewer({ images, index: initial, origin, onClose }: {
   images: Array<{ src: string; alt: string }>; index: number; origin?: HTMLElement; onClose: () => void;
 }) {
+  const { t } = useTranslation(['ui', 'common']);
   const [index, setIndex] = useState(initial);
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -73,18 +75,18 @@ export function ImageViewer({ images, index: initial, origin, onClose }: {
     step(end < start ? 1 : -1);
   };
 
-  return createPortal(<div className="image-viewer" role="dialog" aria-modal="true" aria-label="Просмотр изображения"
+  return createPortal(<div className="image-viewer" role="dialog" aria-modal="true" aria-label={t('viewer.label')}
     onClick={(event) => { event.stopPropagation(); if (event.target === event.currentTarget) onClose(); }} onMouseDown={(event) => event.stopPropagation()}
     onTouchStart={swipeStart} onTouchEnd={swipeEnd}>
     <div className="image-viewer__bar">
-      {many && <span className="image-viewer__count">{index + 1} из {images.length}</span>}
-      {url && <a className="image-viewer__action" href={url} download="atlas-image" aria-label="Скачать"><Download size={18} aria-hidden /><span>Скачать</span></a>}
-      <button ref={close} type="button" className="image-viewer__action" aria-label="Закрыть" onClick={onClose}><X size={20} aria-hidden /></button>
+      {many && <span className="image-viewer__count">{t('viewer.count', { index: index + 1, total: images.length })}</span>}
+      {url && <a className="image-viewer__action" href={url} download="atlas-image" aria-label={t('viewer.download')}><Download size={18} aria-hidden /><span>{t('viewer.download')}</span></a>}
+      <button ref={close} type="button" className="image-viewer__action" aria-label={t('close')} onClick={onClose}><X size={20} aria-hidden /></button>
     </div>
-    {many && <button type="button" className="image-viewer__nav image-viewer__nav--prev" aria-label="Предыдущее изображение" onClick={() => step(-1)}><ChevronLeft size={26} aria-hidden /></button>}
-    {failed ? <p className="image-viewer__missing">Изображение недоступно</p>
+    {many && <button type="button" className="image-viewer__nav image-viewer__nav--prev" aria-label={t('viewer.prev')} onClick={() => step(-1)}><ChevronLeft size={26} aria-hidden /></button>}
+    {failed ? <p className="image-viewer__missing">{t('viewer.missing')}</p>
       : url ? <img ref={picture} className="image-viewer__image" src={url} alt={image.alt} onClick={(event) => event.stopPropagation()} />
-      : <span className="image-viewer__loading" aria-busy="true" aria-label="Изображение загружается" />}
-    {many && <button type="button" className="image-viewer__nav image-viewer__nav--next" aria-label="Следующее изображение" onClick={() => step(1)}><ChevronRight size={26} aria-hidden /></button>}
+      : <span className="image-viewer__loading" aria-busy="true" aria-label={t('viewer.loading')} />}
+    {many && <button type="button" className="image-viewer__nav image-viewer__nav--next" aria-label={t('viewer.next')} onClick={() => step(1)}><ChevronRight size={26} aria-hidden /></button>}
   </div>, document.body);
 }

@@ -22,5 +22,6 @@ export const common = {
     unknown: 'Такой реакции нет', limit: 'Не больше {{max}} разных реакций', label: 'Реакции', you: 'Вы', andMore: ' и ещё {{count}}', add: 'Добавить реакцию', picker: 'Выбор реакции', all: 'Все эмодзи', search: 'Найти эмодзи', searchPlaceholder: 'Найти: огонь, спасибо, готово…', nothing: 'Ничего не нашлось',
   },
   optional: 'Необязательно',
+  noDepartment: 'Без отдела',
   loading: 'Загружаем…',
 } satisfies Dictionary<typeof source>;

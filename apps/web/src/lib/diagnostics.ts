@@ -54,10 +54,10 @@ export function recordRequest(method: string, url: string, response: Response | 
 
 /** Listens for uncaught errors and rejected promises; returns a function that stops listening. */
 export function installDiagnostics(): () => void {
-  const onError = (event: ErrorEvent) => recordDiagnostic({ type: 'error', message: event.message || 'Ошибка скрипта', source: event.filename ? cleanPath(event.filename) : undefined });
+  const onError = (event: ErrorEvent) => recordDiagnostic({ type: 'error', message: event.message || i18n.t('ui:diag.script'), source: event.filename ? cleanPath(event.filename) : undefined });
   const onRejection = (event: PromiseRejectionEvent) => {
     const reason = event.reason as { message?: unknown } | undefined;
-    recordDiagnostic({ type: 'error', message: typeof reason?.message === 'string' ? reason.message : 'Необработанная ошибка' });
+    recordDiagnostic({ type: 'error', message: typeof reason?.message === 'string' ? reason.message : i18n.t('ui:diag.unhandled') });
   };
   window.addEventListener('error', onError);
   window.addEventListener('unhandledrejection', onRejection);
