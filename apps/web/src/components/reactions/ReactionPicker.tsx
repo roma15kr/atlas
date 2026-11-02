@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Plus, SmilePlus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { QUICK_REACTIONS, emojiName } from '../../lib/reactions';
@@ -5,7 +6,8 @@ import { IconButton } from '../ui';
 import { EmojiPicker } from './EmojiPicker';
 
 /** «Добавить реакцию»: the quick row, and «+» for the full picker. Closes on a pick, Escape or a click outside. */
-export function ReactionPicker({ onPick, label = 'Добавить реакцию' }: { onPick: (emoji: string) => void; label?: string }) {
+export function ReactionPicker({ onPick, label }: { onPick: (emoji: string) => void; label?: string }) {
+  const { t } = useTranslation('common');
   const [open, setOpen] = useState(false);
   const [full, setFull] = useState(false);
   const root = useRef<HTMLSpanElement>(null);
@@ -19,11 +21,11 @@ export function ReactionPicker({ onPick, label = 'Добавить реакци�
   }, [open]);
   const pick = (emoji: string) => { setOpen(false); setFull(false); onPick(emoji); };
   return <span className="reaction-picker" ref={root}>
-    <IconButton label={label} icon={SmilePlus} aria-expanded={open} onClick={() => { setOpen((value) => !value); setFull(false); }} />
-    {open && <div className="reaction-picker__panel" role="dialog" aria-label="Выбор реакции">
+    <IconButton label={label ?? t('reactions.add')} icon={SmilePlus} aria-expanded={open} onClick={() => { setOpen((value) => !value); setFull(false); }} />
+    {open && <div className="reaction-picker__panel" role="dialog" aria-label={t('reactions.picker')}>
       <div className="reaction-picker__quick">
         {QUICK_REACTIONS.map((emoji) => <button key={emoji} type="button" aria-label={emojiName(emoji)} title={emojiName(emoji)} onClick={() => pick(emoji)}>{emoji}</button>)}
-        <button type="button" aria-label="Все эмодзи" title="Все эмодзи" aria-pressed={full} onClick={() => setFull((value) => !value)}><Plus size={16} aria-hidden /></button>
+        <button type="button" aria-label={t('reactions.all')} title={t('reactions.all')} aria-pressed={full} onClick={() => setFull((value) => !value)}><Plus size={16} aria-hidden /></button>
       </div>
       {full && <EmojiPicker onPick={pick} />}
     </div>}

@@ -1,5 +1,6 @@
 import DOMPurify from 'dompurify';
 import { Marked, type Tokens } from 'marked';
+import i18n from '../i18n';
 
 /** Images are shown only from Atlas's own storage. */
 const ATLAS_IMAGE = /^\/api\/v1\/images\/[0-9a-f-]{36}$/i;
@@ -57,7 +58,7 @@ export function markdownToPlain(markdown: string): string {
   if (typeof document === 'undefined') return markdown.replace(/\s+/g, ' ').trim();
   const box = document.createElement('div');
   box.innerHTML = renderMarkdown(markdown);
-  box.querySelectorAll('img').forEach((img) => img.replaceWith(' [изображение] '));
+  box.querySelectorAll('img').forEach((img) => img.replaceWith(i18n.t('ui:image.placeholder')));
   box.querySelectorAll('input').forEach((input) => input.remove());
   box.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6, blockquote, pre, td, th, br, tr').forEach((node) => node.append(' '));
   return (box.textContent ?? '').replace(/\s+/g, ' ').trim();

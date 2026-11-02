@@ -6,13 +6,14 @@ import { FEEDBACK_MAX_LENGTH, feedbackError, submitFeedback } from '../lib/feedb
 import { captureScreen } from '../lib/screenshot';
 import type { FeedbackKind } from '../types';
 import { Button, Dialog, Field, Segmented } from './ui';
+import { useTranslation } from 'react-i18next';
+import { localeOf } from '../i18n';
 
-const kinds: Array<{ value: FeedbackKind; label: string }> = [
-  { value: 'PROBLEM', label: 'Проблема' }, { value: 'COMPLAINT', label: 'Жалоба' }, { value: 'IDEA', label: 'Идея' },
-];
+const kinds: FeedbackKind[] = ['PROBLEM', 'COMPLAINT', 'IDEA'];
 
 /** The report form: kind and description. Shows a confirmation with a link to «Мои обращения» once sent. */
 export function FeedbackDialog({ page, screenshot, onClose }: { page: string; screenshot: Blob | null; onClose: () => void }) {
+  const { t } = useTranslation('shell');
   const navigate = useNavigate();
   const [kind, setKind] = useState<FeedbackKind>('PROBLEM');
   const [message, setMessage] = useState('');
@@ -38,41 +39,42 @@ export function FeedbackDialog({ page, screenshot, onClose }: { page: string; sc
     try { await submitFeedback({ kind, message, page, includeLog }, attachShot ? screenshot : null); setSent(true); }
     catch (reason) {
       const status = (reason as { status?: number }).status;
-      setError(status === 429 ? 'Слишком много обращений, попробуйте позже' : 'Обращение не отправлено. Попробуйте ещё раз.');
+      setError(status === 429 ? t('feedback.tooMany') : t('feedback.failed'));
     } finally { setSending(false); }
   };
 
   if (sent) {
-    return <Dialog open size="sm" title="Обращение отправлено" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Закрыть</Button><Button onClick={() => { onClose(); navigate('/feedback'); }}>Мои обращения</Button></>}>
-      <div className="feedback-sent"><CheckCircle2 size={22} /><p>Спасибо! Команда разработки получит обращение в переведённом и обезличенном виде. Статус виден в разделе «Мои обращения».</p></div>
+    return <Dialog open size="sm" title={t('feedback.sentTitle')} onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>{t('feedback.close')}</Button><Button onClick={() => { onClose(); navigate('/feedback'); }}>{t('feedback.mine')}</Button></>}>
+      <div className="feedback-sent"><CheckCircle2 size={22} /><p>{t('feedback.sentText')}</p></div>
     </Dialog>;
   }
-  return <Dialog open title="Сообщить о проблеме" description="Пишите своими словами — на украинском или русском" onClose={() => { if (!sending) onClose(); }}
-    footer={<><Button variant="secondary" disabled={sending} onClick={onClose}>Отмена</Button><Button type="submit" form="feedback-form" icon={Send} disabled={sending}>{sending ? 'Отправляем…' : 'Отправить'}</Button></>}>
+  return <Dialog open title={t('feedback.title')} description={t('feedback.description')} onClose={() => { if (!sending) onClose(); }}
+    footer={<><Button variant="secondary" disabled={sending} onClick={onClose}>{t('feedback.cancel')}</Button><Button type="submit" form="feedback-form" icon={Send} disabled={sending}>{sending ? t('feedback.sending') : t('feedback.send')}</Button></>}>
     <form id="feedback-form" className="feedback-form" noValidate onSubmit={(event) => void send(event)}>
-      <Segmented label="Тип обращения" value={kind} onChange={setKind} options={kinds} />
-      <Field label="Что случилось?" hint={`${message.length.toLocaleString('ru-RU')} / ${FEEDBACK_MAX_LENGTH.toLocaleString('ru-RU')} · Страница: ${page}`} error={error || undefined}>
+      <Segmented label={t('feedback.kind')} value={kind} onChange={setKind} options={kinds.map((value) => ({ value, label: t(`feedback.kinds.${value}`) }))} />
+      <Field label={t('feedback.what')} hint={t('feedback.counter', { length: message.length.toLocaleString(localeOf()), max: FEEDBACK_MAX_LENGTH.toLocaleString(localeOf()), page })} error={error || undefined}>
         <textarea rows={6} maxLength={FEEDBACK_MAX_LENGTH} value={message} autoFocus aria-invalid={Boolean(error) || undefined}
-          placeholder="Что вы делали, что ожидали и что произошло" onChange={(event) => { setMessage(event.target.value); setError(''); }} />
+          placeholder={t('feedback.placeholder')} onChange={(event) => { setMessage(event.target.value); setError(''); }} />
       </Field>
       <div className="feedback-attach">
         {screenshot && attachShot && preview
-          ? <><img className="feedback-shot" src={preview} alt="Предпросмотр снимка экрана" /><span><strong>Снимок экрана приложен</strong><small>Страница до открытия этого окна. Поля паролей скрыты.</small><Button type="button" variant="ghost" icon={ImageOff} onClick={() => setAttachShot(false)}>Не прикладывать снимок</Button></span></>
+          ? <><img className="feedback-shot" src={preview} alt={t('feedback.shotAlt')} /><span><strong>{t('feedback.shotAttached')}</strong><small>{t('feedback.shotNote')}</small><Button type="button" variant="ghost" icon={ImageOff} onClick={() => setAttachShot(false)}>{t('feedback.shotRemove')}</Button></span></>
           : screenshot
-            ? <span><strong>Снимок экрана не приложен</strong><Button type="button" variant="ghost" icon={ImagePlus} onClick={() => setAttachShot(true)}>Приложить снимок</Button></span>
-            : <span><strong>Снимок экрана не удалось сделать</strong><small>Опишите, что было на экране, — обращение всё равно можно отправить.</small></span>}
+            ? <span><strong>{t('feedback.shotNotAttached')}</strong><Button type="button" variant="ghost" icon={ImagePlus} onClick={() => setAttachShot(true)}>{t('feedback.shotAdd')}</Button></span>
+            : <span><strong>{t('feedback.shotFailed')}</strong><small>{t('feedback.shotFailedNote')}</small></span>}
       </div>
       <div className="feedback-log">
-        <label className="check-field"><input type="checkbox" checked={includeLog} onChange={(event) => setIncludeLog(event.target.checked)} /><span><strong>Приложить технический журнал</strong><small>Ошибки и запросы к серверу за последние 15 минут — без введённого текста и данных записей.</small></span></label>
-        {includeLog && <details><summary>Что входит в журнал</summary><ul>{logSummary.map((line) => <li key={line}>{line}</li>)}</ul></details>}
+        <label className="check-field"><input type="checkbox" checked={includeLog} onChange={(event) => setIncludeLog(event.target.checked)} /><span><strong>{t('feedback.log')}</strong><small>{t('feedback.logNote')}</small></span></label>
+        {includeLog && <details><summary>{t('feedback.logContents')}</summary><ul>{logSummary.map((line) => <li key={line}>{line}</li>)}</ul></details>}
       </div>
-      <p className="dialog-note">Обращение видят только директора компании. В GitHub попадёт обезличенный перевод.</p>
+      <p className="dialog-note">{t('feedback.privacy')}</p>
     </form>
   </Dialog>;
 }
 
 /** «Сообщить о проблеме» for the top bar (and Ctrl+Shift+F anywhere). */
 export function FeedbackButton({ compact = false }: { compact?: boolean }) {
+  const { t } = useTranslation('shell');
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [capturing, setCapturing] = useState(false);
@@ -93,8 +95,8 @@ export function FeedbackButton({ compact = false }: { compact?: boolean }) {
     return () => window.removeEventListener('keydown', shortcut);
   }, [start]);
   return <>
-    <button type="button" className={`feedback-button${compact ? ' feedback-button--compact' : ''}`} title="Сообщить о проблеме (Ctrl+Shift+F)" aria-label="Сообщить о проблеме" aria-busy={capturing || undefined} disabled={capturing} onClick={() => void start()}>
-      {capturing ? <LoaderCircle size={17} className="spin" aria-hidden="true" /> : <MessageSquareWarning size={17} aria-hidden="true" />}<span>Сообщить о проблеме</span>
+    <button type="button" className={`feedback-button${compact ? ' feedback-button--compact' : ''}`} title={t('feedback.buttonTitle')} aria-label={t('feedback.button')} aria-busy={capturing || undefined} disabled={capturing} onClick={() => void start()}>
+      {capturing ? <LoaderCircle size={17} className="spin" aria-hidden="true" /> : <MessageSquareWarning size={17} aria-hidden="true" />}<span>{t('feedback.button')}</span>
     </button>
     {open && <FeedbackDialog page={location.pathname} screenshot={screenshot} onClose={() => { setOpen(false); setScreenshot(null); }} />}
   </>;

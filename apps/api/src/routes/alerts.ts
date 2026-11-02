@@ -8,6 +8,8 @@ import { query } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { pagination } from "../http";
 import { dealScope } from "./deals";
+import { ALERT_TEXT_COLUMNS, localizeAlert, type AlertTextRow } from "../automation/alertText";
+import { languageOf } from "../i18n";
 
 export const alertsRouter = Router();
 
@@ -25,13 +27,14 @@ alertsRouter.get("/", asyncHandler(async (req, res) => {
             (SELECT d.client_id FROM deals d WHERE d.id = a.deal_id) AS "clientId", a.resolved_at AS "resolvedAt",
             a.user_id AS "userId", u.full_name AS "userName", a.acknowledged_at AS "acknowledgedAt",
             (a.acknowledged_at IS NOT NULL) AS acknowledged,
-            a.acknowledged_by AS "acknowledgedBy", a.created_at AS "createdAt",
+            a.acknowledged_by AS "acknowledgedBy", a.created_at AS "createdAt", ${ALERT_TEXT_COLUMNS},
             count(*) OVER()::int AS "totalCount"
      FROM alerts a LEFT JOIN users u ON u.id=a.user_id WHERE ${clauses.join(" AND ")} ORDER BY a.created_at DESC
      LIMIT $${values.length - 1} OFFSET $${values.length}`,
     values
   );
-  res.json({ data: await withOverdueTasks(auth, result.rows.map(stripTotal)), meta: { ...page, total: Number(result.rows[0]?.totalCount ?? 0) } });
+  const language = await languageOf(auth.userId);
+  res.json({ data: await withOverdueTasks(auth, result.rows.map((row) => localizeAlert(language, stripTotal(row) as unknown as AlertTextRow))), meta: { ...page, total: Number(result.rows[0]?.totalCount ?? 0) } });
 }));
 
 alertsRouter.patch("/:id/acknowledge", requireRoles("DIRECTOR", "MANAGER"), asyncHandler(async (req, res) => {

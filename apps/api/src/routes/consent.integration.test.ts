@@ -29,7 +29,7 @@ describe("consent-gated metrics", () => {
   it("leaves activity out of AI analysis for someone without consent", async () => {
     const without = await analyze(declined.id);
     expect(without.body.data.metrics.presence).toEqual({ consent: false });
-    expect(without.body.data.summary).toContain("нет согласия");
+    expect(without.body.data.summary).toContain("немає згоди");
     const withConsent = await analyze(agreed.id);
     expect(withConsent.body.data.metrics.presence).toMatchObject({ consent: true, activeDays30: 1 });
   });

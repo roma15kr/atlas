@@ -42,7 +42,7 @@ describe("notification centre", () => {
     const task = (await as(natalia).post("/tasks", { boardId: salesBoard, title: "Обдзвонити дилерів", assigneeIds: [tymoshenko.id] })).body.data;
     const mine = await inbox(tymoshenko);
     expect(mine.meta.unreadCount).toBe(1);
-    expect(mine.data[0]).toMatchObject({ kind: "TASK_ASSIGNED", title: "Новая задача: Обдзвонити дилерів", link: `/tasks?task=${task.id}`, readAt: null });
+    expect(mine.data[0]).toMatchObject({ kind: "TASK_ASSIGNED", title: "Нова задача: Обдзвонити дилерів", link: `/tasks?task=${task.id}`, readAt: null });
     const author = (await harness.query<{ full_name: string }>("SELECT full_name FROM users WHERE id = $1", [natalia.id])).rows[0]!.full_name;
     expect(mine.data[0]!.body).toBe(`${author} · Задачи отдела`);
     expect((await inbox(natalia)).meta.unreadCount).toBe(0);
@@ -138,7 +138,7 @@ describe("notification centre", () => {
     await as(natalia).post(`/chat/conversations/${group.id}/messages`, { body: "Звіт до п'ятниці" });
     const mine = await inbox(tymoshenko);
     expect(mine.meta.unreadCount).toBe(1);
-    expect(mine.data[0]).toMatchObject({ kind: "CHAT_MESSAGE", title: "Новое в «Звіти»", link: `/messages?conversation=${group.id}` });
+    expect(mine.data[0]).toMatchObject({ kind: "CHAT_MESSAGE", title: "Нове в «Звіти»", link: `/messages?conversation=${group.id}` });
     expect((await inbox(natalia)).data.some((item) => item.kind === "CHAT_MESSAGE")).toBe(false);
   });
 
@@ -152,7 +152,7 @@ describe("notification centre", () => {
     const seller = await inbox(tymoshenko);
     expect(seller.meta.unreadCount).toBe(1);
     const author = (await harness.query<{ full_name: string }>("SELECT full_name FROM users WHERE id = $1", [natalia.id])).rows[0]!.full_name;
-    expect(seller.data[0]).toMatchObject({ kind: "CHAT_MESSAGE", title: "Новое в #Продажі-новини", body: `${author}: Оновлений прайс` });
+    expect(seller.data[0]).toMatchObject({ kind: "CHAT_MESSAGE", title: "Нове в #Продажі-новини", body: `${author}: Оновлений прайс` });
     expect((await inbox(babenko)).meta.unreadCount).toBe(0);
     expect((await inbox(olga)).meta.unreadCount).toBe(0);
 
@@ -208,7 +208,7 @@ describe("notification centre", () => {
     const client = (await as(natalia).post("/clients", { name: "Нексанс", ownerId: tymoshenko.id })).body.data;
     expect((await inbox(tymoshenko)).data[0]).toMatchObject({ kind: "CLIENT_ASSIGNED", link: `/crm/${client.id}` });
     const deal = (await as(natalia).post("/deals", { clientId: client.id, funnelId: funnel, title: "Кабель 2026", ownerId: tymoshenko.id })).body.data;
-    expect((await inbox(tymoshenko)).data[0]).toMatchObject({ kind: "DEAL_ASSIGNED", title: "Вам передана сделка: Кабель 2026", link: `/sales?deal=${deal.id}` });
+    expect((await inbox(tymoshenko)).data[0]).toMatchObject({ kind: "DEAL_ASSIGNED", title: "Вам передано угоду: Кабель 2026", link: `/sales?deal=${deal.id}` });
 
     await as(natalia).patch(`/clients/${client.id}`, { ownerId: trubylo.id });
     expect((await inbox(trubylo)).data[0]).toMatchObject({ kind: "CLIENT_ASSIGNED", readAt: null });

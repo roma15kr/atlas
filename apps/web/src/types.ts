@@ -1,8 +1,11 @@
+import type { Language } from './i18n';
 export type Role = 'DIRECTOR' | 'MANAGER' | 'EMPLOYEE';
 export type AsyncStatus = 'idle' | 'loading' | 'success' | 'error';
 
 export interface User {
   id: string;
+  /** Interface language from the account; absent in old demo sessions. */
+  language?: Language;
   username: string;
   fullName: string;
   role: Role;
@@ -37,6 +40,7 @@ export interface User {
 /** The fields a person edits in their own profile; an empty string clears a field. */
 export interface ProfileInput {
   fullName?: string;
+  language?: Language;
   specialty?: string;
   birthDate?: string;
   phone?: string;

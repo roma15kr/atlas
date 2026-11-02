@@ -60,7 +60,7 @@ describe("AI analysis", () => {
     fakeModel(async () => ({ output_parsed: null, output: [{ type: "message", content: [{ type: "refusal", refusal: "no" }] }] }));
     const refused = await analyze(head, anna.id);
     expect(refused.body.data).toMatchObject({ source: "RULES", fallbackReason: "refused" });
-    expect(refused.body.data.summary).toMatch(/Приоритеты/);
+    expect(refused.body.data.summary).toMatch(/Пріоритети/);
     fakeModel(async () => ({ output_parsed: { summary: 1 }, output: [] }));
     expect((await analyze(head, anna.id)).body.data).toMatchObject({ source: "RULES", fallbackReason: "unparsable" });
   });
@@ -86,11 +86,20 @@ describe("analysis modes", () => {
     expect(forecast).toContain("Mode FORECAST");
     expect(forecast).toContain("weighted pipeline");
     for (const text of [advice, evaluation, forecast]) {
-      expect(text).toContain("Answer in Russian");
+      expect(text).toContain("Answer in Ukrainian");
       expect(text).toContain("₴");
       expect(text).toContain("presence.consent is false");
     }
     expect(new Set([advice, evaluation, forecast]).size).toBe(3);
+  });
+
+  it("asks for the answer in the requester's interface language", async () => {
+    await harness.query("UPDATE users SET language = 'en' WHERE id = $1", [head.id]);
+    try {
+      expect(await instructionsFor("ADVICE")).toContain("Answer in English");
+    } finally {
+      await harness.query("UPDATE users SET language = 'uk' WHERE id = $1", [head.id]);
+    }
   });
 });
 

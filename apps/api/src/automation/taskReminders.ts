@@ -1,5 +1,6 @@
 import { query } from "../db";
 import { notify } from "../notifications/notify";
+import { text } from "../i18n";
 
 const REMINDER_HOUR = 8;
 const RETENTION_DAYS = 90;
@@ -39,8 +40,8 @@ export async function runTaskReminders(now = new Date()): Promise<{ due: number;
     );
     for (const task of tasks.rows) {
       await notify(task.company_id, task.assignee_ids, null, {
-        kind, title: kind === "TASK_DUE" ? `Срок сегодня: ${task.title}` : `Просрочена задача: ${task.title}`,
-        body: kind === "TASK_DUE" ? "Задачу нужно закончить сегодня" : `Срок был ${task.due_on.split("-").reverse().join(".")}`,
+        kind, title: text(kind === "TASK_DUE" ? "task.due" : "task.overdue", { title: task.title }),
+        body: kind === "TASK_DUE" ? text("task.dueBody") : text("task.overdueBody", { date: task.due_on.split("-").reverse().join(".") }),
         link: `/tasks?task=${task.id}`, entityType: "task", entityId: task.id
       });
     }

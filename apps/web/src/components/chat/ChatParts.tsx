@@ -1,9 +1,10 @@
+import { useTranslation } from 'react-i18next';
 import { ReactionBar } from '../reactions/ReactionBar';
 import { ReactionPicker } from '../reactions/ReactionPicker';
 import { Copy, MessageSquareReply, Pencil, Plus, Send, Trash2, Users } from 'lucide-react';
 import { useEffect, useRef, useState, type TouchEvent } from 'react';
 import { conversationTitle, type ChatConversation, type ChatMessage, type ChatPerson } from '../../lib/chat';
-import { formatDateTime, plural } from '../../lib/format';
+import { formatDateTime } from '../../lib/format';
 import { fitsLimit, RichTextEditor } from '../richtext/RichTextEditor';
 import { RichTextView } from '../richtext/RichTextView';
 import { Avatar, Dialog, IconButton } from '../ui';
@@ -19,7 +20,6 @@ import { useChat } from '../../context/ChatContext';
 /** Characters of Markdown in one chat message (the API limit). */
 export const CHAT_MESSAGE_LIMIT = 4000;
 
-const REPLIES: [string, string, string] = ['ответ', 'ответа', 'ответов'];
 const time = (value: string) => new Date(value).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
 export function ConversationIcon({ conversation, myId }: { conversation: ChatConversation; myId: string }) {
@@ -42,6 +42,7 @@ export function MessageItem({ message, people, me, canModerate, onReply, onEdit,
   /** Present when the viewer may react (a member of an active conversation). */
   onReact?: (emoji: string, add: boolean) => void;
 }) {
+  const { t } = useTranslation(['chat', 'common']);
   const own = message.author.id === me.id;
   const deleted = Boolean(message.deletedAt);
   const hasActions = !deleted && Boolean(onReply || own || canModerate || onReact);
@@ -64,22 +65,22 @@ export function MessageItem({ message, people, me, canModerate, onReply, onEdit,
     if (press.current && touch && Math.hypot(touch.clientX - press.current.x, touch.clientY - press.current.y) > 10) cancelPress();
   };
   const act = (run: () => void) => () => { setSheet(false); run(); };
-  return <article className={`chat-message ${message.mentionedUserIds.includes(me.id) ? 'chat-message--mentioned' : ''}${sheet ? ' is-pressed' : ''}`} aria-label={`Сообщение ${message.author.fullName}`}
+  return <article className={`chat-message ${message.mentionedUserIds.includes(me.id) ? 'chat-message--mentioned' : ''}${sheet ? ' is-pressed' : ''}`} aria-label={t('message.region', { author: message.author.fullName })}
     onTouchStart={startPress} onTouchMove={movePress} onTouchEnd={endPress} onTouchCancel={cancelPress}
     onContextMenu={(event) => { if (hasActions && window.matchMedia?.('(hover: none) and (pointer: coarse)').matches) event.preventDefault(); }}>
     <Avatar name={message.author.fullName} src={message.author.avatarUrl ?? undefined} size="sm" />
     <div className="chat-message__main">
-      <header><strong>{message.author.fullName}{!message.author.active && <small> · деактивирован</small>}</strong><time dateTime={message.createdAt} title={formatDateTime(message.createdAt)}>{time(message.createdAt)}</time>{message.editedAt && !deleted && <small>изменено</small>}</header>
-      {(deleted || message.body) && <div className={`chat-message__text${deleted ? ' chat-message__deleted' : ''}`}>{deleted ? 'Сообщение удалено' : <MessageText body={message.body ?? ''} people={people} myUsername={me.username} />}</div>}
+      <header><strong>{message.author.fullName}{!message.author.active && <small>{t('message.deactivated')}</small>}</strong><time dateTime={message.createdAt} title={formatDateTime(message.createdAt)}>{time(message.createdAt)}</time>{message.editedAt && !deleted && <small>{t('message.edited')}</small>}</header>
+      {(deleted || message.body) && <div className={`chat-message__text${deleted ? ' chat-message__deleted' : ''}`}>{deleted ? t('message.deleted') : <MessageText body={message.body ?? ''} people={people} myUsername={me.username} />}</div>}
       {!deleted && Boolean(message.attachments?.length) && <MessageAttachments attachments={message.attachments!} />}
       {!deleted && <ReactionBar reactions={message.reactions} meId={me.id} onToggle={onReact} />}
-      {onOpenThread && message.replyCount > 0 && <button type="button" className="text-button chat-message__thread" onClick={onOpenThread}><MessageSquareReply size={13} />{plural(message.replyCount, REPLIES)}{message.lastReplyAt && <span> · {time(message.lastReplyAt)}</span>}</button>}
+      {onOpenThread && message.replyCount > 0 && <button type="button" className="text-button chat-message__thread" onClick={onOpenThread}><MessageSquareReply size={13} />{t('count.replies', { count: message.replyCount })}{message.lastReplyAt && <span> · {time(message.lastReplyAt)}</span>}</button>}
     </div>
     {hasActions && <div className="chat-message__actions">
       {onReact && <ReactionPicker onPick={(emoji) => onReact(emoji, !mine(emoji))} />}
-      {onReply && <IconButton label="Ответить в обсуждении" icon={MessageSquareReply} onClick={onReply} />}
-      {own && <IconButton label="Изменить сообщение" icon={Pencil} onClick={onEdit} />}
-      {(own || canModerate) && <IconButton label="Удалить сообщение" icon={Trash2} onClick={onDelete} />}
+      {onReply && <IconButton label={t('message.reply')} icon={MessageSquareReply} onClick={onReply} />}
+      {own && <IconButton label={t('message.edit')} icon={Pencil} onClick={onEdit} />}
+      {(own || canModerate) && <IconButton label={t('message.delete')} icon={Trash2} onClick={onDelete} />}
     </div>}
     {sheet && <MessageSheet onClose={() => setSheet(false)} onReact={onReact ? (emoji) => { setSheet(false); onReact(emoji, !mine(emoji)); } : undefined} mine={mine}
       onReply={onReply && act(onReply)} onCopy={act(() => void navigator.clipboard?.writeText(markdownToPlain(message.body ?? '')).catch(() => undefined))}
@@ -97,6 +98,7 @@ function MessageSheet({ onClose, onReact, mine, onReply, onCopy, onEdit, onDelet
   onClose: () => void; onReact?: (emoji: string) => void; mine: (emoji: string) => boolean;
   onReply?: () => void; onCopy: () => void; onEdit?: () => void; onDelete?: () => void;
 }) {
+  const { t } = useTranslation(['chat', 'common']);
   const [all, setAll] = useState(false);
   // It opens under a finger that is still down: lifting it must neither close the sheet nor pick what is under it.
   const [ready, setReady] = useState(false);
@@ -113,17 +115,17 @@ function MessageSheet({ onClose, onReact, mine, onReply, onCopy, onEdit, onDelet
   onCopy = when(onCopy);
   onEdit = onEdit && when(onEdit);
   onDelete = onDelete && when(onDelete);
-  return <Dialog open title="Сообщение" size="sm" onClose={onClose} className={`message-sheet${ready ? '' : ' is-inert'}`}>
-    {onReact && <div className="message-sheet__reactions" role="group" aria-label="Реакции">
+  return <Dialog open title={t('message.sheet')} size="sm" onClose={onClose} className={`message-sheet${ready ? '' : ' is-inert'}`}>
+    {onReact && <div className="message-sheet__reactions" role="group" aria-label={t('common:reactions.label')}>
       {QUICK_REACTIONS.map((emoji) => <button key={emoji} type="button" aria-label={emojiName(emoji)} aria-pressed={mine(emoji)} onClick={() => onReact(emoji)}>{emoji}</button>)}
-      <button type="button" aria-label="Все эмодзи" aria-pressed={all} onClick={when(() => setAll((value) => !value))}><Plus size={18} aria-hidden /></button>
+      <button type="button" aria-label={t('common:reactions.all')} aria-pressed={all} onClick={when(() => setAll((value) => !value))}><Plus size={18} aria-hidden /></button>
     </div>}
     {onReact && all && <EmojiPicker onPick={onReact} />}
     <div className="message-sheet__actions">
-      {onReply && <button type="button" onClick={onReply}><MessageSquareReply size={18} aria-hidden />Ответить в обсуждении</button>}
-      <button type="button" onClick={onCopy}><Copy size={18} aria-hidden />Копировать текст</button>
-      {onEdit && <button type="button" onClick={onEdit}><Pencil size={18} aria-hidden />Изменить</button>}
-      {onDelete && <button type="button" className="is-danger" onClick={onDelete}><Trash2 size={18} aria-hidden />Удалить</button>}
+      {onReply && <button type="button" onClick={onReply}><MessageSquareReply size={18} aria-hidden />{t('message.reply')}</button>}
+      <button type="button" onClick={onCopy}><Copy size={18} aria-hidden />{t('message.copy')}</button>
+      {onEdit && <button type="button" onClick={onEdit}><Pencil size={18} aria-hidden />{t('message.sheetEdit')}</button>}
+      {onDelete && <button type="button" className="is-danger" onClick={onDelete}><Trash2 size={18} aria-hidden />{t('common:actions.delete')}</button>}
     </div>
   </Dialog>;
 }
@@ -132,13 +134,15 @@ function MessageSheet({ onClose, onReact, mine, onReply, onCopy, onEdit, onDelet
  * Text input with Enter to send, Shift+Enter for a new line, and `@` autocomplete from `people`. With `upload`, files can
  * be attached with the paper clip or dropped on it; each uploads at once and the message carries their ids.
  */
-export function Composer({ people, placeholder, onSend, upload, disabled, label = 'Сообщение', autoFocus }: {
+export function Composer({ people, placeholder, onSend, upload, disabled, label, autoFocus }: {
   people: ChatPerson[]; placeholder: string; onSend: (body: string, attachmentIds: string[]) => Promise<void>;
   upload?: (file: File) => Promise<ChatAttachment>; disabled?: boolean; label?: string; autoFocus?: boolean;
 }) {
+  const { t } = useTranslation(['chat', 'common']);
+  const fieldLabel = label ?? t('composer.label');
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
-  const draft = useAttachmentDraft(upload, (reason) => chatErrorMessage(reason, 'Файл не загружен'));
+  const draft = useAttachmentDraft(upload, (reason) => chatErrorMessage(reason, t('errors.fileUpload')));
   const send = async (markdown = text) => {
     const body = markdown.trim();
     if ((!body && !draft.ids.length) || draft.uploading || sending || disabled || !fitsLimit(body, CHAT_MESSAGE_LIMIT)) return;
@@ -148,10 +152,10 @@ export function Composer({ people, placeholder, onSend, upload, disabled, label 
   return <div className={`chat-composer${draft.dragging ? ' is-dragging' : ''}`} {...draft.dropZone}>
     <PendingFiles files={draft.files} onRemove={draft.remove} />
     <div className="chat-composer__row">
-      {upload && <AttachButton label={label} className="chat-composer__attach" disabled={disabled || draft.full} onFiles={draft.attach} />}
-      <RichTextEditor value={text} onChange={setText} maxLength={CHAT_MESSAGE_LIMIT} label={label} placeholder={placeholder} people={people}
+      {upload && <AttachButton label={fieldLabel} className="chat-composer__attach" disabled={disabled || draft.full} onFiles={draft.attach} />}
+      <RichTextEditor value={text} onChange={setText} maxLength={CHAT_MESSAGE_LIMIT} label={fieldLabel} placeholder={placeholder} people={people}
         onSubmit={(markdown) => void send(markdown)} autoFocus={autoFocus} disabled={disabled} minRows={1} onFiles={upload ? draft.attach : undefined} />
-      <IconButton label="Отправить" icon={Send} className="chat-composer__send"
+      <IconButton label={t('composer.send')} icon={Send} className="chat-composer__send"
         disabled={disabled || sending || draft.uploading || (!text.trim() && !draft.ids.length) || !fitsLimit(text.trim(), CHAT_MESSAGE_LIMIT)} onClick={() => void send()} />
     </div>
   </div>;
@@ -159,6 +163,7 @@ export function Composer({ people, placeholder, onSend, upload, disabled, label 
 
 /** A message's files; a click downloads the original. */
 function MessageAttachments({ attachments }: { attachments: ChatAttachment[] }) {
+  const { t } = useTranslation(['chat', 'common']);
   const { backend } = useChat();
-  return <AttachmentList attachments={attachments} download={(id) => backend.downloadAttachment(id)} errorMessage={(reason) => chatErrorMessage(reason, 'Файл не скачан')} />;
+  return <AttachmentList attachments={attachments} download={(id) => backend.downloadAttachment(id)} errorMessage={(reason) => chatErrorMessage(reason, t('errors.fileDownload'))} />;
 }

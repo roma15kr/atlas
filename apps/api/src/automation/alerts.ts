@@ -3,6 +3,7 @@ import { coveredDepartments, SUB_DEPARTMENTS_SQL } from "../auth";
 import { alertVisibility } from "../routes/alerts";
 import { notify } from "../notifications/notify";
 import { query } from "../db";
+import { ALERT_TEXT_COLUMNS, alertTexts, type AlertTextRow } from "./alertText";
 
 export const ALERT_RULES = ["TASKS_OVERDUE", "DEAL_CLOSE_OVERDUE", "DEAL_STALLED", "KPI_BEHIND", "INACTIVITY"] as const;
 export type AlertRule = typeof ALERT_RULES[number];
@@ -103,8 +104,8 @@ export async function evaluateAlerts(): Promise<AlertEvaluation> {
 
 /** Everyone who can see a new alert hears about it, by the same rule as the alert list. */
 export async function notifyAlert(alertId: string): Promise<void> {
-  const alert = (await query<{ company_id: string; title: string; summary: string | null; deal_id: string | null }>(
-    "SELECT company_id, title, summary, deal_id FROM alerts WHERE id = $1", [alertId])).rows[0];
+  const alert = (await query<AlertTextRow & { company_id: string; deal_id: string | null }>(
+    `SELECT a.company_id, a.rule, a.title, a.summary, a.evidence, a.deal_id, ${ALERT_TEXT_COLUMNS} FROM alerts a WHERE a.id = $1`, [alertId])).rows[0];
   if (!alert) return;
   const people = await query<{ id: string; username: string; role: Role; department_id: string | null; sub_departments: string[] }>(
     `SELECT u.id, u.username, u.role, u.department_id, ${SUB_DEPARTMENTS_SQL} AS sub_departments FROM users u WHERE u.company_id = $1 AND u.status = 'ACTIVE'`,
@@ -115,8 +116,9 @@ export async function notifyAlert(alertId: string): Promise<void> {
     const visible = await query(`SELECT 1 FROM alerts a WHERE a.id = $${visibility.values.length + 1} AND ${visibility.sql}`, [...visibility.values, alertId]);
     if (visible.rowCount) recipients.push(person.id);
   }
+  const texts = alertTexts(alert);
   await notify(alert.company_id, recipients, null, {
-    kind: "ALERT_CREATED", title: alert.title, body: alert.summary, link: alert.deal_id ? `/sales?deal=${alert.deal_id}` : "/",
+    kind: "ALERT_CREATED", title: texts.title, body: texts.summary, link: alert.deal_id ? `/sales?deal=${alert.deal_id}` : "/",
     entityType: "alert", entityId: alertId
   });
 }

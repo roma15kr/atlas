@@ -1,10 +1,11 @@
 import { apiBlob, apiRequest, sessionStore } from './api';
+import i18n from '../i18n';
 
 /** Largest image that can be pasted into formatted text (the API limit). */
 export const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
 
-export const IMAGE_RULES_MESSAGE = 'Можно добавить только изображение PNG, JPEG, GIF или WebP до 5 МБ';
+export const imageRulesMessage = () => i18n.t('ui:images.rules');
 
 /** Whether a file may be uploaded; the server checks the bytes again. */
 export const acceptableImage = (file: File) => IMAGE_TYPES.has(file.type) && file.size > 0 && file.size <= IMAGE_MAX_BYTES;

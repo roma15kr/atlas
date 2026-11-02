@@ -1,3 +1,4 @@
+import i18n from '../i18n';
 import { api, apiRequest } from './api';
 import type { Client, Deal, User } from '../types';
 
@@ -123,6 +124,9 @@ export const remoteMail: MailBackend = {
 
 // ---------------------------------------------------------------------------
 // Helpers
+
+/** A folder's name: special folders in the interface language (the server stores them in Russian), others as named. */
+export const folderName = (folder: { name: string; specialUse?: SpecialUse | null }) => folder.specialUse ? i18n.t(`mail:folders.${folder.specialUse}`) : folder.name;
 
 export const folderOrder: SpecialUse[] = ['INBOX', 'SENT', 'DRAFTS', 'ARCHIVE', 'JUNK', 'TRASH', 'ALL'];
 export const displayAddress = (item: Address): string => item.name ? `${item.name} <${item.address}>` : item.address;

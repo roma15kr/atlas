@@ -1,122 +1,145 @@
 import { Archive, Award, BadgeCheck, Banknote, Bell, BookOpen, Boxes, Briefcase, Building2, Cake, CalendarDays, Camera, Car, ChartColumn, ChartLine, ChartPie, ClipboardList, Clock, Code, Coffee, Cog, Contact, CreditCard, Factory, FileText, Flag, Flame, FolderOpen, Forklift, Gift, Globe, GraduationCap, Hammer, Handshake, Hash, Headphones, Heart, Home, Landmark, Laptop, Leaf, Lightbulb, ListTodo, Lock, Mail, Map, MapPin, Megaphone, MessageCircle, MessagesSquare, Monitor, Music, Package, PackageCheck, Paintbrush, Palette, PartyPopper, Percent, Phone, Plane, Radio, Receipt, Rocket, Route, Send, Settings, Shield, ShoppingBag, ShoppingCart, Smartphone, Smile, Sparkles, Star, Store, Sun, Tag, Target, TrendingUp, Trophy, Truck, UserRound, Users, UsersRound, Wallet, Warehouse, Wrench, Zap, type LucideIcon } from 'lucide-react';
+import { currentLanguage, type Language } from '../i18n';
 
-/** The library a channel's icon is chosen from (as in ClickUp), with Russian names and search words. Keys are stored; keep them stable. */
-export interface ChannelIconEntry { key: string; Icon: LucideIcon; name: string; words: string; group: string }
+type Named = [name: string, words: string];
+export type ChannelIconGroup = 'work' | 'sales' | 'logistics' | 'communication' | 'people' | 'other';
+
+/** The library a channel's icon is chosen from (as in ClickUp); `name` and `words` follow the interface language. Keys are stored; keep them stable. */
+export interface ChannelIconEntry { key: string; Icon: LucideIcon; group: ChannelIconGroup; names: Record<Language, Named>; readonly name: string; readonly words: string }
+
+const icon = (key: string, Icon: LucideIcon, group: ChannelIconGroup, uk: Named, ru: Named, en: Named): ChannelIconEntry => {
+  const names: Record<Language, Named> = { uk, ru, en };
+  return { key, Icon, group, names, get name() { return names[currentLanguage()][0]; }, get words() { return names[currentLanguage()][1]; } };
+};
+
 export const CHANNEL_ICONS: ChannelIconEntry[] = [
-  { key: 'megaphone', Icon: Megaphone, name: 'Мегафон', words: 'объявления новости рупор', group: 'Работа' },
-  { key: 'briefcase', Icon: Briefcase, name: 'Портфель', words: 'работа офис дела', group: 'Работа' },
-  { key: 'building', Icon: Building2, name: 'Здание', words: 'офис компания', group: 'Работа' },
-  { key: 'landmark', Icon: Landmark, name: 'Учреждение', words: 'банк администрация', group: 'Работа' },
-  { key: 'clipboard', Icon: ClipboardList, name: 'Планшет', words: 'список задачи', group: 'Работа' },
-  { key: 'list-todo', Icon: ListTodo, name: 'Задачи', words: 'список дела чеклист', group: 'Работа' },
-  { key: 'calendar', Icon: CalendarDays, name: 'Календарь', words: 'дата встреча график', group: 'Работа' },
-  { key: 'clock', Icon: Clock, name: 'Часы', words: 'время смена', group: 'Работа' },
-  { key: 'target', Icon: Target, name: 'Цель', words: 'план kpi', group: 'Работа' },
-  { key: 'flag', Icon: Flag, name: 'Флаг', words: 'важно этап', group: 'Работа' },
-  { key: 'rocket', Icon: Rocket, name: 'Ракета', words: 'запуск старт проект', group: 'Работа' },
-  { key: 'lightbulb', Icon: Lightbulb, name: 'Лампочка', words: 'идеи предложения', group: 'Работа' },
-  { key: 'file', Icon: FileText, name: 'Документ', words: 'файл бумаги', group: 'Работа' },
-  { key: 'folder', Icon: FolderOpen, name: 'Папка', words: 'файлы архив', group: 'Работа' },
-  { key: 'archive', Icon: Archive, name: 'Архив', words: 'хранение', group: 'Работа' },
-  { key: 'book', Icon: BookOpen, name: 'Книга', words: 'обучение база знаний', group: 'Работа' },
-  { key: 'graduation', Icon: GraduationCap, name: 'Обучение', words: 'курсы школа', group: 'Работа' },
-  { key: 'award', Icon: Award, name: 'Награда', words: 'достижения', group: 'Работа' },
-  { key: 'trophy', Icon: Trophy, name: 'Кубок', words: 'победа рейтинг', group: 'Работа' },
-  { key: 'star', Icon: Star, name: 'Звезда', words: 'избранное важное', group: 'Работа' },
-  { key: 'cart', Icon: ShoppingCart, name: 'Корзина', words: 'покупки заказы', group: 'Продажи' },
-  { key: 'bag', Icon: ShoppingBag, name: 'Пакет', words: 'покупки магазин', group: 'Продажи' },
-  { key: 'store', Icon: Store, name: 'Магазин', words: 'точка розница', group: 'Продажи' },
-  { key: 'tag', Icon: Tag, name: 'Ценник', words: 'цена товар', group: 'Продажи' },
-  { key: 'percent', Icon: Percent, name: 'Скидка', words: 'процент акция', group: 'Продажи' },
-  { key: 'receipt', Icon: Receipt, name: 'Чек', words: 'счёт оплата', group: 'Продажи' },
-  { key: 'wallet', Icon: Wallet, name: 'Кошелёк', words: 'деньги финансы', group: 'Продажи' },
-  { key: 'card', Icon: CreditCard, name: 'Карта', words: 'оплата банк', group: 'Продажи' },
-  { key: 'banknote', Icon: Banknote, name: 'Купюра', words: 'деньги наличные', group: 'Продажи' },
-  { key: 'chart-bar', Icon: ChartColumn, name: 'Диаграмма', words: 'отчёт статистика', group: 'Продажи' },
-  { key: 'chart-line', Icon: ChartLine, name: 'График', words: 'динамика рост', group: 'Продажи' },
-  { key: 'chart-pie', Icon: ChartPie, name: 'Круговая диаграмма', words: 'доля отчёт', group: 'Продажи' },
-  { key: 'trending', Icon: TrendingUp, name: 'Рост', words: 'продажи план', group: 'Продажи' },
-  { key: 'handshake', Icon: Handshake, name: 'Рукопожатие', words: 'сделка партнёры клиенты', group: 'Продажи' },
-  { key: 'badge', Icon: BadgeCheck, name: 'Отметка', words: 'подтверждено качество', group: 'Продажи' },
-  { key: 'truck', Icon: Truck, name: 'Грузовик', words: 'доставка логистика', group: 'Склад и доставка' },
-  { key: 'package', Icon: Package, name: 'Коробка', words: 'посылка товар', group: 'Склад и доставка' },
-  { key: 'package-check', Icon: PackageCheck, name: 'Отгружено', words: 'посылка доставлено', group: 'Склад и доставка' },
-  { key: 'warehouse', Icon: Warehouse, name: 'Склад', words: 'хранение запасы', group: 'Склад и доставка' },
-  { key: 'boxes', Icon: Boxes, name: 'Ящики', words: 'запасы склад', group: 'Склад и доставка' },
-  { key: 'forklift', Icon: Forklift, name: 'Погрузчик', words: 'склад погрузка', group: 'Склад и доставка' },
-  { key: 'pin', Icon: MapPin, name: 'Метка', words: 'адрес место', group: 'Склад и доставка' },
-  { key: 'map', Icon: Map, name: 'Карта', words: 'маршрут регион', group: 'Склад и доставка' },
-  { key: 'route', Icon: Route, name: 'Маршрут', words: 'путь доставка', group: 'Склад и доставка' },
-  { key: 'factory', Icon: Factory, name: 'Завод', words: 'производство', group: 'Склад и доставка' },
-  { key: 'wrench', Icon: Wrench, name: 'Ключ', words: 'сервис ремонт', group: 'Склад и доставка' },
-  { key: 'hammer', Icon: Hammer, name: 'Молоток', words: 'ремонт стройка', group: 'Склад и доставка' },
-  { key: 'settings', Icon: Settings, name: 'Шестерёнка', words: 'настройки', group: 'Склад и доставка' },
-  { key: 'cog', Icon: Cog, name: 'Механизм', words: 'техника процесс', group: 'Склад и доставка' },
-  { key: 'car', Icon: Car, name: 'Автомобиль', words: 'машина выезд', group: 'Склад и доставка' },
-  { key: 'plane', Icon: Plane, name: 'Самолёт', words: 'командировка импорт', group: 'Склад и доставка' },
-  { key: 'chat', Icon: MessageCircle, name: 'Сообщение', words: 'чат общение', group: 'Общение' },
-  { key: 'chats', Icon: MessagesSquare, name: 'Обсуждение', words: 'чат беседа', group: 'Общение' },
-  { key: 'mail', Icon: Mail, name: 'Почта', words: 'письма email', group: 'Общение' },
-  { key: 'phone', Icon: Phone, name: 'Телефон', words: 'звонки call-центр', group: 'Общение' },
-  { key: 'headphones', Icon: Headphones, name: 'Гарнитура', words: 'поддержка call-центр', group: 'Общение' },
-  { key: 'send', Icon: Send, name: 'Отправка', words: 'telegram рассылка', group: 'Общение' },
-  { key: 'bell', Icon: Bell, name: 'Колокольчик', words: 'уведомления', group: 'Общение' },
-  { key: 'radio', Icon: Radio, name: 'Эфир', words: 'трансляция', group: 'Общение' },
-  { key: 'hash', Icon: Hash, name: 'Решётка', words: 'канал тема', group: 'Общение' },
-  { key: 'users', Icon: Users, name: 'Команда', words: 'люди отдел', group: 'Люди' },
-  { key: 'users-round', Icon: UsersRound, name: 'Группа', words: 'люди коллектив', group: 'Люди' },
-  { key: 'user', Icon: UserRound, name: 'Человек', words: 'сотрудник', group: 'Люди' },
-  { key: 'contact', Icon: Contact, name: 'Контакт', words: 'визитка клиент', group: 'Люди' },
-  { key: 'heart', Icon: Heart, name: 'Сердце', words: 'забота hr', group: 'Люди' },
-  { key: 'smile', Icon: Smile, name: 'Улыбка', words: 'настроение', group: 'Люди' },
-  { key: 'coffee', Icon: Coffee, name: 'Кофе', words: 'отдых неформальное', group: 'Люди' },
-  { key: 'party', Icon: PartyPopper, name: 'Праздник', words: 'поздравления события', group: 'Люди' },
-  { key: 'gift', Icon: Gift, name: 'Подарок', words: 'бонусы', group: 'Люди' },
-  { key: 'cake', Icon: Cake, name: 'Торт', words: 'дни рождения', group: 'Люди' },
-  { key: 'sun', Icon: Sun, name: 'Солнце', words: 'утро лето', group: 'Разное' },
-  { key: 'leaf', Icon: Leaf, name: 'Лист', words: 'природа эко', group: 'Разное' },
-  { key: 'globe', Icon: Globe, name: 'Глобус', words: 'мир экспорт', group: 'Разное' },
-  { key: 'shield', Icon: Shield, name: 'Щит', words: 'безопасность', group: 'Разное' },
-  { key: 'lock', Icon: Lock, name: 'Замок', words: 'закрытое доступ', group: 'Разное' },
-  { key: 'zap', Icon: Zap, name: 'Молния', words: 'срочно энергия', group: 'Разное' },
-  { key: 'flame', Icon: Flame, name: 'Огонь', words: 'горячее срочно', group: 'Разное' },
-  { key: 'camera', Icon: Camera, name: 'Камера', words: 'фото', group: 'Разное' },
-  { key: 'palette', Icon: Palette, name: 'Палитра', words: 'дизайн', group: 'Разное' },
-  { key: 'brush', Icon: Paintbrush, name: 'Кисть', words: 'дизайн творчество', group: 'Разное' },
-  { key: 'music', Icon: Music, name: 'Музыка', words: 'звук', group: 'Разное' },
-  { key: 'code', Icon: Code, name: 'Код', words: 'разработка it', group: 'Разное' },
-  { key: 'laptop', Icon: Laptop, name: 'Ноутбук', words: 'компьютер it', group: 'Разное' },
-  { key: 'monitor', Icon: Monitor, name: 'Монитор', words: 'экран it', group: 'Разное' },
-  { key: 'smartphone', Icon: Smartphone, name: 'Смартфон', words: 'мобильный', group: 'Разное' },
-  { key: 'sparkles', Icon: Sparkles, name: 'Искры', words: 'новое ai', group: 'Разное' },
-  { key: 'home', Icon: Home, name: 'Дом', words: 'главное', group: 'Разное' },
+  icon('megaphone', Megaphone, 'work', ['Мегафон', 'оголошення новини рупор'], ['Мегафон', 'объявления новости рупор'], ['Megaphone', 'announcements news']),
+  icon('briefcase', Briefcase, 'work', ['Портфель', 'робота офіс справи'], ['Портфель', 'работа офис дела'], ['Briefcase', 'work office business']),
+  icon('building', Building2, 'work', ['Будівля', 'офіс компанія'], ['Здание', 'офис компания'], ['Building', 'office company']),
+  icon('landmark', Landmark, 'work', ['Установа', 'банк адміністрація'], ['Учреждение', 'банк администрация'], ['Institution', 'bank administration']),
+  icon('clipboard', ClipboardList, 'work', ['Планшет', 'список задачі'], ['Планшет', 'список задачи'], ['Clipboard', 'list tasks']),
+  icon('list-todo', ListTodo, 'work', ['Задачі', 'список справи чекліст'], ['Задачи', 'список дела чеклист'], ['Tasks', 'to-do list checklist']),
+  icon('calendar', CalendarDays, 'work', ['Календар', 'дата зустріч графік'], ['Календарь', 'дата встреча график'], ['Calendar', 'date meeting schedule']),
+  icon('clock', Clock, 'work', ['Годинник', 'час зміна'], ['Часы', 'время смена'], ['Clock', 'time shift']),
+  icon('target', Target, 'work', ['Ціль', 'план kpi'], ['Цель', 'план kpi'], ['Target', 'goal plan kpi']),
+  icon('flag', Flag, 'work', ['Прапор', 'важливо етап'], ['Флаг', 'важно этап'], ['Flag', 'important milestone']),
+  icon('rocket', Rocket, 'work', ['Ракета', 'запуск старт проєкт'], ['Ракета', 'запуск старт проект'], ['Rocket', 'launch start project']),
+  icon('lightbulb', Lightbulb, 'work', ['Лампочка', 'ідеї пропозиції'], ['Лампочка', 'идеи предложения'], ['Light bulb', 'ideas suggestions']),
+  icon('file', FileText, 'work', ['Документ', 'файл папери'], ['Документ', 'файл бумаги'], ['Document', 'file papers']),
+  icon('folder', FolderOpen, 'work', ['Папка', 'файли архів'], ['Папка', 'файлы архив'], ['Folder', 'files archive']),
+  icon('archive', Archive, 'work', ['Архів', 'зберігання'], ['Архив', 'хранение'], ['Archive', 'storage']),
+  icon('book', BookOpen, 'work', ['Книга', 'навчання база знань'], ['Книга', 'обучение база знаний'], ['Book', 'learning knowledge base']),
+  icon('graduation', GraduationCap, 'work', ['Навчання', 'курси школа'], ['Обучение', 'курсы школа'], ['Learning', 'courses school training']),
+  icon('award', Award, 'work', ['Нагорода', 'досягнення'], ['Награда', 'достижения'], ['Award', 'achievements']),
+  icon('trophy', Trophy, 'work', ['Кубок', 'перемога рейтинг'], ['Кубок', 'победа рейтинг'], ['Trophy', 'win ranking']),
+  icon('star', Star, 'work', ['Зірка', 'вибране важливе'], ['Звезда', 'избранное важное'], ['Star', 'favourite important']),
+  icon('cart', ShoppingCart, 'sales', ['Кошик', 'покупки замовлення'], ['Корзина', 'покупки заказы'], ['Cart', 'purchases orders']),
+  icon('bag', ShoppingBag, 'sales', ['Пакет', 'покупки магазин'], ['Пакет', 'покупки магазин'], ['Bag', 'shopping store']),
+  icon('store', Store, 'sales', ['Магазин', 'точка роздріб'], ['Магазин', 'точка розница'], ['Store', 'shop retail']),
+  icon('tag', Tag, 'sales', ['Цінник', 'ціна товар'], ['Ценник', 'цена товар'], ['Price tag', 'price product']),
+  icon('percent', Percent, 'sales', ['Знижка', 'відсоток акція'], ['Скидка', 'процент акция'], ['Discount', 'percent promotion sale']),
+  icon('receipt', Receipt, 'sales', ['Чек', 'рахунок оплата'], ['Чек', 'счёт оплата'], ['Receipt', 'invoice payment']),
+  icon('wallet', Wallet, 'sales', ['Гаманець', 'гроші фінанси'], ['Кошелёк', 'деньги финансы'], ['Wallet', 'money finance']),
+  icon('card', CreditCard, 'sales', ['Картка', 'оплата банк'], ['Карта', 'оплата банк'], ['Card', 'payment bank']),
+  icon('banknote', Banknote, 'sales', ['Купюра', 'гроші готівка'], ['Купюра', 'деньги наличные'], ['Banknote', 'money cash']),
+  icon('chart-bar', ChartColumn, 'sales', ['Діаграма', 'звіт статистика'], ['Диаграмма', 'отчёт статистика'], ['Bar chart', 'report statistics']),
+  icon('chart-line', ChartLine, 'sales', ['Графік', 'динаміка зростання'], ['График', 'динамика рост'], ['Line chart', 'trend growth']),
+  icon('chart-pie', ChartPie, 'sales', ['Кругова діаграма', 'частка звіт'], ['Круговая диаграмма', 'доля отчёт'], ['Pie chart', 'share report']),
+  icon('trending', TrendingUp, 'sales', ['Зростання', 'продажі план'], ['Рост', 'продажи план'], ['Growth', 'sales plan trending']),
+  icon('handshake', Handshake, 'sales', ['Рукостискання', 'угода партнери клієнти'], ['Рукопожатие', 'сделка партнёры клиенты'], ['Handshake', 'deal partners clients']),
+  icon('badge', BadgeCheck, 'sales', ['Позначка', 'підтверджено якість'], ['Отметка', 'подтверждено качество'], ['Badge', 'verified quality']),
+  icon('truck', Truck, 'logistics', ['Вантажівка', 'доставка логістика'], ['Грузовик', 'доставка логистика'], ['Truck', 'delivery logistics']),
+  icon('package', Package, 'logistics', ['Коробка', 'посилка товар'], ['Коробка', 'посылка товар'], ['Package', 'parcel goods']),
+  icon('package-check', PackageCheck, 'logistics', ['Відвантажено', 'посилка доставлено'], ['Отгружено', 'посылка доставлено'], ['Shipped', 'parcel delivered']),
+  icon('warehouse', Warehouse, 'logistics', ['Склад', 'зберігання запаси'], ['Склад', 'хранение запасы'], ['Warehouse', 'storage stock']),
+  icon('boxes', Boxes, 'logistics', ['Ящики', 'запаси склад'], ['Ящики', 'запасы склад'], ['Boxes', 'stock warehouse']),
+  icon('forklift', Forklift, 'logistics', ['Навантажувач', 'склад навантаження'], ['Погрузчик', 'склад погрузка'], ['Forklift', 'warehouse loading']),
+  icon('pin', MapPin, 'logistics', ['Мітка', 'адреса місце'], ['Метка', 'адрес место'], ['Map pin', 'address place']),
+  icon('map', Map, 'logistics', ['Мапа', 'маршрут регіон'], ['Карта', 'маршрут регион'], ['Map', 'route region']),
+  icon('route', Route, 'logistics', ['Маршрут', 'шлях доставка'], ['Маршрут', 'путь доставка'], ['Route', 'path delivery']),
+  icon('factory', Factory, 'logistics', ['Завод', 'виробництво'], ['Завод', 'производство'], ['Factory', 'production manufacturing']),
+  icon('wrench', Wrench, 'logistics', ['Ключ', 'сервіс ремонт'], ['Ключ', 'сервис ремонт'], ['Wrench', 'service repair']),
+  icon('hammer', Hammer, 'logistics', ['Молоток', 'ремонт будівництво'], ['Молоток', 'ремонт стройка'], ['Hammer', 'repair construction']),
+  icon('settings', Settings, 'logistics', ['Шестерня', 'налаштування'], ['Шестерёнка', 'настройки'], ['Gear', 'settings']),
+  icon('cog', Cog, 'logistics', ['Механізм', 'техніка процес'], ['Механизм', 'техника процесс'], ['Cog', 'machinery process']),
+  icon('car', Car, 'logistics', ['Автомобіль', 'машина виїзд'], ['Автомобиль', 'машина выезд'], ['Car', 'vehicle field trip']),
+  icon('plane', Plane, 'logistics', ['Літак', 'відрядження імпорт'], ['Самолёт', 'командировка импорт'], ['Plane', 'business trip import']),
+  icon('chat', MessageCircle, 'communication', ['Повідомлення', 'чат спілкування'], ['Сообщение', 'чат общение'], ['Message', 'chat talk']),
+  icon('chats', MessagesSquare, 'communication', ['Обговорення', 'чат бесіда'], ['Обсуждение', 'чат беседа'], ['Discussion', 'chat conversation']),
+  icon('mail', Mail, 'communication', ['Пошта', 'листи email'], ['Почта', 'письма email'], ['Mail', 'letters email']),
+  icon('phone', Phone, 'communication', ['Телефон', 'дзвінки call-центр'], ['Телефон', 'звонки call-центр'], ['Phone', 'calls call centre']),
+  icon('headphones', Headphones, 'communication', ['Гарнітура', 'підтримка call-центр'], ['Гарнитура', 'поддержка call-центр'], ['Headset', 'support call centre']),
+  icon('send', Send, 'communication', ['Надсилання', 'telegram розсилка'], ['Отправка', 'telegram рассылка'], ['Send', 'telegram mailing']),
+  icon('bell', Bell, 'communication', ['Дзвіночок', 'сповіщення'], ['Колокольчик', 'уведомления'], ['Bell', 'notifications']),
+  icon('radio', Radio, 'communication', ['Ефір', 'трансляція'], ['Эфир', 'трансляция'], ['Broadcast', 'radio stream']),
+  icon('hash', Hash, 'communication', ['Решітка', 'канал тема'], ['Решётка', 'канал тема'], ['Hash', 'channel topic']),
+  icon('users', Users, 'people', ['Команда', 'люди відділ'], ['Команда', 'люди отдел'], ['Team', 'people department']),
+  icon('users-round', UsersRound, 'people', ['Група', 'люди колектив'], ['Группа', 'люди коллектив'], ['Group', 'people collective']),
+  icon('user', UserRound, 'people', ['Людина', 'співробітник'], ['Человек', 'сотрудник'], ['Person', 'employee']),
+  icon('contact', Contact, 'people', ['Контакт', 'візитка клієнт'], ['Контакт', 'визитка клиент'], ['Contact', 'business card client']),
+  icon('heart', Heart, 'people', ['Серце', 'турбота hr'], ['Сердце', 'забота hr'], ['Heart', 'care hr']),
+  icon('smile', Smile, 'people', ['Усмішка', 'настрій'], ['Улыбка', 'настроение'], ['Smile', 'mood']),
+  icon('coffee', Coffee, 'people', ['Кава', 'відпочинок неформальне'], ['Кофе', 'отдых неформальное'], ['Coffee', 'break informal']),
+  icon('party', PartyPopper, 'people', ['Свято', 'привітання події'], ['Праздник', 'поздравления события'], ['Party', 'congratulations events']),
+  icon('gift', Gift, 'people', ['Подарунок', 'бонуси'], ['Подарок', 'бонусы'], ['Gift', 'bonuses']),
+  icon('cake', Cake, 'people', ['Торт', 'дні народження'], ['Торт', 'дни рождения'], ['Cake', 'birthdays']),
+  icon('sun', Sun, 'other', ['Сонце', 'ранок літо'], ['Солнце', 'утро лето'], ['Sun', 'morning summer']),
+  icon('leaf', Leaf, 'other', ['Листок', 'природа еко'], ['Лист', 'природа эко'], ['Leaf', 'nature eco']),
+  icon('globe', Globe, 'other', ['Глобус', 'світ експорт'], ['Глобус', 'мир экспорт'], ['Globe', 'world export']),
+  icon('shield', Shield, 'other', ['Щит', 'безпека'], ['Щит', 'безопасность'], ['Shield', 'security']),
+  icon('lock', Lock, 'other', ['Замок', 'закрите доступ'], ['Замок', 'закрытое доступ'], ['Lock', 'private access']),
+  icon('zap', Zap, 'other', ['Блискавка', 'терміново енергія'], ['Молния', 'срочно энергия'], ['Lightning', 'urgent energy']),
+  icon('flame', Flame, 'other', ['Вогонь', 'гаряче терміново'], ['Огонь', 'горячее срочно'], ['Flame', 'hot urgent']),
+  icon('camera', Camera, 'other', ['Камера', 'фото'], ['Камера', 'фото'], ['Camera', 'photo']),
+  icon('palette', Palette, 'other', ['Палітра', 'дизайн'], ['Палитра', 'дизайн'], ['Palette', 'design']),
+  icon('brush', Paintbrush, 'other', ['Пензель', 'дизайн творчість'], ['Кисть', 'дизайн творчество'], ['Brush', 'design creative']),
+  icon('music', Music, 'other', ['Музика', 'звук'], ['Музыка', 'звук'], ['Music', 'sound']),
+  icon('code', Code, 'other', ['Код', 'розробка it'], ['Код', 'разработка it'], ['Code', 'development it']),
+  icon('laptop', Laptop, 'other', ['Ноутбук', 'комп’ютер it'], ['Ноутбук', 'компьютер it'], ['Laptop', 'computer it']),
+  icon('monitor', Monitor, 'other', ['Монітор', 'екран it'], ['Монитор', 'экран it'], ['Monitor', 'screen it']),
+  icon('smartphone', Smartphone, 'other', ['Смартфон', 'мобільний'], ['Смартфон', 'мобильный'], ['Smartphone', 'mobile']),
+  icon('sparkles', Sparkles, 'other', ['Іскри', 'нове ai'], ['Искры', 'новое ai'], ['Sparkles', 'new ai']),
+  icon('home', Home, 'other', ['Дім', 'головне'], ['Дом', 'главное'], ['Home', 'main']),
 ];
-export const CHANNEL_ICON_GROUPS = ['Работа', 'Продажи', 'Склад и доставка', 'Общение', 'Люди', 'Разное'];
 
+const GROUP_NAMES: Record<ChannelIconGroup, Record<Language, string>> = {
+  work: { uk: 'Робота', ru: 'Работа', en: 'Work' },
+  sales: { uk: 'Продажі', ru: 'Продажи', en: 'Sales' },
+  logistics: { uk: 'Склад і доставка', ru: 'Склад и доставка', en: 'Warehouse & delivery' },
+  communication: { uk: 'Спілкування', ru: 'Общение', en: 'Communication' },
+  people: { uk: 'Люди', ru: 'Люди', en: 'People' },
+  other: { uk: 'Різне', ru: 'Разное', en: 'Other' },
+};
+export const CHANNEL_ICON_GROUPS: ChannelIconGroup[] = ['work', 'sales', 'logistics', 'communication', 'people', 'other'];
+/** A group's heading in the interface language. */
+export const channelIconGroupName = (group: ChannelIconGroup) => GROUP_NAMES[group][currentLanguage()];
+
+export interface ChannelIconColor { key: string; hex: string; readonly name: string }
+const color = (key: string, hex: string, names: Record<Language, string>): ChannelIconColor => ({ key, hex, get name() { return names[currentLanguage()]; } });
 /** Tile colours: user-chosen data colours, white icon on top. */
-export const CHANNEL_ICON_COLORS: Array<{ key: string; hex: string; name: string }> = [
-  { key: 'slate', hex: '#5f6b6a', name: 'Серый' },
-  { key: 'teal', hex: '#176f68', name: 'Бирюзовый' },
-  { key: 'green', hex: '#39815a', name: 'Зелёный' },
-  { key: 'lime', hex: '#6d8a1f', name: 'Оливковый' },
-  { key: 'amber', hex: '#b7791f', name: 'Жёлтый' },
-  { key: 'orange', hex: '#c4622d', name: 'Оранжевый' },
-  { key: 'red', hex: '#b54a4a', name: 'Красный' },
-  { key: 'pink', hex: '#b4487f', name: 'Розовый' },
-  { key: 'violet', hex: '#6f55b5', name: 'Фиолетовый' },
-  { key: 'blue', hex: '#366e9e', name: 'Синий' },
+export const CHANNEL_ICON_COLORS: ChannelIconColor[] = [
+  color('slate', '#5f6b6a', { uk: 'Сірий', ru: 'Серый', en: 'Grey' }),
+  color('teal', '#176f68', { uk: 'Бірюзовий', ru: 'Бирюзовый', en: 'Teal' }),
+  color('green', '#39815a', { uk: 'Зелений', ru: 'Зелёный', en: 'Green' }),
+  color('lime', '#6d8a1f', { uk: 'Оливковий', ru: 'Оливковый', en: 'Olive' }),
+  color('amber', '#b7791f', { uk: 'Жовтий', ru: 'Жёлтый', en: 'Yellow' }),
+  color('orange', '#c4622d', { uk: 'Помаранчевий', ru: 'Оранжевый', en: 'Orange' }),
+  color('red', '#b54a4a', { uk: 'Червоний', ru: 'Красный', en: 'Red' }),
+  color('pink', '#b4487f', { uk: 'Рожевий', ru: 'Розовый', en: 'Pink' }),
+  color('violet', '#6f55b5', { uk: 'Фіолетовий', ru: 'Фиолетовый', en: 'Violet' }),
+  color('blue', '#366e9e', { uk: 'Синій', ru: 'Синий', en: 'Blue' }),
 ];
 
 /** The icon and colour stored as `<icon>:<colour>`, or null for none or a value this version doesn't know. */
-export function parseChannelIcon(value: string | null | undefined): { entry: ChannelIconEntry; color: { key: string; hex: string; name: string } } | null {
+export function parseChannelIcon(value: string | null | undefined): { entry: ChannelIconEntry; color: ChannelIconColor } | null {
   const [key, colorKey] = (value ?? '').split(':');
   const entry = CHANNEL_ICONS.find((item) => item.key === key);
   const color = CHANNEL_ICON_COLORS.find((item) => item.key === colorKey);
   return entry && color ? { entry, color } : null;
 }
 
-/** Icons whose name or search words contain the query (case-insensitive). */
-export function searchChannelIcons(query: string): ChannelIconEntry[] {
+/** Icons whose name or search words, in the given language, contain the query (case-insensitive). */
+export function searchChannelIcons(query: string, language: Language = currentLanguage()): ChannelIconEntry[] {
   const text = query.trim().toLowerCase();
-  return text ? CHANNEL_ICONS.filter((item) => `${item.name} ${item.words}`.toLowerCase().includes(text)) : CHANNEL_ICONS;
+  return text ? CHANNEL_ICONS.filter((item) => item.names[language].join(' ').toLowerCase().includes(text)) : CHANNEL_ICONS;
 }

@@ -164,12 +164,13 @@ export const profileUpdateSchema = z.object({
   contactEmail: clearable(z.string().trim().max(254).email()).optional(),
   city: clearable(z.string().trim().max(120)).optional(),
   about: clearable(z.string().trim().max(500)).optional(),
-  showBirthday: z.boolean().optional()
+  showBirthday: z.boolean().optional(),
+  language: z.enum(["uk", "ru", "en"]).optional()
 }).strict().refine((value) => Object.keys(value).length > 0, { message: "Nothing to update" });
 
 const profileColumns: Record<string, string> = {
   fullName: "full_name", specialty: "specialty", birthDate: "birth_date", phone: "phone",
-  contactEmail: "contact_email", city: "city", about: "about", showBirthday: "show_birthday"
+  contactEmail: "contact_email", city: "city", about: "about", showBirthday: "show_birthday", language: "language"
 };
 
 /**
@@ -212,7 +213,7 @@ export function withoutHiddenProfile<T extends Record<string, unknown>>(row: T):
 
 async function ownProfile(auth: AuthContext): Promise<Record<string, unknown>> {
   const result = await query<Record<string, unknown>>(
-    `SELECT u.id, u.full_name AS "fullName", u.specialty, ${profileFieldsSql("u", "$1")}
+    `SELECT u.id, u.full_name AS "fullName", u.specialty, u.language, ${profileFieldsSql("u", "$1")}
      FROM users u WHERE u.id = $1 AND u.company_id = $2`,
     [auth.userId, auth.companyId]
   );

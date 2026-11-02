@@ -3,7 +3,7 @@ import {
   ClipboardList, FileText, Mail, MessageSquareWarning, Gauge, SquareKanban, LayoutDashboard, LogOut, Menu, MessageSquare,
   PanelLeftClose, Search, Send, Settings, ShieldCheck, Trophy, Users, X,
 } from 'lucide-react';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth, useWorkspace } from '../context/AppContext';
 import { useChat } from '../context/ChatContext';
@@ -16,36 +16,39 @@ import { useIsPhone } from '../lib/useIsPhone';
 import { NotificationBell } from './NotificationBell';
 import { FeedbackButton } from './FeedbackDialog';
 import { Avatar, Badge, IconButton } from './ui';
+import { useTranslation } from 'react-i18next';
+import type { shell } from '../i18n/uk/shell';
 
-interface NavItem { label: string; to: string; icon: typeof Gauge; roles?: Role[]; }
-const nav: Array<{ title?: string; items: NavItem[] }> = [
+type NavKey = Exclude<keyof typeof shell.nav, 'groupTeam' | 'groupCommunication'>;
+interface NavItem { label: NavKey; to: string; icon: typeof Gauge; roles?: Role[]; }
+const nav: Array<{ title?: 'groupTeam' | 'groupCommunication'; items: NavItem[] }> = [
   { items: [
-    { label: 'Дашборд', to: '/', icon: LayoutDashboard },
-    { label: 'CRM', to: '/crm', icon: BriefcaseBusiness },
-    { label: 'Воронка', to: '/sales', icon: BarChart3 },
-    { label: 'Мои задачи', to: '/tasks', icon: ClipboardList },
-    { label: 'Доски', to: '/boards', icon: SquareKanban },
-    { label: 'Документы', to: '/documents', icon: FileText },
+    { label: 'dashboard', to: '/', icon: LayoutDashboard },
+    { label: 'crm', to: '/crm', icon: BriefcaseBusiness },
+    { label: 'sales', to: '/sales', icon: BarChart3 },
+    { label: 'tasks', to: '/tasks', icon: ClipboardList },
+    { label: 'boards', to: '/boards', icon: SquareKanban },
+    { label: 'documents', to: '/documents', icon: FileText },
   ] },
-  { title: 'КОМАНДА', items: [
-    { label: 'Сотрудники', to: '/team', icon: Users },
-    { label: 'Отчёты', to: '/reports', icon: BookOpenCheck, roles: ['DIRECTOR', 'MANAGER'] },
-    { label: 'Достижения', to: '/achievements', icon: Trophy },
+  { title: 'groupTeam', items: [
+    { label: 'team', to: '/team', icon: Users },
+    { label: 'reports', to: '/reports', icon: BookOpenCheck, roles: ['DIRECTOR', 'MANAGER'] },
+    { label: 'achievements', to: '/achievements', icon: Trophy },
   ] },
-  { title: 'СВЯЗЬ И КОНТРОЛЬ', items: [
-    { label: 'Сообщения', to: '/messages', icon: MessageSquare },
-    { label: 'Почта', to: '/mail', icon: Mail },
-    { label: 'Telegram', to: '/telegram', icon: Send },
-    { label: 'Обращения', to: '/feedback', icon: MessageSquareWarning },
-    { label: 'Аудит', to: '/audit', icon: ShieldCheck, roles: ['DIRECTOR'] },
-    { label: 'Профиль', to: '/profile', icon: Settings },
+  { title: 'groupCommunication', items: [
+    { label: 'messages', to: '/messages', icon: MessageSquare },
+    { label: 'mail', to: '/mail', icon: Mail },
+    { label: 'telegram', to: '/telegram', icon: Send },
+    { label: 'feedback', to: '/feedback', icon: MessageSquareWarning },
+    { label: 'audit', to: '/audit', icon: ShieldCheck, roles: ['DIRECTOR'] },
+    { label: 'profile', to: '/profile', icon: Settings },
   ] },
 ];
 
-const routeNames: Record<string, string> = {
-  '/': 'Дашборд', '/crm': 'CRM', '/sales': 'Воронка продаж', '/sales/settings': 'Настройка воронок', '/tasks': 'Мои задачи', '/boards': 'Доски задач', '/boards/settings': 'Настройка досок',
-  '/documents': 'Документы', '/team': 'Команда', '/reports': 'Отчёты',
-  '/achievements': 'Достижения', '/messages': 'Сообщения', '/mail': 'Почта', '/mail/settings': 'Настройки почты', '/telegram': 'Telegram', '/telegram/settings': 'Настройки Telegram', '/audit': 'Журнал аудита', '/feedback': 'Обращения', '/profile': 'Профиль',
+const routeNames: Record<string, keyof typeof shell.pages> = {
+  '/': 'dashboard', '/crm': 'crm', '/sales': 'sales', '/sales/settings': 'salesSettings', '/tasks': 'tasks', '/boards': 'boards', '/boards/settings': 'boardSettings',
+  '/documents': 'documents', '/team': 'team', '/reports': 'reports',
+  '/achievements': 'achievements', '/messages': 'messages', '/mail': 'mail', '/mail/settings': 'mailSettings', '/telegram': 'telegram', '/telegram/settings': 'telegramSettings', '/audit': 'audit', '/feedback': 'feedback', '/profile': 'profile',
 };
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -60,25 +63,27 @@ export function AppShell({ children }: { children: ReactNode }) {
   const phone = useIsPhone();
   const location = useLocation();
   const user = session!.user;
+  const { t } = useTranslation('shell');
   useEffect(() => { recordDiagnostic({ type: 'route', path: location.pathname }); }, [location.pathname]);
-  const pageName = useMemo(() => location.pathname.startsWith('/crm/') ? 'Карточка клиента' : /^\/boards\/[^/]+\/settings$/.test(location.pathname) ? 'Настройка досок' : location.pathname.startsWith('/mail/oauth') ? 'Почта' : routeNames[location.pathname] ?? 'Atlas', [location.pathname]);
+  const pageKey = location.pathname.startsWith('/crm/') ? 'client' : /^\/boards\/[^/]+\/settings$/.test(location.pathname) ? 'boardSettings' : location.pathname.startsWith('/mail/oauth') ? 'mail' : routeNames[location.pathname];
+  const pageName = pageKey ? t(`pages.${pageKey}`) : 'Atlas';
 
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
   useBarHeights(phone);
   useEffect(() => { localStorage.setItem('atlas.sidebar.collapsed', String(collapsed)); }, [collapsed]);
 
   return <div className={`app-layout ${collapsed ? 'app-layout--collapsed' : ''}`}>
-    {mobileOpen && <button className="sidebar-scrim" aria-label="Закрыть меню" onClick={() => setMobileOpen(false)} />}
+    {mobileOpen && <button className="sidebar-scrim" aria-label={t('frame.closeMenu')} onClick={() => setMobileOpen(false)} />}
     <aside className={`sidebar ${mobileOpen ? 'sidebar--open' : ''}`}>
-      <div className="sidebar__brand"><span className="brand-mark">A</span><strong>ATLAS</strong><IconButton label="Закрыть меню" icon={X} className="sidebar__mobile-close" onClick={() => setMobileOpen(false)} /></div>
-      <nav className="sidebar__nav" aria-label="Основная навигация">
-        {nav.map((group, index) => <div className="nav-group" key={group.title ?? index}>{group.title && <span className="nav-group__title">{group.title}</span>}{group.items.filter((item) => !item.roles || item.roles.includes(user.role)).map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`} title={collapsed ? item.label : undefined}><item.icon size={18} aria-hidden="true" /><span>{item.label}</span>{(badges[item.to] ?? 0) > 0 && <i className="nav-count" aria-label={`${item.label}: непрочитанных ${badges[item.to]}`}>{badges[item.to]! > 99 ? '99+' : badges[item.to]}</i>}</NavLink>)}</div>)}
+      <div className="sidebar__brand"><span className="brand-mark">A</span><strong>ATLAS</strong><IconButton label={t('frame.closeMenu')} icon={X} className="sidebar__mobile-close" onClick={() => setMobileOpen(false)} /></div>
+      <nav className="sidebar__nav" aria-label={t('frame.mainNav')}>
+        {nav.map((group, index) => <div className="nav-group" key={group.title ?? index}>{group.title && <span className="nav-group__title">{t(`nav.${group.title}`)}</span>}{group.items.filter((item) => !item.roles || item.roles.includes(user.role)).map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`} title={collapsed ? t(`nav.${item.label}`) : undefined}><item.icon size={18} aria-hidden="true" /><span>{t(`nav.${item.label}`)}</span>{(badges[item.to] ?? 0) > 0 && <i className="nav-count" aria-label={t('frame.unreadIn', { label: t(`nav.${item.label}`), count: badges[item.to] })}>{badges[item.to]! > 99 ? '99+' : badges[item.to]}</i>}</NavLink>)}</div>)}
       </nav>
-      <button className="sidebar__collapse" type="button" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? 'Развернуть меню' : 'Свернуть меню'}><PanelLeftClose size={17} /><span>Свернуть меню</span>{collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}</button>
-      <div className="sidebar__user"><Avatar name={user.fullName} src={user.avatarUrl} online size="sm" /><div><strong>{user.fullName}</strong><span>{roleLabel[user.role]}</span></div><IconButton label="Выйти" icon={LogOut} onClick={() => void logout()} /></div>
+      <button className="sidebar__collapse" type="button" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? t('frame.expandMenu') : t('frame.collapseMenu')}><PanelLeftClose size={17} /><span>{t('frame.collapseMenu')}</span>{collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}</button>
+      <div className="sidebar__user"><Avatar name={user.fullName} src={user.avatarUrl} online size="sm" /><div><strong>{user.fullName}</strong><span>{roleLabel[user.role]}</span></div><IconButton label={t('frame.logout')} icon={LogOut} onClick={() => void logout()} /></div>
     </aside>
     <div className="app-main">
-      <header className="topbar"><div className="topbar__left"><IconButton label="Открыть меню" icon={Menu} className="topbar__menu" onClick={() => setMobileOpen(true)} /><div><span>Рабочее пространство</span><strong>{pageName}</strong></div></div><div className="topbar__right"><label className="global-search"><Search size={16} /><input aria-label="Поиск" placeholder="Поиск" /></label>{dataStatus === 'offline' && <Badge tone="warning">Офлайн-данные</Badge>}<FeedbackButton /><NotificationBell /><div className="topbar__presence"><span className="presence presence--online" />В сети · {relativeTime(new Date().toISOString())}</div></div></header>
+      <header className="topbar"><div className="topbar__left"><IconButton label={t('frame.openMenu')} icon={Menu} className="topbar__menu" onClick={() => setMobileOpen(true)} /><div><span>{t('frame.workspace')}</span><strong>{pageName}</strong></div></div><div className="topbar__right"><label className="global-search"><Search size={16} /><input aria-label={t('frame.search')} placeholder={t('frame.search')} /></label>{dataStatus === 'offline' && <Badge tone="warning">{t('frame.offlineData')}</Badge>}<FeedbackButton /><NotificationBell /><div className="topbar__presence"><span className="presence presence--online" />{t('frame.online', { time: relativeTime(new Date().toISOString()) })}</div></div></header>
       <main className="page-content">{children}</main>
     </div>
     {phone && <BottomNav badges={badges} onMore={() => setMobileOpen(true)} />}
@@ -87,17 +92,18 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 /** The phone's bottom bar: the screens used on the go, and «Ещё» for the full menu. */
 function BottomNav({ badges, onMore }: { badges: Record<string, number>; onMore: () => void }) {
+  const { t } = useTranslation('shell');
   const items = [
-    { label: 'Задачи', to: '/tasks', icon: ClipboardList },
-    { label: 'Сообщения', to: '/messages', icon: MessageSquare },
-    { label: 'Telegram', to: '/telegram', icon: Send },
-    { label: 'CRM', to: '/crm', icon: BriefcaseBusiness },
+    { label: t('frame.tasks'), to: '/tasks', icon: ClipboardList },
+    { label: t('nav.messages'), to: '/messages', icon: MessageSquare },
+    { label: t('nav.telegram'), to: '/telegram', icon: Send },
+    { label: t('nav.crm'), to: '/crm', icon: BriefcaseBusiness },
   ];
-  return <nav className="bottom-nav" aria-label="Быстрая навигация">
+  return <nav className="bottom-nav" aria-label={t('frame.quickNav')}>
     {items.map(({ label, to, icon: Icon }) => <NavLink key={to} to={to} className={({ isActive }) => isActive ? 'is-active' : ''}>
-      <span className="bottom-nav__icon"><Icon size={20} aria-hidden />{badges[to] > 0 && <i aria-label={`непрочитанных: ${badges[to]}`}>{badges[to] > 99 ? '99+' : badges[to]}</i>}</span>{label}
+      <span className="bottom-nav__icon"><Icon size={20} aria-hidden />{badges[to] > 0 && <i aria-label={t('frame.unread', { count: badges[to] })}>{badges[to] > 99 ? '99+' : badges[to]}</i>}</span>{label}
     </NavLink>)}
-    <button type="button" onClick={onMore}><span className="bottom-nav__icon"><Menu size={20} aria-hidden /></span>Ещё</button>
+    <button type="button" onClick={onMore}><span className="bottom-nav__icon"><Menu size={20} aria-hidden /></span>{t('frame.more')}</button>
   </nav>;
 }
 

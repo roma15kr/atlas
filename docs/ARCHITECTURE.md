@@ -321,6 +321,10 @@ Where to look when a task spans several files.
 - **Long conversations:** chat and Telegram load newest-first pages of 50; the web's `lib/useScrollBack.ts` loads older pages near the top, keeps the view still, and only follows new messages at the end. Images in displayed formatted text are thumbnails opening `components/richtext/ImageViewer.tsx`.
 - **AI:** `llm/openai.ts` `structuredResponse` (strict JSON schema, typed failures) serves both `ai.ts` (analysis, stored in `ai_analyses`) and `feedback/triage.ts`.
 - **Problem reports:** `routes/feedback.ts` (submit, mine, director inbox, screenshot, retry, status) → `automation/feedback.ts` claims the queue with `FOR UPDATE SKIP LOCKED`, triages (`feedback/triage.ts`, then `feedback/scrub.ts`) and files issues (`feedback/github.ts`). The web side is `components/FeedbackDialog.tsx`, `lib/feedback.ts`, `lib/screenshot.ts` (modern-screenshot) and `lib/diagnostics.ts`, which `lib/api.ts` feeds with every request.
+- **Languages (ADR 0006):**
+  - Web: `apps/web/src/i18n/index.ts` sets up i18next (`applyLanguage`, `localeOf`, `detectLanguage`). Dictionaries are `i18n/{uk,ru,en}/<namespace>.ts` (Ukrainian is the source) and `i18n/types.ts` types them. API error codes by area are in the `errors` namespace (`lib/errorText.ts`).
+  - The language is `users.language`, set in «Профиль» (`components/LanguageSettings.tsx`, `PATCH /team/me`); `AuthProvider` applies it from the session.
+  - API: `apps/api/src/i18n` (`text`, `render`, `languagesOf`). `notify()` renders per recipient, `automation/alertText.ts` renders alerts per reader, and `ai.ts` answers in the requester's language.
 - **Request ids:** `app.ts` `requestId` sets `X-Request-Id` and the pino `req.id`.
 - **Files:** `storage.ts` `objectStorage` stores files on the local volume, or on S3 when fully configured. `routes/avatars.ts` serves profile photos by a random id.
 - **Web:**

@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="ru">
+<html lang="uk">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#176f68">
-  <title>Atlas — нет подключения</title>
+  <title>Atlas — немає підключення</title>
   <style>
     :root { color-scheme: light; }
     body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; box-sizing: border-box; background: #f5f6f7; color: #1d2b29; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; text-align: center; }
@@ -17,9 +17,32 @@
 <body>
   <main>
     <div class="mark" aria-hidden="true">A</div>
-    <h1>Нет подключения к интернету</h1>
-    <p>Atlas работает только онлайн. Проверьте сеть и попробуйте ещё раз.</p>
-    <button type="button" onclick="location.reload()">Повторить</button>
+    <h1 id="title">Немає підключення до інтернету</h1>
+    <p id="text">Atlas працює лише онлайн. Перевірте мережу й спробуйте ще раз.</p>
+    <button id="retry" type="button" onclick="location.reload()">Повторити</button>
   </main>
+  <script>
+    // The same language as the login screen: remembered in this browser, else the browser's own, else Ukrainian.
+    (function () {
+      var texts = {
+        uk: ['Atlas — немає підключення', 'Немає підключення до інтернету', 'Atlas працює лише онлайн. Перевірте мережу й спробуйте ще раз.', 'Повторити'],
+        ru: ['Atlas — нет подключения', 'Нет подключения к интернету', 'Atlas работает только онлайн. Проверьте сеть и попробуйте ещё раз.', 'Повторить'],
+        en: ['Atlas — no connection', 'No internet connection', 'Atlas works online only. Check your network and try again.', 'Try again']
+      };
+      var language = null;
+      try { language = localStorage.getItem('atlas.language'); } catch (error) { language = null; }
+      if (!texts[language]) {
+        var preferred = navigator.languages || [navigator.language];
+        for (var i = 0; i < preferred.length && !texts[language]; i++) language = String(preferred[i] || '').slice(0, 2).toLowerCase();
+      }
+      if (!texts[language]) language = 'uk';
+      var chosen = texts[language];
+      document.documentElement.lang = language;
+      document.title = chosen[0];
+      document.getElementById('title').textContent = chosen[1];
+      document.getElementById('text').textContent = chosen[2];
+      document.getElementById('retry').textContent = chosen[3];
+    })();
+  </script>
 </body>
 </html>

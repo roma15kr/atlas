@@ -1,8 +1,8 @@
 {
-  "name": "Atlas — рабочее пространство",
+  "name": "Atlas — робочий простір",
   "short_name": "Atlas",
-  "description": "Задачи, сообщения, клиенты и уведомления команды",
-  "lang": "ru",
+  "description": "Задачі, повідомлення, клієнти й сповіщення команди",
+  "lang": "uk",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
