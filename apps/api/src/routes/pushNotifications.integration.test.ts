@@ -55,7 +55,7 @@ describe("desktop notifications", () => {
     const task = (await as(head).post("/tasks", { boardId: board, title: "Відвантажити Нексанс", assigneeIds: [seller.id] })).body.data;
     await vi.waitFor(() => expect(pushed.some((item) => item.payload.link === `/tasks?task=${task.id}`)).toBe(true));
     const sent = pushed.find((item) => item.payload.link === `/tasks?task=${task.id}`)!;
-    expect(sent).toMatchObject({ endpoint: subscription("seller-chrome").endpoint, payload: { title: "Новая задача: Відвантажити Нексанс" } });
+    expect(sent).toMatchObject({ endpoint: subscription("seller-chrome").endpoint, payload: { title: "Нова задача: Відвантажити Нексанс" } });
     expect(sent.payload.body.length).toBeLessThanOrEqual(120);
   });
 

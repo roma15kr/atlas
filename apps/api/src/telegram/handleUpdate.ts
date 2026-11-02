@@ -5,6 +5,7 @@ import { notify } from "../notifications/notify";
 import { emitToUsers } from "../realtime";
 import { objectStorage } from "../storage";
 import { bot, BOT_DOWNLOAD_LIMIT, TelegramApiError, type TelegramFileRef, type TelegramMessage, type TelegramUpdate, type TelegramUser } from "./botApi";
+import { text, type Text } from "../i18n";
 
 export type MessageKind = "TEXT" | "PHOTO" | "DOCUMENT" | "VOICE" | "AUDIO" | "VIDEO" | "VIDEO_NOTE" | "STICKER" | "LOCATION" | "CONTACT" | "OTHER";
 
@@ -122,15 +123,15 @@ async function acceptInvite(contact: ContactRow, token: string): Promise<boolean
 }
 
 /** The responsible person hears about a customer's message; without one, the heads who cover the contact do. */
-async function notifyResponsible(contactId: string, text: string | null): Promise<void> {
+async function notifyResponsible(contactId: string, body: Text | string | null): Promise<void> {
   const contact = (await query<ContactRow & { first_name: string | null; last_name: string | null; username: string | null }>(
     "SELECT * FROM telegram_contacts WHERE id = $1", [contactId])).rows[0];
   if (!contact) return;
   const recipients = contact.responsible_id ? [contact.responsible_id]
     : (await query<{ id: string }>("SELECT id FROM users WHERE id = ANY($1::uuid[]) AND role = 'MANAGER'", [await contactAudience(contact)])).rows.map((row) => row.id);
-  const name = [contact.first_name, contact.last_name].filter(Boolean).join(" ") || (contact.username ? `@${contact.username}` : "Клиент");
+  const name = [contact.first_name, contact.last_name].filter(Boolean).join(" ") || (contact.username ? `@${contact.username}` : text("common.client"));
   await notify(contact.company_id, recipients, null, {
-    kind: "TELEGRAM_MESSAGE", title: `Telegram: ${name}`, body: text, link: `/telegram?contact=${contact.id}`,
+    kind: "TELEGRAM_MESSAGE", title: text("telegram.message", { name }), body, link: `/telegram?contact=${contact.id}`,
     entityType: "telegram_contact", entityId: contact.id, collapseKey: `telegram:${contact.id}`
   });
 }
@@ -163,7 +164,7 @@ async function onMessage(companyId: string, message: TelegramMessage): Promise<v
   }
   await notifyContact(contact.id);
   const messageId = stored.rows[0]?.id;
-  if (messageId) await notifyResponsible(contact.id, start ? "Клиент начал диалог с ботом" : content.text ?? content.summary);
+  if (messageId) await notifyResponsible(contact.id, start ? text("telegram.started") : content.text ?? content.summary);
   if (messageId && content.file && !tooLarge) void downloadMedia(messageId).catch(() => undefined);
 }
 

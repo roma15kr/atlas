@@ -1,6 +1,7 @@
 import { query } from "../db";
 import { emitToUsers } from "../realtime";
 import { plainPreview } from "./preview";
+import { DEFAULT_LANGUAGE, isLanguage, render, type Text } from "../i18n";
 
 export const NOTIFICATION_GROUPS = {
   TASK_ASSIGNED: "tasks", TASK_COMMENTED: "tasks", TASK_DUE: "tasks", TASK_OVERDUE: "tasks",
@@ -13,9 +14,10 @@ export type NotificationGroup = (typeof NOTIFICATION_GROUPS)[NotificationKind];
 
 export interface NotificationInput {
   kind: NotificationKind;
-  title: string;
+  /** A template renders in each recipient's language; a plain string (a person's own words) is kept as is. */
+  title: Text | string;
   /** Formatted text is reduced to a one-line plain preview. */
-  body?: string | null;
+  body?: Text | string | null;
   /** An in-app path such as `/tasks?task=<id>`. */
   link: string;
   entityType?: string;
@@ -45,12 +47,14 @@ export async function notify(companyId: string, recipients: Iterable<string>, ac
   try {
     const wanted = [...new Set(recipients)].filter((id) => id && id !== actorId);
     if (!wanted.length) return [];
-    const active = await query<{ id: string }>(
-      "SELECT id FROM users WHERE id = ANY($1::uuid[]) AND company_id = $2 AND status = 'ACTIVE'", [wanted, companyId]);
-    const body = input.body ? plainPreview(input.body) || null : null;
+    const active = await query<{ id: string; language: string }>(
+      "SELECT id, language FROM users WHERE id = ANY($1::uuid[]) AND company_id = $2 AND status = 'ACTIVE'", [wanted, companyId]);
     const rows: NotificationRow[] = [];
-    for (const { id: userId } of active.rows) {
-      const values = [companyId, userId, input.kind, input.title, body, input.link, input.entityType ?? null, input.entityId ?? null, input.collapseKey ?? null];
+    for (const { id: userId, language: stored } of active.rows) {
+      // Each recipient reads the notification in their own language; a stored row keeps the language it was made in.
+      const language = isLanguage(stored) ? stored : DEFAULT_LANGUAGE;
+      const body = input.body ? plainPreview(render(language, input.body)) || null : null;
+      const values = [companyId, userId, input.kind, render(language, input.title), body, input.link, input.entityType ?? null, input.entityId ?? null, input.collapseKey ?? null];
       const updated = input.collapseKey ? await query<NotificationRow>(
         `UPDATE notifications SET kind = $3, title = $4, body = $5, link = $6, entity_type = $7, entity_id = $8, created_at = now()
          WHERE company_id = $1 AND user_id = $2 AND collapse_key = $9 AND read_at IS NULL RETURNING ${NOTIFICATION_COLUMNS}`, values) : null;

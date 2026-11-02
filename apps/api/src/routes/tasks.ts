@@ -17,6 +17,7 @@ import { notify } from "../notifications/notify";
 import { addReaction, COMMENT_REACTIONS, reactionEmoji, reactionInput, reactionsSql, removeReaction } from "../reactions/reactions";
 import { dealScope } from "./deals";
 import { canManageBoard, STAGE_CATEGORIES, type StageCategory } from "./taskBoards";
+import { text } from "../i18n";
 
 export const MAX_ASSIGNEES = 20;
 
@@ -315,7 +316,8 @@ async function notifyAssigned(auth: AuthContext, task: Record<string, unknown>, 
   if (!userIds.length) return;
   const actor = await query<{ full_name: string }>("SELECT full_name FROM users WHERE id = $1", [auth.userId]);
   await notify(auth.companyId, userIds, auth.userId, {
-    kind: "TASK_ASSIGNED", title: `Новая задача: ${String(task.title)}`, body: `${actor.rows[0]?.full_name ?? "Коллега"} · ${String(task.boardName)}`,
+    kind: "TASK_ASSIGNED", title: text("task.assigned", { title: String(task.title) }),
+    body: text("task.assignedBody", { actor: actor.rows[0]?.full_name ?? text("common.colleague"), board: String(task.boardName) }),
     link: `/tasks?task=${String(task.id)}`, entityType: "task", entityId: String(task.id)
   });
 }
@@ -470,7 +472,7 @@ tasksRouter.post("/:id/comments", asyncHandler(async (req, res) => {
      FROM tasks t WHERE t.id = $1`, [id, auth.userId]);
   const task = people.rows[0];
   if (task) await notify(auth.companyId, [task.created_by, ...task.assignee_ids], auth.userId, {
-    kind: "TASK_COMMENTED", title: `${task.author}: комментарий к «${task.title}»`, body: input.body || await filePreview(comment.id),
+    kind: "TASK_COMMENTED", title: text("task.commented", { author: task.author ?? text("common.colleague"), title: task.title }), body: input.body || await filePreview(comment.id),
     link: `/tasks?task=${id}`, entityType: "task", entityId: id
   });
   const row = await query(`SELECT ${COMMENT_COLUMNS} FROM task_comments c JOIN users u ON u.id = c.author_id WHERE c.id = $1`, [comment.id]);

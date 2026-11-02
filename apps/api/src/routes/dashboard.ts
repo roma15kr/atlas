@@ -6,6 +6,8 @@ import { presenceFor } from "../presence";
 import { taskAccessSql, recordScope, scopeDepartments } from "../scope";
 import { alertVisibility, withOverdueTasks } from "./alerts";
 import { dealScope } from "./deals";
+import { ALERT_TEXT_COLUMNS, localizeAlert, type AlertTextRow } from "../automation/alertText";
+import { languageOf } from "../i18n";
 
 export const dashboardRouter = Router();
 
@@ -46,7 +48,7 @@ dashboardRouter.get("/", asyncHandler(async (req, res) => {
     ),
     query(
       `SELECT a.id, a.severity, a.category, a.rule, a.title, a.summary, a.evidence, a.deal_id AS "dealId", a.created_at AS "createdAt",
-              a.acknowledged_at AS "acknowledgedAt"
+              a.acknowledged_at AS "acknowledgedAt", ${ALERT_TEXT_COLUMNS}
        FROM alerts a WHERE ${alertScope.sql} AND a.resolved_at IS NULL ORDER BY a.created_at DESC LIMIT 5`,
       alertScope.values
     ),
@@ -56,6 +58,7 @@ dashboardRouter.get("/", asyncHandler(async (req, res) => {
       userScope.values
     )
   ]);
+  const language = await languageOf(auth.userId);
   const presence = await presenceFor(users.rows.map((user) => user.id));
   res.json({
     data: {
@@ -73,7 +76,7 @@ dashboardRouter.get("/", asyncHandler(async (req, res) => {
         ...user,
         presence: presence[user.id] ?? { userId: user.id, status: "OFFLINE", lastSeenAt: null }
       })),
-      alerts: await withOverdueTasks(auth, alerts.rows)
+      alerts: await withOverdueTasks(auth, alerts.rows.map((row) => localizeAlert(language, row as AlertTextRow)))
     }
   });
 }));

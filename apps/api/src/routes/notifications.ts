@@ -7,6 +7,7 @@ import { writeAudit } from "../audit";
 import { NOTIFICATION_COLUMNS } from "../notifications/notify";
 import { pushEnabled, sendTo } from "../notifications/push";
 import { config } from "../config";
+import { languageOf, render, text } from "../i18n";
 
 /** Every user reads and marks only their own notifications; another user's id answers 404. */
 export const notificationsRouter = Router();
@@ -102,7 +103,8 @@ notificationsRouter.post("/push/test", asyncHandler(async (req, res) => {
   if (!pushEnabled()) throw new ApiError(409, "PUSH_DISABLED", "Desktop notifications are not configured on this server");
   const subscriptions = await query<{ id: string; endpoint: string; p256dh: string; auth: string }>(
     "SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = $1", [auth.userId]);
-  const payload = JSON.stringify({ id: `test-${Date.now()}`, title: "Atlas: проверка уведомлений", body: "Так будут выглядеть уведомления на рабочем столе", link: "/profile#notifications", tag: "test" });
+  const language = await languageOf(auth.userId);
+  const payload = JSON.stringify({ id: `test-${Date.now()}`, title: render(language, text("push.testTitle")), body: render(language, text("push.testBody")), link: "/profile#notifications", tag: "test" });
   const results = await Promise.all(subscriptions.rows.map((subscription) => sendTo(subscription, payload)));
   res.json({ data: { browsers: subscriptions.rows.length, delivered: results.filter(Boolean).length } });
 }));

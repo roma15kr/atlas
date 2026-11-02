@@ -17,7 +17,7 @@
 
 ## 3. Server texts
 
-- [ ] 3.1 Typed server templates, and `notify()` rendering per recipient's language (bell, push), task reminders and overdue notices, AI signals, AI answers in the reader's language. Verify integration cases: one event notifies a Ukrainian and an English colleague, and each gets their language. Commit.
+- [x] 3.1 Typed server templates, and `notify()` rendering per recipient's language (bell, push), task reminders and overdue notices, AI signals, AI answers in the reader's language. Verify integration cases: one event notifies a Ukrainian and an English colleague, and each gets their language. Commit.
 
 ## 4. Docs and checks
 

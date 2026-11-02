@@ -19,6 +19,7 @@ import { objectStorage } from "../storage";
 import { deleteStoredImages, forgetUnusedImages } from "./images";
 import { chatAccessSql } from "../scope";
 import type { AuthContext } from "../types";
+import { text, type TextParam } from "../i18n";
 
 export const GROUP_MAX_PARTICIPANTS = 20;
 export const GROUP_MIN_PARTICIPANTS = 3;
@@ -619,11 +620,13 @@ async function resolveMentions(auth: AuthContext, conversation: Conversation, bo
  * unless they muted the conversation. One unread notification per person and conversation shows the latest message.
  */
 async function notifyChat(auth: AuthContext, conversation: { id: string; kind: string; name: string | null }, message: { id: string; parentId: string | null; body: string }, mentioned: string[]): Promise<void> {
-  const author = (await query<{ full_name: string }>("SELECT full_name FROM users WHERE id = $1", [auth.userId])).rows[0]?.full_name ?? "Коллега";
+  const author: TextParam = (await query<{ full_name: string }>("SELECT full_name FROM users WHERE id = $1", [auth.userId])).rows[0]?.full_name ?? text("common.colleague");
   const link = `/messages?conversation=${conversation.id}`;
-  const place = conversation.kind === "CHANNEL" ? `#${conversation.name ?? "канал"}` : `«${conversation.name ?? "группа"}»`;
+  const place: TextParam = conversation.kind === "CHANNEL"
+    ? (conversation.name ? `#${conversation.name}` : text("chat.channel"))
+    : (conversation.name ? `«${conversation.name}»` : text("chat.group"));
   await notify(auth.companyId, mentioned, auth.userId, {
-    kind: "CHAT_MENTION", title: conversation.kind === "DM" ? `${author} упомянул(а) вас` : `${author} упомянул(а) вас в ${place}`,
+    kind: "CHAT_MENTION", title: conversation.kind === "DM" ? text("chat.mention", { author }) : text("chat.mentionIn", { author, place }),
     body: message.body, link, entityType: "chat_message", entityId: message.id
   });
   const threadOnly = conversation.kind !== "DM" && message.parentId !== null;
@@ -634,13 +637,13 @@ async function notifyChat(auth: AuthContext, conversation: { id: string; kind: s
   const recipients = others.rows.map((row) => row.user_id).filter((id) => !mentioned.includes(id));
   if (conversation.kind === "DM") {
     await notify(auth.companyId, recipients, auth.userId, {
-      kind: "CHAT_DIRECT", title: `Сообщение от ${author}`, body: message.body, link, entityType: "chat_message", entityId: message.id,
+      kind: "CHAT_DIRECT", title: text("chat.direct", { author }), body: message.body, link, entityType: "chat_message", entityId: message.id,
       collapseKey: `chat:${conversation.id}`
     });
     return;
   }
   await notify(auth.companyId, recipients, auth.userId, {
-    kind: "CHAT_MESSAGE", title: `Новое в ${place}`, body: `${author}: ${plainPreview(message.body)}`, link,
+    kind: "CHAT_MESSAGE", title: text("chat.message", { place }), body: text("chat.messageBody", { author, text: plainPreview(message.body) }), link,
     entityType: "chat_message", entityId: message.id, collapseKey: `chat:${conversation.id}`
   });
 }
