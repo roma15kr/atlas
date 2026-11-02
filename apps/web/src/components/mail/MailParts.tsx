@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Download, ImageOff, Paperclip, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useMail } from '../../context/MailContext';
@@ -24,6 +25,7 @@ export function frameContentHeight(doc: Pick<Document, 'body'> | null | undefine
  * CSP until the owner allows them. Same-origin access is kept only so the frame can size to its content.
  */
 export function MailFrame({ html, allowRemote }: { html: string; allowRemote: boolean }) {
+  const { t } = useTranslation(['mail', 'common']);
   const frame = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState(80);
   const csp = `default-src 'none'; style-src 'unsafe-inline'; font-src data:; img-src data:${allowRemote ? ' https: http:' : ''}`;
@@ -39,10 +41,11 @@ export function MailFrame({ html, allowRemote }: { html: string; allowRemote: bo
     observer.observe(body);
     return () => observer.disconnect();
   });
-  return <iframe ref={frame} className="mail-frame" title="Текст письма" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" srcDoc={doc} style={{ height }} onLoad={() => { resize(); setTimeout(resize, 120); }} />;
+  return <iframe ref={frame} className="mail-frame" title={t('message.frame')} sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" srcDoc={doc} style={{ height }} onLoad={() => { resize(); setTimeout(resize, 120); }} />;
 }
 
 export function AttachmentList({ attachments }: { attachments: MailAttachment[] }) {
+  const { t } = useTranslation(['mail', 'common']);
   const { backend } = useMail();
   const [error, setError] = useState('');
   if (!attachments.length) return null;
@@ -54,10 +57,10 @@ export function AttachmentList({ attachments }: { attachments: MailAttachment[] 
       const link = document.createElement('a');
       link.href = url; link.download = attachment.filename; link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (reason) { setError(mailErrorMessage(reason, 'Вложение не скачано')); }
+    } catch (reason) { setError(mailErrorMessage(reason, t('message.downloadFailed'))); }
   };
   return <div className="mail-attachments">
-    {attachments.map((attachment) => <button key={attachment.id} type="button" onClick={() => void download(attachment)} aria-label={`Скачать ${attachment.filename}`}>
+    {attachments.map((attachment) => <button key={attachment.id} type="button" onClick={() => void download(attachment)} aria-label={t('message.download', { name: attachment.filename })}>
       <Paperclip size={14} /><span><strong>{attachment.filename}</strong><small>{fileSize(attachment.size)}</small></span><Download size={14} />
     </button>)}
     {error && <div className="form-error" role="alert">{error}</div>}
@@ -66,25 +69,26 @@ export function AttachmentList({ attachments }: { attachments: MailAttachment[] 
 
 /** One message of a thread, read-only; actions are rendered by the caller. */
 export function MessageCard({ message, showBcc = true, actions, collapsed = false, onToggle }: { message: MailMessage; showBcc?: boolean; actions?: React.ReactNode; collapsed?: boolean; onToggle?: () => void }) {
+  const { t } = useTranslation(['mail', 'common']);
   const { backend } = useMail();
   const [html, setHtml] = useState(message.html);
   const [remote, setRemote] = useState(false);
   const showImages = async () => { setHtml(await backend.showImages(message.id)); setRemote(true); };
   const recipients = (label: string, list: Address[]) => list.length ? <span><b>{label}</b> {list.map(displayAddress).join(', ')}</span> : null;
-  return <article className={`mail-message ${collapsed ? 'mail-message--collapsed' : ''}`} aria-label={`Письмо от ${senderName(message)}`}>
+  return <article className={`mail-message ${collapsed ? 'mail-message--collapsed' : ''}`} aria-label={t('message.from', { name: senderName(message) })}>
     <header onClick={onToggle}>
       <Avatar name={senderName(message)} size="sm" />
       <div>
         <strong>{senderName(message)} <small>&lt;{message.fromAddress}&gt;</small></strong>
-        {collapsed ? <small className="mail-message__snippet">{message.snippet}</small> : <small className="mail-message__recipients">{recipients('Кому:', message.to)}{recipients('Копия:', message.cc)}{showBcc && recipients('Скрытая копия:', message.bcc)}</small>}
+        {collapsed ? <small className="mail-message__snippet">{message.snippet}</small> : <small className="mail-message__recipients">{recipients(t('message.to'), message.to)}{recipients(t('message.cc'), message.cc)}{showBcc && recipients(t('message.bcc'), message.bcc)}</small>}
       </div>
       <time dateTime={message.sentAt}>{formatDateTime(message.sentAt)}</time>
-      {message.sendStatus === 'FAILED' && <Badge tone="danger">Не отправлено</Badge>}
-      {message.sendStatus === 'SENDING' && <Badge tone="warning">Отправляется</Badge>}
+      {message.sendStatus === 'FAILED' && <Badge tone="danger">{t('message.failed')}</Badge>}
+      {message.sendStatus === 'SENDING' && <Badge tone="warning">{t('message.sending')}</Badge>}
     </header>
     {!collapsed && <>
       {message.sendStatus === 'FAILED' && message.sendError && <div className="notice notice--danger">{message.sendError}</div>}
-      {message.hasRemoteImages && !remote && <div className="mail-images-blocked"><ImageOff size={14} /><span>Внешние изображения скрыты, чтобы отправитель не узнал о прочтении</span><button type="button" className="text-button" onClick={() => void showImages()}>Показать изображения</button></div>}
+      {message.hasRemoteImages && !remote && <div className="mail-images-blocked"><ImageOff size={14} /><span>{t('message.imagesHidden')}</span><button type="button" className="text-button" onClick={() => void showImages()}>{t('message.showImages')}</button></div>}
       {html ? <MailFrame html={html} allowRemote={remote} /> : <div className="mail-text">{message.text}</div>}
       <AttachmentList attachments={message.attachments} />
       {actions && <footer>{actions}</footer>}
@@ -94,6 +98,7 @@ export function MessageCard({ message, showBcc = true, actions, collapsed = fals
 
 /** Recipient input: chips for parsed addresses and suggestions from CRM clients and past correspondents. */
 export function AddressField({ label, value, onChange, autoFocus }: { label: string; value: Address[]; onChange: (value: Address[]) => void; autoFocus?: boolean }) {
+  const { t } = useTranslation(['mail', 'common']);
   const { backend } = useMail();
   const [text, setText] = useState('');
   const [suggestions, setSuggestions] = useState<Array<{ address: string; name: string | null; source: string }>>([]);
@@ -120,10 +125,10 @@ export function AddressField({ label, value, onChange, autoFocus }: { label: str
   return <div className="field field--wide address-field">
     <label htmlFor={id}>{label}</label>
     <div className="address-field__box">
-      {value.map((item) => <span key={item.address} className="address-chip">{item.name ? `${item.name} · ${item.address}` : item.address}<button type="button" aria-label={`Убрать ${item.address}`} onClick={() => onChange(value.filter((entry) => entry !== item))}><X size={12} /></button></span>)}
-      <input id={id} value={text} autoFocus={autoFocus} onChange={(event) => { setText(event.target.value); setInvalid(''); }} onKeyDown={keyDown} onBlur={() => text.trim() && commit()} placeholder={value.length ? '' : 'адрес@пример.com'} autoComplete="off" />
+      {value.map((item) => <span key={item.address} className="address-chip">{item.name ? `${item.name} · ${item.address}` : item.address}<button type="button" aria-label={t('message.removeAddress', { address: item.address })} onClick={() => onChange(value.filter((entry) => entry !== item))}><X size={12} /></button></span>)}
+      <input id={id} value={text} autoFocus={autoFocus} onChange={(event) => { setText(event.target.value); setInvalid(''); }} onKeyDown={keyDown} onBlur={() => text.trim() && commit()} placeholder={value.length ? '' : t('message.addressPlaceholder')} autoComplete="off" />
     </div>
-    {suggestions.length > 0 && <ul className="address-suggestions" role="listbox" aria-label={`Подсказки: ${label}`}>{suggestions.map((item) => <li key={item.address} role="option" aria-selected="false"><button type="button" onMouseDown={(event) => { event.preventDefault(); commit(item.name ? `${item.name} <${item.address}>` : item.address); }}><strong>{item.name ?? item.address}</strong><small>{item.address}{item.source === 'client' ? ' · клиент' : ''}</small></button></li>)}</ul>}
-    {invalid && <small className="form-hint form-hint--danger">Неверный адрес: {invalid}</small>}
+    {suggestions.length > 0 && <ul className="address-suggestions" role="listbox" aria-label={t('message.suggestions', { label })}>{suggestions.map((item) => <li key={item.address} role="option" aria-selected="false"><button type="button" onMouseDown={(event) => { event.preventDefault(); commit(item.name ? `${item.name} <${item.address}>` : item.address); }}><strong>{item.name ?? item.address}</strong><small>{item.address}{item.source === 'client' ? t('message.client') : ''}</small></button></li>)}</ul>}
+    {invalid && <small className="form-hint form-hint--danger">{t('message.invalid', { address: invalid })}</small>}
   </div>;
 }
