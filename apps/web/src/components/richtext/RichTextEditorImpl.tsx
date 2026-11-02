@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Image } from '@tiptap/extension-image';
 import { Markdown } from '@tiptap/markdown';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
@@ -8,7 +9,7 @@ import StarterKit from '@tiptap/starter-kit';
 import { Bold, Code, Heading2, ImagePlus, Italic, Link2, List, ListChecks, ListOrdered, Quote, Strikethrough, Table2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { mentionQuery, type ChatPerson } from '../../lib/chat';
-import { acceptableImage, IMAGE_RULES_MESSAGE, uploadImage } from '../../lib/images';
+import { acceptableImage, imageRulesMessage, uploadImage } from '../../lib/images';
 import { AuthImage } from './AuthImage';
 import { Avatar } from '../ui';
 import type { RichTextEditorProps } from './RichTextEditor';
@@ -31,6 +32,7 @@ function textBeforeCursor(editor: Editor): string {
 const insideStructure = (editor: Editor) => ['bulletList', 'orderedList', 'taskList', 'codeBlock', 'table'].some((name) => editor.isActive(name));
 
 export default function RichTextEditorImpl({ value, onChange, maxLength, label, placeholder, people, onSubmit, autoFocus, disabled, minRows = 3, onFiles }: RichTextEditorProps) {
+  const { t } = useTranslation(['ui', 'common']);
   // Values this editor emitted that the parent may still pass back (possibly an older one while typing fast).
   const pending = useRef<string[]>([value]);
   const [linkOpen, setLinkOpen] = useState(false);
@@ -134,14 +136,14 @@ export default function RichTextEditorImpl({ value, onChange, maxLength, label, 
     const images = files.filter(acceptableImage);
     const others = files.filter((file) => !acceptableImage(file));
     if (others.length && live.current.onFiles) live.current.onFiles(others);
-    setImageError(!others.length || live.current.onFiles ? '' : IMAGE_RULES_MESSAGE);
+    setImageError(!others.length || live.current.onFiles ? '' : imageRulesMessage());
     for (const file of images) {
       setUploads((count) => count + 1);
       try {
         const src = await uploadImage(file);
         const current = editorRef.current;
         if (current) current.chain().focus().insertContentAt(at ?? current.state.selection.to, { type: 'image', attrs: { src, alt: file.name.replace(/\.[^.]+$/, '') } }).run();
-      } catch { setImageError('Изображение не загрузилось, попробуйте ещё раз'); }
+      } catch { setImageError(t('editor.imageFailed')); }
       finally { setUploads((count) => count - 1); }
     }
   }
@@ -168,57 +170,58 @@ export default function RichTextEditorImpl({ value, onChange, maxLength, label, 
   const length = value.length;
   const over = length - maxLength;
   const tools: Array<{ label: string; icon: typeof Bold; active: boolean; run: () => void }> = [
-    { label: 'Жирный', icon: Bold, active: state.bold, run: () => editor.chain().focus().toggleBold().run() },
-    { label: 'Курсив', icon: Italic, active: state.italic, run: () => editor.chain().focus().toggleItalic().run() },
-    { label: 'Зачёркнутый', icon: Strikethrough, active: state.strike, run: () => editor.chain().focus().toggleStrike().run() },
-    { label: 'Заголовок', icon: Heading2, active: state.heading, run: () => editor.chain().focus().toggleHeading({ level: 2 }).run() },
-    { label: 'Маркированный список', icon: List, active: state.bullet, run: () => editor.chain().focus().toggleBulletList().run() },
-    { label: 'Нумерованный список', icon: ListOrdered, active: state.ordered, run: () => editor.chain().focus().toggleOrderedList().run() },
-    { label: 'Чек-лист', icon: ListChecks, active: state.task, run: () => editor.chain().focus().toggleTaskList().run() },
-    { label: 'Цитата', icon: Quote, active: state.quote, run: () => editor.chain().focus().toggleBlockquote().run() },
-    { label: 'Код', icon: Code, active: state.code, run: () => editor.chain().focus().toggleCode().run() },
-    { label: 'Ссылка', icon: Link2, active: state.link, run: () => setLinkOpen(true) },
+    { label: t('editor.bold'), icon: Bold, active: state.bold, run: () => editor.chain().focus().toggleBold().run() },
+    { label: t('editor.italic'), icon: Italic, active: state.italic, run: () => editor.chain().focus().toggleItalic().run() },
+    { label: t('editor.strike'), icon: Strikethrough, active: state.strike, run: () => editor.chain().focus().toggleStrike().run() },
+    { label: t('editor.heading'), icon: Heading2, active: state.heading, run: () => editor.chain().focus().toggleHeading({ level: 2 }).run() },
+    { label: t('editor.bullets'), icon: List, active: state.bullet, run: () => editor.chain().focus().toggleBulletList().run() },
+    { label: t('editor.numbers'), icon: ListOrdered, active: state.ordered, run: () => editor.chain().focus().toggleOrderedList().run() },
+    { label: t('editor.checklist'), icon: ListChecks, active: state.task, run: () => editor.chain().focus().toggleTaskList().run() },
+    { label: t('editor.quote'), icon: Quote, active: state.quote, run: () => editor.chain().focus().toggleBlockquote().run() },
+    { label: t('editor.code'), icon: Code, active: state.code, run: () => editor.chain().focus().toggleCode().run() },
+    { label: t('editor.link'), icon: Link2, active: state.link, run: () => setLinkOpen(true) },
     // Inside a table the button removes it: a second table can't go into a cell (Markdown has no nested tables).
     state.table
-      ? { label: 'Удалить таблицу', icon: Table2, active: true, run: () => editor.chain().focus().deleteTable().run() }
-      : { label: 'Таблица', icon: Table2, active: false, run: () => editor.chain().focus().insertTable({ rows: 3, cols: 2, withHeaderRow: true }).run() },
-    { label: 'Изображение', icon: ImagePlus, active: false, run: () => fileInput.current?.click() }
+      ? { label: t('editor.deleteTable'), icon: Table2, active: true, run: () => editor.chain().focus().deleteTable().run() }
+      : { label: t('editor.table'), icon: Table2, active: false, run: () => editor.chain().focus().insertTable({ rows: 3, cols: 2, withHeaderRow: true }).run() },
+    { label: t('editor.image'), icon: ImagePlus, active: false, run: () => fileInput.current?.click() }
   ];
 
   return <div className={`rich-editor${over > 0 ? ' is-invalid' : ''}${disabled ? ' is-disabled' : ''}`}>
-    <div className="rich-editor__toolbar" role="toolbar" aria-label={`Форматирование: ${label}`}>
+    <div className="rich-editor__toolbar" role="toolbar" aria-label={t('editor.toolbar', { label })}>
       {tools.map((tool) => <button key={tool.label} type="button" className="rich-editor__tool" aria-label={tool.label} title={tool.label} aria-pressed={tool.active} disabled={disabled}
         onMouseDown={(event) => event.preventDefault()} onClick={tool.run}><tool.icon size={15} /></button>)}
     </div>
     {linkOpen && <LinkForm initial={editor.getAttributes('link').href as string | undefined} onClose={() => { setLinkOpen(false); editor.commands.focus(); }}
       onApply={(href) => { if (href) editor.chain().focus().extendMarkRange('link').setLink({ href }).run(); else editor.chain().focus().extendMarkRange('link').unsetLink().run(); setLinkOpen(false); }} />}
-    {suggestions.length > 0 && <ul className="mention-suggestions" role="listbox" aria-label="Упомянуть">{suggestions.map((person, index) => <li key={person.id} role="option" aria-selected={index === (mention?.highlight ?? 0)}>
+    {suggestions.length > 0 && <ul className="mention-suggestions" role="listbox" aria-label={t('editor.mention')}>{suggestions.map((person, index) => <li key={person.id} role="option" aria-selected={index === (mention?.highlight ?? 0)}>
       <button type="button" onMouseDown={(event) => { event.preventDefault(); insertMention(person); }}><Avatar name={person.fullName} size="sm" /><span><strong>{person.fullName}</strong><small>@{person.username}{person.departmentName ? ` · ${person.departmentName}` : ''}</small></span></button>
     </li>)}</ul>}
-    <input ref={fileInput} type="file" hidden accept="image/png,image/jpeg,image/gif,image/webp" multiple aria-label={`Изображение: ${label}`}
+    <input ref={fileInput} type="file" hidden accept="image/png,image/jpeg,image/gif,image/webp" multiple aria-label={t('editor.imageInput', { label })}
       onChange={(event) => { const files = [...(event.target.files ?? [])]; event.target.value = ''; if (files.length) void addImages(files); }} />
     <EditorContent editor={editor} />
-    {uploads > 0 && <div className="rich-editor__status" role="status">Загружаем изображение…</div>}
+    {uploads > 0 && <div className="rich-editor__status" role="status">{t('editor.uploading')}</div>}
     {imageError && <div className="rich-editor__error" role="alert">{imageError}</div>}
     {(over > 0 || length > maxLength * 0.8) && <div className={`rich-editor__counter${over > 0 ? ' is-over' : ''}`} role={over > 0 ? 'alert' : undefined}>
-      {over > 0 ? `Текст длиннее допустимого на ${over} ${over === 1 ? 'символ' : 'символов'}` : `${length} / ${maxLength}`}
+      {over > 0 ? t('editor.over', { count: over }) : `${length} / ${maxLength}`}
     </div>}
   </div>;
 }
 
 function LinkForm({ initial, onApply, onClose }: { initial?: string; onApply: (href: string) => void; onClose: () => void }) {
+  const { t } = useTranslation(['ui', 'common']);
   const [href, setHref] = useState(initial ?? 'https://');
   const [error, setError] = useState('');
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const value = href.trim();
-    if (value && value !== 'https://' && !SAFE_LINK.test(value)) { setError('Ссылка должна начинаться с https://, http:// или mailto:'); return; }
+    if (value && value !== 'https://' && !SAFE_LINK.test(value)) { setError(t('editor.unsafeLink')); return; }
     onApply(value === 'https://' ? '' : value);
   };
   return <form className="rich-editor__link" onSubmit={submit}>
-    <input aria-label="Адрес ссылки" value={href} autoFocus onChange={(event) => { setHref(event.target.value); setError(''); }} onKeyDown={(event) => { if (event.key === 'Escape') { event.preventDefault(); onClose(); } }} />
-    <button type="submit" className="text-button">Применить</button>
-    <button type="button" className="text-button" onClick={onClose}>Отмена</button>
+    <input aria-label={t('editor.linkUrl')} value={href} autoFocus onChange={(event) => { setHref(event.target.value); setError(''); }} onKeyDown={(event) => { if (event.key === 'Escape') { event.preventDefault(); onClose(); } }} />
+    <button type="submit" className="text-button">{t('editor.apply')}</button>
+    <button type="button" className="text-button" onClick={onClose}>{t('common:actions.cancel')}</button>
     {error && <small role="alert">{error}</small>}
   </form>;
 }

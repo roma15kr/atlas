@@ -9,6 +9,7 @@ import { ApiError, asyncHandler } from "../errors";
 import { asOptionalDate, pagination, updatedFields } from "../http";
 import { funnelAccessSql, recordScope } from "../scope";
 import type { AuthContext } from "../types";
+import { text, type TextParam } from "../i18n";
 
 export const dealInputSchema = z.object({
   clientId: z.string().uuid(),
@@ -207,8 +208,8 @@ function stripTotal(row: Record<string, unknown>): Record<string, unknown> {
 
 /** A deal or client handed over by someone else notifies its new owner (`notify` skips the actor). */
 export async function notifyNewOwner(auth: AuthContext, kind: "DEAL_ASSIGNED" | "CLIENT_ASSIGNED", ownerId: string, id: string, name: string): Promise<void> {
-  const actor = (await query<{ full_name: string }>("SELECT full_name FROM users WHERE id = $1", [auth.userId])).rows[0]?.full_name ?? "Коллега";
+  const actor: TextParam = (await query<{ full_name: string }>("SELECT full_name FROM users WHERE id = $1", [auth.userId])).rows[0]?.full_name ?? text("common.colleague");
   await notify(auth.companyId, [ownerId], auth.userId, kind === "DEAL_ASSIGNED"
-    ? { kind, title: `Вам передана сделка: ${name}`, body: `Передал(а) ${actor}`, link: `/sales?deal=${id}`, entityType: "deal", entityId: id }
-    : { kind, title: `Вам передан клиент: ${name}`, body: `Передал(а) ${actor}`, link: `/crm/${id}`, entityType: "client", entityId: id });
+    ? { kind, title: text("deal.assigned", { name }), body: text("handedBy", { actor }), link: `/sales?deal=${id}`, entityType: "deal", entityId: id }
+    : { kind, title: text("client.assigned", { name }), body: text("handedBy", { actor }), link: `/crm/${id}`, entityType: "client", entityId: id });
 }

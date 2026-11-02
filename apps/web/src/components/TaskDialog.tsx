@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { localeOf } from '../i18n';
 import { Trash2 } from 'lucide-react';
 import { useRef, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth, useWorkspace, type TaskInput } from '../context/AppContext';
@@ -30,6 +32,7 @@ interface Draft {
  * open the chosen board; a new task is assigned to the current user until changed.
  */
 export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTask; boardId?: string; stageId?: string; onClose: () => void }) {
+  const { t } = useTranslation(['tasks', 'common']);
   const { session } = useAuth();
   const { taskBoards, addTask, updateTask, deleteTask, taskBoardConfig } = useWorkspace();
   const user = session!.user;
@@ -71,12 +74,12 @@ export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTas
       || `${person.fullName} ${person.departmentName ?? ''} ${person.jobTitle ?? ''}`.toLowerCase().includes(needle));
     const groups = new Map<string, BoardUser[]>();
     for (const person of matching) {
-      const key = person.departmentName ?? 'Без отдела';
+      const key = person.departmentName ?? t('board.noDepartment');
       groups.set(key, [...(groups.get(key) ?? []), person]);
     }
     const own = board?.departmentName ?? null;
-    return [...groups.entries()].sort(([a], [b]) => (a === own ? -1 : b === own ? 1 : a.localeCompare(b, 'ru')));
-  }, [people, query, draft.assigneeIds, board]);
+    return [...groups.entries()].sort(([a], [b]) => (a === own ? -1 : b === own ? 1 : a.localeCompare(b, localeOf())));
+  }, [people, query, draft.assigneeIds, board, t]);
   const stageOptions = outsider ? (task?.boardStages ?? []) : board ? orderedStages(board) : [];
   const outsideBoard = (person: BoardUser) => Boolean(board) && person.departmentId !== board!.departmentId;
 
@@ -99,7 +102,7 @@ export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTas
     try {
       await updateTask(task.id, { description });
       setDraft((current) => ({ ...current, description }));
-    } catch (reason) { setError(boardErrorMessage(reason, 'Отметка не сохранена')); }
+    } catch (reason) { setError(boardErrorMessage(reason, t('dialog.markFailed'))); }
   };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -115,47 +118,47 @@ export function TaskDialog({ task, boardId, stageId, onClose }: { task?: WorkTas
       } else await addTask(input);
       onClose();
     } catch (reason) {
-      setError(boardErrorMessage(reason, task ? 'Задача не сохранена' : 'Задача не создана'));
+      setError(boardErrorMessage(reason, task ? t('dialog.saveFailed') : t('dialog.createFailed')));
     } finally { setSaving(false); }
   };
 
   if (confirmDelete && task) return <DeleteTaskDialog task={task} onClose={() => setConfirmDelete(false)} onDeleted={onClose} onDelete={() => deleteTask(task.id)} />;
 
-  const deleteBlocked = task && !task.canDelete ? 'Удалить задачу может её автор или руководитель отдела доски' : undefined;
-  return <Dialog open title={task ? 'Задача' : 'Новая задача'} description={task ? `${task.boardName} · ${task.stage.name}` : 'Доска, исполнители и срок'} size="lg" onClose={onClose} footer={<>
-    {task && <Button variant="ghost" icon={Trash2} className="dialog-footer__start" disabled={Boolean(deleteBlocked)} title={deleteBlocked} onClick={() => setConfirmDelete(true)}>Удалить</Button>}
-    <Button variant="secondary" onClick={onClose}>Отмена</Button>
-    <Button type="submit" form="task-form" disabled={saving || !ready}>{saving ? 'Сохраняем…' : task ? 'Сохранить' : 'Создать задачу'}</Button>
+  const deleteBlocked = task && !task.canDelete ? t('dialog.deleteForbidden') : undefined;
+  return <Dialog open title={task ? t('dialog.title') : t('dialog.newTitle')} description={task ? `${task.boardName} · ${task.stage.name}` : t('dialog.newDescription')} size="lg" onClose={onClose} footer={<>
+    {task && <Button variant="ghost" icon={Trash2} className="dialog-footer__start" disabled={Boolean(deleteBlocked)} title={deleteBlocked} onClick={() => setConfirmDelete(true)}>{t('common:actions.delete')}</Button>}
+    <Button variant="secondary" onClick={onClose}>{t('common:actions.cancel')}</Button>
+    <Button type="submit" form="task-form" disabled={saving || !ready}>{saving ? t('common:actions.saving') : task ? t('common:actions.save') : t('dialog.create')}</Button>
   </>}>
     <form id="task-form" className="form-grid" onSubmit={(event) => void submit(event)}>
-      <Field label="Название" className="field--wide"><input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} maxLength={240} required placeholder="Что нужно сделать" autoFocus={!task} /></Field>
+      <Field label={t('dialog.name')} className="field--wide"><input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} maxLength={240} required placeholder={t('dialog.namePlaceholder')} autoFocus={!task} /></Field>
       <div className="field--wide rich-field">
-        <span className="rich-field__label">Описание</span>
+        <span className="rich-field__label">{t('dialog.description')}</span>
         {editingDescription
-          ? <RichTextEditor value={draft.description} onChange={(description) => setDraft((current) => ({ ...current, description }))} maxLength={DESCRIPTION_LIMIT} label="Описание" placeholder="Контекст и ожидаемый результат" />
+          ? <RichTextEditor value={draft.description} onChange={(description) => setDraft((current) => ({ ...current, description }))} maxLength={DESCRIPTION_LIMIT} label={t('dialog.description')} placeholder={t('dialog.descriptionPlaceholder')} />
           : <><RichTextView markdown={draft.description} onChange={tickDescription} className="rich-field__view" />
-            <button type="button" className="text-button" onClick={() => setEditingDescription(true)}>Изменить описание</button></>}
+            <button type="button" className="text-button" onClick={() => setEditingDescription(true)}>{t('dialog.editDescription')}</button></>}
       </div>
       {outsider
-        ? <Field label="Доска"><input value={task!.boardName} readOnly aria-describedby="outsider-note" /></Field>
-        : <SelectField label="Доска" value={draft.boardId} onChange={(event) => changeBoard(taskBoards.find((item) => item.id === event.target.value))}>{groups.map((group) => <optgroup key={group.label} label={group.label}>{group.boards.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>)}</SelectField>}
-      <SelectField label="Этап" value={draft.stageId} onChange={(event) => setDraft({ ...draft, stageId: event.target.value })}>{stageOptions.map((stage) => <option key={stage.id} value={stage.id}>{stage.name} · {categories[stage.category].label}</option>)}</SelectField>
-      <Field label="Срок"><input type="date" value={draft.dueAt} onChange={(event) => setDraft({ ...draft, dueAt: event.target.value })} /></Field>
-      <SelectField label="Приоритет" value={draft.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })}><option value="LOW">Низкий</option><option value="NORMAL">Обычный</option><option value="HIGH">Высокий</option></SelectField>
+        ? <Field label={t('dialog.board')}><input value={task!.boardName} readOnly aria-describedby="outsider-note" /></Field>
+        : <SelectField label={t('dialog.board')} value={draft.boardId} onChange={(event) => changeBoard(taskBoards.find((item) => item.id === event.target.value))}>{groups.map((group) => <optgroup key={group.label} label={group.label}>{group.boards.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>)}</SelectField>}
+      <SelectField label={t('dialog.stage')} value={draft.stageId} onChange={(event) => setDraft({ ...draft, stageId: event.target.value })}>{stageOptions.map((stage) => <option key={stage.id} value={stage.id}>{stage.name} · {categories[stage.category].label}</option>)}</SelectField>
+      <Field label={t('dialog.due')}><input type="date" value={draft.dueAt} onChange={(event) => setDraft({ ...draft, dueAt: event.target.value })} /></Field>
+      <SelectField label={t('priority.label')} value={draft.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })}><option value="LOW">{t('priority.LOW')}</option><option value="NORMAL">{t('priority.NORMAL')}</option><option value="HIGH">{t('priority.HIGH')}</option></SelectField>
       {outsider
-        ? <div className="field--wide"><span className="rich-field__label">Исполнители</span><p>{task!.assignees.map((assignee) => assignee.fullName).join(', ')}</p>
-          <small id="outsider-note" className="form-hint">Вы исполнитель из другого отдела: видите только эту задачу. Перенести её на другую доску или сменить исполнителей может команда доски.</small></div>
-        : <fieldset className="check-list field--wide assignee-picker"><legend>Исполнители</legend>
-          <input type="search" aria-label="Найти исполнителя" placeholder="Найти сотрудника — любой отдел" value={query} onChange={(event) => setQuery(event.target.value)} />
-          {!people ? <small>Загружаем сотрудников…</small> : peopleGroups.map(([department, members]) => <div key={department} className="assignee-picker__group" role="group" aria-label={department}>
-            <h4>{department}{board?.departmentName === department ? ' · доска' : ''}</h4>
-            {members.map((person) => <label key={person.id}><input type="checkbox" checked={draft.assigneeIds.includes(person.id)} onChange={() => toggle(person.id)} /><span>{person.fullName}{person.id === user.id ? ' (вы)' : ''}<small>{person.jobTitle ?? ''}</small></span></label>)}
+        ? <div className="field--wide"><span className="rich-field__label">{t('dialog.assignees')}</span><p>{task!.assignees.map((assignee) => assignee.fullName).join(', ')}</p>
+          <small id="outsider-note" className="form-hint">{t('dialog.outsiderSelf')}</small></div>
+        : <fieldset className="check-list field--wide assignee-picker"><legend>{t('dialog.assignees')}</legend>
+          <input type="search" aria-label={t('dialog.findAssignee')} placeholder={t('dialog.findPlaceholder')} value={query} onChange={(event) => setQuery(event.target.value)} />
+          {!people ? <small>{t('dialog.loadingPeople')}</small> : peopleGroups.map(([department, members]) => <div key={department} className="assignee-picker__group" role="group" aria-label={department}>
+            <h4>{department}{board?.departmentName === department ? t('dialog.boardMark') : ''}</h4>
+            {members.map((person) => <label key={person.id}><input type="checkbox" checked={draft.assigneeIds.includes(person.id)} onChange={() => toggle(person.id)} /><span>{person.fullName}{person.id === user.id ? ` ${t('dialog.you')}` : ''}<small>{person.jobTitle ?? ''}</small></span></label>)}
           </div>)}
-          {people && draft.assigneeIds.some((id) => { const person = people.find((item) => item.id === id); return person && outsideBoard(person); }) && <small className="form-hint">Исполнители из других отделов увидят только эту задачу, а не всю доску.</small>}
+          {people && draft.assigneeIds.some((id) => { const person = people.find((item) => item.id === id); return person && outsideBoard(person); }) && <small className="form-hint">{t('dialog.outsiderNote')}</small>}
         </fieldset>}
-      {people && !draft.assigneeIds.length && <small className="field--wide form-hint">Выберите хотя бы одного исполнителя</small>}
-      {!outsider && <label className="check-field field--wide"><input type="checkbox" checked={onBoard} onChange={(event) => setPlacement(event.target.checked)} /><span><strong>Показать на доске</strong>
-        <small className="form-hint">{onBoard ? 'Задачу видят все участники доски.' : 'Личная задача: её видят автор, исполнители, их руководители и директор.'}</small></span></label>}
+      {people && !draft.assigneeIds.length && <small className="field--wide form-hint">{t('dialog.chooseAssignee')}</small>}
+      {!outsider && <label className="check-field field--wide"><input type="checkbox" checked={onBoard} onChange={(event) => setPlacement(event.target.checked)} /><span><strong>{t('dialog.showOnBoard')}</strong>
+        <small className="form-hint">{onBoard ? t('dialog.onBoardNote') : t('dialog.personalNote')}</small></span></label>}
       {error && <div className="form-error field--wide" role="alert">{error}</div>}
     </form>
     {task && <TaskComments ref={comments} taskId={task.id} />}
@@ -178,13 +181,14 @@ function changes(task: WorkTask, input: TaskInput): Partial<TaskInput> {
 }
 
 function DeleteTaskDialog({ task, onClose, onDelete, onDeleted }: { task: WorkTask; onClose: () => void; onDelete: () => Promise<void>; onDeleted: () => void }) {
+  const { t } = useTranslation(['tasks', 'common']);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const remove = async () => {
     setSaving(true); setError('');
-    try { await onDelete(); onDeleted(); } catch (reason) { setError(boardErrorMessage(reason, 'Задача не удалена')); } finally { setSaving(false); }
+    try { await onDelete(); onDeleted(); } catch (reason) { setError(boardErrorMessage(reason, t('dialog.deleteFailed'))); } finally { setSaving(false); }
   };
-  return <Dialog open title={`Удалить задачу «${task.title}»?`} description="Задача исчезнет с доски у всех участников. Действие нельзя отменить." size="sm" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Отмена</Button><Button variant="danger" disabled={saving} onClick={() => void remove()}>Удалить</Button></>}>
-    {error ? <div className="form-error" role="alert">{error}</div> : <p className="dialog-text">Исполнители: {task.assignees.map((assignee) => assignee.fullName).join(', ')}</p>}
+  return <Dialog open title={t('dialog.deleteTitle', { title: task.title })} description={t('dialog.deleteText')} size="sm" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>{t('common:actions.cancel')}</Button><Button variant="danger" disabled={saving} onClick={() => void remove()}>{t('common:actions.delete')}</Button></>}>
+    {error ? <div className="form-error" role="alert">{error}</div> : <p className="dialog-text">{t('card.assignees', { names: task.assignees.map((assignee) => assignee.fullName).join(', ') })}</p>}
   </Dialog>;
 }

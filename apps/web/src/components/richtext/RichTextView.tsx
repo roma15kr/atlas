@@ -3,6 +3,7 @@ import type { ChatPerson } from '../../lib/chat';
 import { renderMarkdown, toggleTask } from '../../lib/markdown';
 import { AuthImage } from './AuthImage';
 import { ImageViewer } from './ImageViewer';
+import i18n from '../../i18n';
 
 /** Same rule as chat mentions: `@username` not inside a word or an email address. */
 const MENTION = /(^|[^\p{L}\p{N}._@-])@([a-z0-9._-]{2,50})/giu;
@@ -18,7 +19,7 @@ interface Context {
 }
 
 function mentionChip(username: string, key: number, context: Context): ReactNode {
-  if (username === 'channel') return <span key={key} className="mention mention--all">@канал</span>;
+  if (username === 'channel') return <span key={key} className="mention mention--all">{i18n.t('ui:view.channel')}</span>;
   const name = context.people?.get(username)?.fullName ?? username;
   return <span key={key} className={`mention${username === context.myUsername ? ' mention--me' : ''}`}>@{name}</span>;
 }
@@ -51,7 +52,7 @@ function toReact(node: Node, key: number, context: Context, inCode: boolean): Re
   if (tag === 'input') {
     const index = Number(element.getAttribute('data-task-index'));
     return <input key={key} type="checkbox" checked={element.hasAttribute('checked')} disabled={!context.interactive}
-      aria-label={element.hasAttribute('checked') ? 'Выполнено' : 'Не выполнено'} onChange={() => context.onToggle(index)} />;
+      aria-label={element.hasAttribute('checked') ? i18n.t('ui:view.done') : i18n.t('ui:view.notDone')} onChange={() => context.onToggle(index)} />;
   }
   if (tag === 'a') return <a key={key} href={element.getAttribute('href') ?? undefined} target="_blank" rel="noopener noreferrer">{children}</a>;
   if (tag === 'img') {

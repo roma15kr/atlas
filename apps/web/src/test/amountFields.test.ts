@@ -14,7 +14,7 @@ function sources(dir: string): string[] {
 describe('deal amount fields', () => {
   it('take any amount to the kopeck everywhere a deal is created or edited (Бабенко: 10 550 ₴, not only 10 000 or 11 000)', () => {
     const fields = sources(resolve(__dirname, '..')).flatMap((file) =>
-      [...readFileSync(file, 'utf8').matchAll(/label="Сумма, ₴"><input [^>]*>/g)].map((match) => ({ file, input: match[0] })));
+      [...readFileSync(file, 'utf8').matchAll(/label=(?:"Сумма, ₴"|\{t\('(?:sales:)?form\.amount'\)\})><input [^>]*>/g)].map((match) => ({ file, input: match[0] })));
     expect(fields.length).toBeGreaterThanOrEqual(4);
     for (const { file, input } of fields) expect({ file, step: input.match(/step="([^"]*)"/)?.[1] }).toEqual({ file, step: '0.01' });
   });

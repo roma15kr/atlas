@@ -15,7 +15,8 @@
   - `apps/web`: React and Vite, served by Nginx;
   - `database/`: SQL migrations for PostgreSQL 16.
 - Deployed with Docker Compose on Coolify; a push to `main` deploys automatically.
-- The UI is in Russian and targets desktop Chrome. The only currency is UAH.
+- The UI is in Ukrainian (default), Russian and English, chosen per person (ADR 0006), and targets desktop Chrome. The only currency is UAH.
+  - Every UI text goes through `apps/web/src/i18n` in all three languages; server texts through `apps/api/src/i18n`.
 
 ## Verification (how every change is checked)
 - **Main gate: `make check`** (typecheck + lint + test). It must pass before you say a task is done.
@@ -40,6 +41,7 @@
   - `Field` puts its hint and error inside the `<label>`, so match those fields by regex (`getByLabelText(/Телефон/)`);
   - for demo mode, put `demoSessions.<username>` into localStorage under `atlas.session`;
   - jsdom `Blob` can't be a `Response` body, so pass a string.
+- Languages: web tests run in Russian (`src/test/setup.ts`); switch with `i18n.changeLanguage` for uk/en cases. API test users default to Ukrainian.
 - `Button` has no default `type`, so inside a `<form>` it submits. Use `type="button"` for other actions.
 - Under the full `make check` run, screens that load data (dashboard, client page) can take over 1 s: give such a `findBy…` an explicit `{ timeout: 5_000 }` (or the test a longer limit), never loosen the assertion.
 - To check that text is absent (audit metadata, logs), match the full value (`Цена 150 грн`, `1994-03-12`), never a short number: random uuids contain digit runs and fail the test at random.

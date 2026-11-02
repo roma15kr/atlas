@@ -34,6 +34,7 @@ interface UserRow {
   monitoring_consent_at: Date | null;
   monitoring_consent_version: string | null;
   must_change_password: boolean;
+  language: "uk" | "ru" | "en";
   birth_date: string | null;
   phone: string | null;
   contact_email: string | null;
@@ -212,7 +213,7 @@ function userColumns(): string {
   return `u.id, u.company_id, u.department_id, d.name AS department_name, u.username,
     u.password_hash, u.role, u.status, u.full_name, u.specialty, u.job_title,
     u.job_description, u.avatar_url, u.failed_login_count, u.locked_until,
-    u.last_login_at, u.monitoring_consent_at, u.monitoring_consent_version, u.must_change_password,
+    u.last_login_at, u.monitoring_consent_at, u.monitoring_consent_version, u.must_change_password, u.language,
     to_char(u.birth_date, 'YYYY-MM-DD') AS birth_date, u.phone, u.contact_email, u.city, u.about, u.show_birthday`;
 }
 
@@ -242,6 +243,7 @@ function publicUser(user: UserRow): Record<string, unknown> {
     monitoringConsentAt: user.monitoring_consent_at,
     monitoringConsentVersion: user.monitoring_consent_version,
     mustChangePassword: user.must_change_password,
+    language: user.language,
     birthDate: user.birth_date,
     birthday: user.birth_date?.slice(5) ?? null,
     showBirthday: user.show_birthday,

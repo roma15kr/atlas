@@ -2,6 +2,7 @@ import { AlertCircle, ChevronDown, Inbox, LoaderCircle, X, type LucideIcon } fro
 import { createPortal } from 'react-dom';
 import { useEffect, useId, useState, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react';
 import { initials } from '../lib/format';
+import i18n from '../i18n';
 
 export function Button({ variant = 'primary', icon: Icon, children, className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; icon?: LucideIcon }) {
   return <button className={`button button--${variant} ${className}`} {...props}>{Icon && <Icon size={16} aria-hidden="true" />}{children}</button>;
@@ -18,7 +19,7 @@ export function Badge({ tone = 'neutral', children }: { tone?: 'neutral' | 'succ
 export function Avatar({ name, online, size = 'md', src }: { name: string; online?: boolean; size?: 'sm' | 'md' | 'lg' | 'xl'; src?: string }) {
   const [failed, setFailed] = useState<string | null>(null);
   const photo = src && failed !== src ? src : undefined;
-  return <span className={`avatar avatar--${size}${photo ? ' avatar--photo' : ''}`} aria-label={name}>{photo ? <img src={photo} alt="" loading="lazy" decoding="async" onError={() => setFailed(photo)} /> : <span>{initials(name)}</span>}{online !== undefined && <i className={online ? 'presence presence--online' : 'presence presence--offline'} aria-label={online ? 'В сети' : 'Не в сети'} />}</span>;
+  return <span className={`avatar avatar--${size}${photo ? ' avatar--photo' : ''}`} aria-label={name}>{photo ? <img src={photo} alt="" loading="lazy" decoding="async" onError={() => setFailed(photo)} /> : <span>{initials(name)}</span>}{online !== undefined && <i className={online ? 'presence presence--online' : 'presence presence--offline'} aria-label={online ? i18n.t('ui:online') : i18n.t('ui:offline')} />}</span>;
 }
 
 export function PageHeader({ title, description, action, children }: { title: string; description?: string; action?: ReactNode; children?: ReactNode }) {
@@ -40,7 +41,7 @@ export function Dialog({ open, title, description, onClose, children, footer, si
   }, [open, onClose]);
   if (!open) return null;
   // On the page root, so no sticky bar's layer (top bar, bottom bar on phones) can cover it.
-  return createPortal(<div className={`dialog-backdrop ${className}`.trim()} role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target && !event.currentTarget.classList.contains('is-inert')) onClose(); }}><section className={`dialog dialog--${size}`} role="dialog" aria-modal="true" aria-labelledby={titleId}><header><div><h2 id={titleId}>{title}</h2>{description && <p>{description}</p>}</div><IconButton label="Закрыть" icon={X} onClick={onClose} /></header><div className="dialog__body">{children}</div>{footer && <footer>{footer}</footer>}</section></div>, document.body);
+  return createPortal(<div className={`dialog-backdrop ${className}`.trim()} role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target && !event.currentTarget.classList.contains('is-inert')) onClose(); }}><section className={`dialog dialog--${size}`} role="dialog" aria-modal="true" aria-labelledby={titleId}><header><div><h2 id={titleId}>{title}</h2>{description && <p>{description}</p>}</div><IconButton label={i18n.t('ui:close')} icon={X} onClick={onClose} /></header><div className="dialog__body">{children}</div>{footer && <footer>{footer}</footer>}</section></div>, document.body);
 }
 
 export function EmptyState({ title, description, icon: Icon = Inbox, action }: { title: string; description: string; icon?: LucideIcon; action?: ReactNode }) {
@@ -48,10 +49,10 @@ export function EmptyState({ title, description, icon: Icon = Inbox, action }: {
 }
 
 export function ErrorState({ message, retry }: { message: string; retry?: () => void }) {
-  return <div className="notice notice--danger"><AlertCircle size={18} /><span>{message}</span>{retry && <Button variant="secondary" onClick={retry}>Повторить</Button>}</div>;
+  return <div className="notice notice--danger"><AlertCircle size={18} /><span>{message}</span>{retry && <Button variant="secondary" onClick={retry}>{i18n.t('ui:retry')}</Button>}</div>;
 }
 
-export function LoadingState({ label = 'Загрузка' }: { label?: string }) {
+export function LoadingState({ label = i18n.t('ui:loading') }: { label?: string }) {
   return <div className="loading-state"><LoaderCircle className="spin" size={20} /><span>{label}</span></div>;
 }
 

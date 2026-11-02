@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Bold, Italic, Link2, List, ListOrdered, Paperclip, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMail } from '../../context/MailContext';
@@ -19,12 +20,12 @@ export interface ComposeRequest {
 }
 
 const AUTOSAVE_MS = 1500;
-const titles: Record<DraftMode, string> = { NEW: 'Новое письмо', REPLY: 'Ответ', REPLY_ALL: 'Ответ всем', FORWARD: 'Пересылка' };
 const exec = (command: string, value?: string) => { if (typeof document.execCommand === 'function') document.execCommand(command, false, value); };
 const isEmptyHtml = (html: string) => !html.replace(/<blockquote[\s\S]*<\/blockquote>/gi, '').replace(/<[^>]+>|&nbsp;|\s|-{3,}.*$/g, '').trim();
 
 /** Writes, replies to or forwards mail. Changes are saved as a draft automatically; closing keeps the draft. */
 export function ComposeDialog({ request, onClose, onSent }: { request: ComposeRequest; onClose: () => void; onSent: (threadId: string) => void }) {
+  const { t } = useTranslation(['mail', 'common']);
   const { backend, accounts, notify } = useMail();
   const usable = accounts.filter((account) => account.status === 'CONNECTED');
   const [draft, setDraft] = useState<MailDraft | null>(request.draft ?? null);
@@ -52,7 +53,7 @@ export function ComposeDialog({ request, onClose, onSent }: { request: ComposeRe
       setDraft(created);
       setShowCopies(created.cc.length > 0);
       if (editor.current) editor.current.innerHTML = created.html;
-    }).catch((reason) => setError(mailErrorMessage(reason, 'Черновик не создан')));
+    }).catch((reason) => setError(mailErrorMessage(reason, t('compose.draftFailed'))));
   // Runs once per dialog.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -99,7 +100,7 @@ export function ComposeDialog({ request, onClose, onSent }: { request: ComposeRe
       notify({ type: 'changed' });
       onSent(result.threadId);
     } catch (reason) {
-      setError(mailErrorMessage(reason, 'Письмо не отправлено'));
+      setError(mailErrorMessage(reason, t('compose.sendFailed')));
     } finally { setSending(false); }
   };
 
@@ -107,7 +108,7 @@ export function ComposeDialog({ request, onClose, onSent }: { request: ComposeRe
     if (!draft || !list?.length) return;
     setError('');
     try { const updated = await backend.attach(draft.id, [...list]); setDraft((current) => current ? { ...current, attachments: updated.attachments } : current); }
-    catch (reason) { setError(mailErrorMessage(reason, 'Файл не прикреплён')); }
+    catch (reason) { setError(mailErrorMessage(reason, t('compose.fileFailed'))); }
     if (files.current) files.current.value = '';
   };
   const detach = async (id: string) => {
@@ -136,40 +137,40 @@ export function ComposeDialog({ request, onClose, onSent }: { request: ComposeRe
 
   const ready = Boolean(draft && (draft.to.length || draft.cc.length || draft.bcc.length));
   if (!usable.length) {
-    return <Dialog open title={titles[request.mode]} onClose={onClose} footer={<Button variant="secondary" onClick={onClose}>Закрыть</Button>}>
-      <p className="dialog-text">Подключите почтовый ящик в настройках почты, чтобы отправлять письма из Atlas.</p>
+    return <Dialog open title={t(`compose.${request.mode}`)} onClose={onClose} footer={<Button variant="secondary" onClick={onClose}>{t('common:actions.close')}</Button>}>
+      <p className="dialog-text">{t('compose.noMailbox')}</p>
     </Dialog>;
   }
-  return <Dialog open size="lg" title={titles[request.mode]} description={saving ? 'Сохраняем черновик…' : draft ? 'Черновик сохраняется автоматически' : 'Готовим черновик…'} onClose={() => void close()} footer={<>
-    <Button variant="ghost" icon={Trash2} className="dialog-footer__start" disabled={!draft} onClick={() => { if (draft) void backend.deleteDraft(draft.id).then(() => { notify({ type: 'changed' }); onClose(); }); }}>Удалить черновик</Button>
-    <Button variant="secondary" onClick={() => void close()}>Закрыть</Button>
-    <Button type="submit" form="compose-form" disabled={sending || !ready}>{sending ? 'Отправляем…' : 'Отправить'}</Button>
+  return <Dialog open size="lg" title={t(`compose.${request.mode}`)} description={saving ? t('compose.savingDraft') : draft ? t('compose.autosave') : t('compose.preparing')} onClose={() => void close()} footer={<>
+    <Button variant="ghost" icon={Trash2} className="dialog-footer__start" disabled={!draft} onClick={() => { if (draft) void backend.deleteDraft(draft.id).then(() => { notify({ type: 'changed' }); onClose(); }); }}>{t('compose.deleteDraft')}</Button>
+    <Button variant="secondary" onClick={() => void close()}>{t('common:actions.close')}</Button>
+    <Button type="submit" form="compose-form" disabled={sending || !ready}>{sending ? t('compose.sending') : t('compose.send')}</Button>
   </>}>
     <form id="compose-form" className="form-grid compose-form" onSubmit={(event) => void send(event)}>
-      {usable.length > 1 && <SelectField label="От кого" value={draft?.accountId ?? ''} onChange={(event) => update({ accountId: event.target.value })} className="field--wide">{usable.map((account) => <option key={account.id} value={account.id}>{account.displayName ? `${account.displayName} <${account.email}>` : account.email}</option>)}</SelectField>}
-      <AddressField label="Кому" value={draft?.to ?? []} onChange={(to) => update({ to })} autoFocus={request.mode === 'NEW' || request.mode === 'FORWARD'} />
+      {usable.length > 1 && <SelectField label={t('compose.from')} value={draft?.accountId ?? ''} onChange={(event) => update({ accountId: event.target.value })} className="field--wide">{usable.map((account) => <option key={account.id} value={account.id}>{account.displayName ? `${account.displayName} <${account.email}>` : account.email}</option>)}</SelectField>}
+      <AddressField label={t('compose.to')} value={draft?.to ?? []} onChange={(to) => update({ to })} autoFocus={request.mode === 'NEW' || request.mode === 'FORWARD'} />
       {showCopies ? <>
-        <AddressField label="Копия" value={draft?.cc ?? []} onChange={(cc) => update({ cc })} />
-        <AddressField label="Скрытая копия" value={draft?.bcc ?? []} onChange={(bcc) => update({ bcc })} />
-      </> : <button type="button" className="text-button field--wide compose-form__copies" onClick={() => setShowCopies(true)}>Копия и скрытая копия</button>}
-      <Field label="Тема" className="field--wide"><input value={draft?.subject ?? ''} maxLength={998} onChange={(event) => update({ subject: event.target.value })} /></Field>
+        <AddressField label={t('compose.cc')} value={draft?.cc ?? []} onChange={(cc) => update({ cc })} />
+        <AddressField label={t('compose.bcc')} value={draft?.bcc ?? []} onChange={(bcc) => update({ bcc })} />
+      </> : <button type="button" className="text-button field--wide compose-form__copies" onClick={() => setShowCopies(true)}>{t('compose.showCopies')}</button>}
+      <Field label={t('compose.subject')} className="field--wide"><input value={draft?.subject ?? ''} maxLength={998} onChange={(event) => update({ subject: event.target.value })} /></Field>
       <div className="field field--wide">
-        <span id="compose-body-label">Текст</span>
+        <span id="compose-body-label">{t('compose.text')}</span>
         <div className="compose-editor">
-          <div className="compose-editor__toolbar" role="toolbar" aria-label="Форматирование">
-            <IconButton label="Жирный" icon={Bold} onMouseDown={(event) => { event.preventDefault(); exec('bold'); }} />
-            <IconButton label="Курсив" icon={Italic} onMouseDown={(event) => { event.preventDefault(); exec('italic'); }} />
-            <IconButton label="Маркированный список" icon={List} onMouseDown={(event) => { event.preventDefault(); exec('insertUnorderedList'); }} />
-            <IconButton label="Нумерованный список" icon={ListOrdered} onMouseDown={(event) => { event.preventDefault(); exec('insertOrderedList'); }} />
-            <IconButton label="Ссылка" icon={Link2} onMouseDown={(event) => { event.preventDefault(); startLink(); }} />
-            <IconButton label="Прикрепить файл" icon={Paperclip} onClick={() => files.current?.click()} />
-            <input ref={files} type="file" multiple hidden onChange={(event) => void attach(event.target.files)} aria-label="Файлы для вложения" />
+          <div className="compose-editor__toolbar" role="toolbar" aria-label={t('compose.formatting')}>
+            <IconButton label={t('compose.bold')} icon={Bold} onMouseDown={(event) => { event.preventDefault(); exec('bold'); }} />
+            <IconButton label={t('compose.italic')} icon={Italic} onMouseDown={(event) => { event.preventDefault(); exec('italic'); }} />
+            <IconButton label={t('compose.bullets')} icon={List} onMouseDown={(event) => { event.preventDefault(); exec('insertUnorderedList'); }} />
+            <IconButton label={t('compose.numbers')} icon={ListOrdered} onMouseDown={(event) => { event.preventDefault(); exec('insertOrderedList'); }} />
+            <IconButton label={t('compose.link')} icon={Link2} onMouseDown={(event) => { event.preventDefault(); startLink(); }} />
+            <IconButton label={t('compose.attach')} icon={Paperclip} onClick={() => files.current?.click()} />
+            <input ref={files} type="file" multiple hidden onChange={(event) => void attach(event.target.files)} aria-label={t('compose.files')} />
           </div>
-          {linkUrl !== null && <div className="compose-editor__link"><input aria-label="Адрес ссылки" value={linkUrl} autoFocus onChange={(event) => setLinkUrl(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); insertLink(); } if (event.key === 'Escape') { event.preventDefault(); setLinkUrl(null); } }} /><Button type="button" variant="secondary" onClick={insertLink}>Вставить ссылку</Button></div>}
+          {linkUrl !== null && <div className="compose-editor__link"><input aria-label={t('compose.linkUrl')} value={linkUrl} autoFocus onChange={(event) => setLinkUrl(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); insertLink(); } if (event.key === 'Escape') { event.preventDefault(); setLinkUrl(null); } }} /><Button type="button" variant="secondary" onClick={insertLink}>{t('compose.insertLink')}</Button></div>}
           <div ref={editor} className="compose-editor__body" contentEditable={Boolean(draft)} role="textbox" aria-multiline="true" aria-labelledby="compose-body-label" suppressContentEditableWarning onInput={() => setDirty(true)} />
         </div>
       </div>
-      {draft && draft.attachments.length > 0 && <div className="field--wide compose-attachments">{draft.attachments.map((item) => <span key={item.id} className="address-chip"><Paperclip size={12} />{item.filename} · {fileSize(item.size)}<button type="button" aria-label={`Убрать вложение ${item.filename}`} onClick={() => void detach(item.id)}><X size={12} /></button></span>)}</div>}
+      {draft && draft.attachments.length > 0 && <div className="field--wide compose-attachments">{draft.attachments.map((item) => <span key={item.id} className="address-chip"><Paperclip size={12} />{item.filename} · {fileSize(item.size)}<button type="button" aria-label={t('compose.removeAttachment', { name: item.filename })} onClick={() => void detach(item.id)}><X size={12} /></button></span>)}</div>}
       {error && <div className="form-error field--wide" role="alert">{error}</div>}
     </form>
   </Dialog>;

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AppContext';
 import { CLIENT_COMMENT_LIMIT, demoClientComments, remoteClientComments, type ClientComment } from '../lib/clientComments';
@@ -8,6 +9,7 @@ import { Avatar, Badge, Button, SectionHeader, Surface } from './ui';
 
 /** The client's comment feed: newest first, formatted (checklists read-only), with an editor to add one. */
 export function ClientComments({ clientId }: { clientId: string }) {
+  const { t } = useTranslation(['crm', 'common']);
   const { session } = useAuth();
   const user = session!.user;
   const backend = useMemo(() => {
@@ -21,9 +23,9 @@ export function ClientComments({ clientId }: { clientId: string }) {
 
   useEffect(() => {
     let active = true;
-    backend.list(clientId).then((list) => { if (active) setComments(list); }).catch(() => { if (active) { setComments([]); setError('Комментарии не загрузились'); } });
+    backend.list(clientId).then((list) => { if (active) setComments(list); }).catch(() => { if (active) { setComments([]); setError(t('comments.loadFailed')); } });
     return () => { active = false; };
-  }, [backend, clientId]);
+  }, [backend, clientId, t]);
 
   const body = draft.trim();
   const add = async () => {
@@ -33,15 +35,15 @@ export function ClientComments({ clientId }: { clientId: string }) {
       const created = await backend.add(clientId, body);
       setComments((current) => [created, ...(current ?? [])]);
       setDraft('');
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Комментарий не добавлен'); } finally { setSaving(false); }
+    } catch (reason) { setError(reason instanceof Error ? reason.message : t('comments.addFailed')); } finally { setSaving(false); }
   };
 
-  return <Surface className="client-comments" aria-label="Комментарии к клиенту">
-    <SectionHeader title="Комментарии" meta={comments ? <Badge>{comments.length}</Badge> : undefined} />
-    <RichTextEditor value={draft} onChange={setDraft} maxLength={CLIENT_COMMENT_LIMIT} label="Новый комментарий к клиенту" placeholder="Итог звонка, договорённости, следующий шаг…" minRows={2} />
+  return <Surface className="client-comments" aria-label={t('comments.region')}>
+    <SectionHeader title={t('comments.title')} meta={comments ? <Badge>{comments.length}</Badge> : undefined} />
+    <RichTextEditor value={draft} onChange={setDraft} maxLength={CLIENT_COMMENT_LIMIT} label={t('comments.editor')} placeholder={t('comments.placeholder')} minRows={2} />
     {error && <div className="form-error" role="alert">{error}</div>}
-    <Button type="button" variant="secondary" className="task-comments__add" disabled={saving || !body || !fitsLimit(body, CLIENT_COMMENT_LIMIT)} onClick={() => void add()}>{saving ? 'Добавляем…' : 'Добавить комментарий'}</Button>
-    {!comments ? <small>Загружаем комментарии…</small> : comments.length === 0 ? <small className="task-comments__empty">Комментариев пока нет</small>
+    <Button type="button" variant="secondary" className="task-comments__add" disabled={saving || !body || !fitsLimit(body, CLIENT_COMMENT_LIMIT)} onClick={() => void add()}>{saving ? t('common:actions.adding') : t('comments.add')}</Button>
+    {!comments ? <small>{t('comments.loading')}</small> : comments.length === 0 ? <small className="task-comments__empty">{t('comments.empty')}</small>
       : <ol className="task-comments__list">{comments.map((comment) => <li key={comment.id}>
         <Avatar name={comment.author.fullName} size="sm" />
         <div><header><strong>{comment.author.fullName}</strong> <time dateTime={comment.createdAt} title={formatDateTime(comment.createdAt)}>{relativeTime(comment.createdAt)}</time></header>

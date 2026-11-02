@@ -1,3 +1,4 @@
+import i18n from '../i18n';
 import { APP_VERSION } from './version';
 
 /**
@@ -53,10 +54,10 @@ export function recordRequest(method: string, url: string, response: Response | 
 
 /** Listens for uncaught errors and rejected promises; returns a function that stops listening. */
 export function installDiagnostics(): () => void {
-  const onError = (event: ErrorEvent) => recordDiagnostic({ type: 'error', message: event.message || 'Ошибка скрипта', source: event.filename ? cleanPath(event.filename) : undefined });
+  const onError = (event: ErrorEvent) => recordDiagnostic({ type: 'error', message: event.message || i18n.t('ui:diag.script'), source: event.filename ? cleanPath(event.filename) : undefined });
   const onRejection = (event: PromiseRejectionEvent) => {
     const reason = event.reason as { message?: unknown } | undefined;
-    recordDiagnostic({ type: 'error', message: typeof reason?.message === 'string' ? reason.message : 'Необработанная ошибка' });
+    recordDiagnostic({ type: 'error', message: typeof reason?.message === 'string' ? reason.message : i18n.t('ui:diag.unhandled') });
   };
   window.addEventListener('error', onError);
   window.addEventListener('unhandledrejection', onRejection);
@@ -84,9 +85,9 @@ export function summarizeDiagnostics(snapshot: DiagnosticsSnapshot): string[] {
   const failed = requests.filter((event) => event.status === 0 || event.status >= 400).length;
   const routes = snapshot.events.filter((event) => event.type === 'route').length;
   return [
-    `Ошибок приложения: ${errors}; запросов к серверу: ${requests.length}${failed ? ` (с ошибкой: ${failed})` : ''}`,
-    `Переходов по страницам: ${routes}; состояние подключения к серверу`,
-    `Версия Atlas ${snapshot.version}, ${snapshot.viewport}, ${snapshot.language}, ${snapshot.timeZone}`,
+    i18n.t('shell:feedback.logSummary.errors', { errors, requests: requests.length }) + (failed ? i18n.t('shell:feedback.logSummary.failed', { failed }) : ''),
+    i18n.t('shell:feedback.logSummary.routes', { routes }),
+    i18n.t('shell:feedback.logSummary.version', { version: snapshot.version, viewport: snapshot.viewport, language: snapshot.language, timeZone: snapshot.timeZone }),
   ];
 }
 

@@ -1,30 +1,36 @@
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, CircleCheck, CircleDot, CircleX, Layers, Lock, Pencil, Plus, Trash2, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DeleteStageDialog as SharedDeleteStageDialog, NameDialog, StageDialog as SharedStageDialog, StageRows, useSubmit, type EditableStage, type KindOptions } from '../components/stageSettings';
+import { DeleteStageDialog as SharedDeleteStageDialog, NameDialog, StageDialog as SharedStageDialog, StageRows, useSubmit, type EditableStage, type KindOptions, type StageRecords } from '../components/stageSettings';
 import { Badge, Button, Dialog, EmptyState, PageHeader, SectionHeader, Segmented, Surface } from '../components/ui';
 import { useWorkspace, type FunnelAccessInput, type StageInput } from '../context/AppContext';
-import { plural } from '../lib/format';
+import i18n, { localeOf } from '../i18n';
 import { funnelErrorMessage } from '../lib/funnelErrors';
 import type { DealStage, Funnel, FunnelAccessMode, StageOutcome } from '../types';
 
-const STAGES: [string, string, string] = ['этап', 'этапа', 'этапов'];
-const DEALS: [string, string, string] = ['сделка', 'сделки', 'сделок'];
-const FUNNELS: [string, string, string] = ['воронка', 'воронки', 'воронок'];
-
-const outcomes: KindOptions<StageOutcome> = {
-  OPEN: { label: 'Открыт', tone: 'neutral', hint: 'Сделки в работе, входят в сумму воронки' },
-  WON: { label: 'Успех', tone: 'success', hint: 'Выигранные сделки, в отчётах считаются успешными' },
-  LOST: { label: 'Проигрыш', tone: 'danger', hint: 'Проигранные сделки, не входят в сумму в работе' },
+/** Counted words of the funnel screens, in the interface language. */
+const count = {
+  stages: (n: number) => i18n.t('sales:settings.count.stages', { count: n }),
+  deals: (n: number) => i18n.t('sales:settings.count.deals', { count: n }),
+  funnels: (n: number) => i18n.t('sales:settings.count.funnels', { count: n }),
 };
+const dealRecords = (): StageRecords => ({ count: count.deals, none: i18n.t('sales:settings.dealsNone'), move: i18n.t('sales:settings.dealsMove') });
+
+const outcomes = (): KindOptions<StageOutcome> => ({
+  OPEN: { label: i18n.t('sales:settings.outcomes.OPEN.label'), tone: 'neutral', hint: i18n.t('sales:settings.outcomes.OPEN.hint') },
+  WON: { label: i18n.t('sales:settings.outcomes.WON.label'), tone: 'success', hint: i18n.t('sales:settings.outcomes.WON.hint') },
+  LOST: { label: i18n.t('sales:settings.outcomes.LOST.label'), tone: 'danger', hint: i18n.t('sales:settings.outcomes.LOST.hint') },
+});
 
 export { stageColorPresets } from '../components/stageSettings';
 
-const defaultStages: StageInput[] = [
-  { name: 'Новая', color: '#366e9e', outcome: 'OPEN' },
-  { name: 'В работе', color: '#a66c20', outcome: 'OPEN' },
-  { name: 'Успех', color: '#39815a', outcome: 'WON' },
-  { name: 'Проигрыш', color: '#a44444', outcome: 'LOST' },
+/** The stages a new funnel starts with, named in the creator's language (they are data afterwards). */
+const defaultStages = (): StageInput[] => [
+  { name: i18n.t('sales:settings.defaults.new'), color: '#366e9e', outcome: 'OPEN' },
+  { name: i18n.t('sales:settings.defaults.inProgress'), color: '#a66c20', outcome: 'OPEN' },
+  { name: i18n.t('sales:settings.defaults.won'), color: '#39815a', outcome: 'WON' },
+  { name: i18n.t('sales:settings.defaults.lost'), color: '#a44444', outcome: 'LOST' },
 ];
 
 type DialogState =
@@ -40,6 +46,7 @@ const dealTotal = (funnel: Funnel) => funnel.stages.reduce((sum, stage) => sum +
 const editable = (stage: DealStage): EditableStage<StageOutcome> => ({ id: stage.id, name: stage.name, color: stage.color, kind: stage.outcome, count: stage.dealCount ?? 0 });
 
 export function FunnelSettingsPage() {
+  const { t } = useTranslation(['sales', 'common']);
   const { funnels, funnelConfig, users } = useWorkspace();
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -52,19 +59,19 @@ export function FunnelSettingsPage() {
   const reorder = (stageIds: string[]) => {
     if (!funnel) return;
     setPageError('');
-    void funnelConfig.reorderStages(funnel.id, stageIds).catch((reason: unknown) => setPageError(funnelErrorMessage(reason, 'Порядок этапов не сохранён')));
+    void funnelConfig.reorderStages(funnel.id, stageIds).catch((reason: unknown) => setPageError(funnelErrorMessage(reason, t('settings.reorderFailed'))));
   };
 
   return <>
-    <button className="back-link" onClick={() => navigate('/sales')}><ArrowLeft size={15} />К воронке продаж</button>
-    <PageHeader title="Настройка воронок" description={`${plural(funnels.length, FUNNELS)} · ${plural(stageCount, STAGES)}`} action={<Button icon={Plus} onClick={() => setDialog({ kind: 'create' })}>Новая воронка</Button>} />
-    {pageError && <div className="notice notice--danger" role="alert">{pageError}<button onClick={() => setPageError('')}>Закрыть</button></div>}
-    {!funnel ? <Surface><EmptyState title="Воронок пока нет" description="Создайте первую воронку, чтобы сотрудники могли вести в ней сделки" icon={Layers} action={<Button icon={Plus} onClick={() => setDialog({ kind: 'create' })}>Новая воронка</Button>} /></Surface> : <div className="team-layout">
+    <button className="back-link" onClick={() => navigate('/sales')}><ArrowLeft size={15} />{t('settings.back')}</button>
+    <PageHeader title={t('settings.title')} description={`${count.funnels(funnels.length)} · ${count.stages(stageCount)}`} action={<Button icon={Plus} onClick={() => setDialog({ kind: 'create' })}>{t('settings.newFunnel')}</Button>} />
+    {pageError && <div className="notice notice--danger" role="alert">{pageError}<button onClick={() => setPageError('')}>{t('common:actions.close')}</button></div>}
+    {!funnel ? <Surface><EmptyState title={t('settings.emptyTitle')} description={t('settings.emptyText')} icon={Layers} action={<Button icon={Plus} onClick={() => setDialog({ kind: 'create' })}>{t('settings.newFunnel')}</Button>} /></Surface> : <div className="team-layout">
       <Surface className="team-list">
         <div className="team-list__rows funnel-list">{funnels.map((item) => <button key={item.id} className={item.id === funnel.id ? 'is-active' : ''} onClick={() => setSelectedId(item.id)}>
           <span className="integration-icon funnel-icon"><Layers size={17} /></span>
-          <span><strong>{item.name}</strong><small>{plural(item.stages.length, STAGES)} · {plural(dealTotal(item), DEALS)}</small></span>
-          {item.accessMode === 'RESTRICTED' ? <Badge tone="warning"><Lock size={11} aria-hidden="true" />Ограничен</Badge> : <Badge>Вся компания</Badge>}
+          <span><strong>{item.name}</strong><small>{count.stages(item.stages.length)} · {count.deals(dealTotal(item))}</small></span>
+          {item.accessMode === 'RESTRICTED' ? <Badge tone="warning"><Lock size={11} aria-hidden="true" />{t('settings.restricted')}</Badge> : <Badge>{t('settings.wholeCompany')}</Badge>}
         </button>)}</div>
       </Surface>
 
@@ -72,43 +79,43 @@ export function FunnelSettingsPage() {
         <Surface className="team-profile">
           <div className="team-profile__head">
             <span className="integration-icon funnel-icon funnel-icon--lg"><Layers size={24} /></span>
-            <div><h2>{funnel.name}</h2><span>{plural(funnel.stages.length, STAGES)} · {plural(dealTotal(funnel), DEALS)}</span><div>{funnel.accessMode === 'RESTRICTED' ? <Badge tone="warning">Ограниченный доступ</Badge> : <Badge tone="info">Вся компания</Badge>}</div></div>
+            <div><h2>{funnel.name}</h2><span>{count.stages(funnel.stages.length)} · {count.deals(dealTotal(funnel))}</span><div>{funnel.accessMode === 'RESTRICTED' ? <Badge tone="warning">{t('settings.restrictedAccess')}</Badge> : <Badge tone="info">{t('settings.wholeCompany')}</Badge>}</div></div>
             <div className="team-profile__actions">
-              <Button variant="secondary" icon={Pencil} onClick={() => setDialog({ kind: 'rename' })}>Переименовать</Button>
-              <Button variant="ghost" icon={Trash2} disabled={funnels.length === 1} title={funnels.length === 1 ? 'Нельзя удалить последнюю воронку' : undefined} onClick={() => setDialog({ kind: 'delete-funnel' })}>Удалить</Button>
+              <Button variant="secondary" icon={Pencil} onClick={() => setDialog({ kind: 'rename' })}>{t('settings.rename')}</Button>
+              <Button variant="ghost" icon={Trash2} disabled={funnels.length === 1} title={funnels.length === 1 ? t('settings.lastFunnel') : undefined} onClick={() => setDialog({ kind: 'delete-funnel' })}>{t('common:actions.delete')}</Button>
             </div>
           </div>
           <div className="profile-facts">
-            {(['OPEN', 'WON', 'LOST'] as StageOutcome[]).map((outcome) => { const Icon = outcome === 'OPEN' ? CircleDot : outcome === 'WON' ? CircleCheck : CircleX; const stages = funnel.stages.filter((stage) => stage.outcome === outcome); return <div key={outcome}><Icon size={16} /><span><small>{outcomes[outcome].label}</small><strong>{plural(stages.length, STAGES)} · {plural(stages.reduce((sum, stage) => sum + (stage.dealCount ?? 0), 0), DEALS)}</strong></span></div>; })}
-            <div><Users size={16} /><span><small>Доступ</small><strong>{accessSummary(funnel, users).short}</strong></span></div>
+            {(['OPEN', 'WON', 'LOST'] as StageOutcome[]).map((outcome) => { const Icon = outcome === 'OPEN' ? CircleDot : outcome === 'WON' ? CircleCheck : CircleX; const stages = funnel.stages.filter((stage) => stage.outcome === outcome); return <div key={outcome}><Icon size={16} /><span><small>{outcomes()[outcome].label}</small><strong>{count.stages(stages.length)} · {count.deals(stages.reduce((sum, stage) => sum + (stage.dealCount ?? 0), 0))}</strong></span></div>; })}
+            <div><Users size={16} /><span><small>{t('settings.access')}</small><strong>{accessSummary(funnel, users).short}</strong></span></div>
           </div>
         </Surface>
 
         <Surface className="funnel-card">
-          <SectionHeader title="Этапы" meta={<Badge tone="info">{funnel.stages.length}</Badge>} action={<Button variant="secondary" icon={Plus} onClick={() => setDialog({ kind: 'stage' })}>Добавить этап</Button>} />
-          <p className="funnel-card__hint">Порядок этапов совпадает с колонками на доске. Перетащите строку или используйте стрелки.</p>
-          <StageRows stages={funnel.stages.map(editable)} kinds={outcomes} countForms={DEALS} onReorder={reorder}
-            deleteBlockedReason={() => funnel.stages.length === 1 ? 'Нельзя удалить последний этап' : undefined}
+          <SectionHeader title={t('settings.stages')} meta={<Badge tone="info">{funnel.stages.length}</Badge>} action={<Button variant="secondary" icon={Plus} onClick={() => setDialog({ kind: 'stage' })}>{t('settings.addStage')}</Button>} />
+          <p className="funnel-card__hint">{t('settings.orderHint')}</p>
+          <StageRows stages={funnel.stages.map(editable)} kinds={outcomes()} countLabel={count.deals} onReorder={reorder}
+            deleteBlockedReason={() => funnel.stages.length === 1 ? t('settings.lastStage') : undefined}
             onEdit={(stage) => setDialog({ kind: 'stage', stage: funnel.stages.find((item) => item.id === stage.id) })}
             onDelete={(stage) => setDialog({ kind: 'delete-stage', stage: funnel.stages.find((item) => item.id === stage.id)! })} />
         </Surface>
 
         <Surface className="funnel-card">
-          <SectionHeader title="Доступ" action={<Button variant="secondary" icon={Users} onClick={() => setDialog({ kind: 'access' })}>Изменить доступ</Button>} />
+          <SectionHeader title={t('settings.access')} action={<Button variant="secondary" icon={Users} onClick={() => setDialog({ kind: 'access' })}>{t('settings.changeAccess')}</Button>} />
           <dl className="detail-list access-summary">
-            <div><dt>Кто видит воронку</dt><dd>{funnel.accessMode === 'RESTRICTED' ? 'Только выбранные отделы и сотрудники' : 'Вся компания'}</dd></div>
+            <div><dt>{t('settings.whoSees')}</dt><dd>{funnel.accessMode === 'RESTRICTED' ? t('settings.onlySelected') : t('settings.wholeCompany')}</dd></div>
             {funnel.accessMode === 'RESTRICTED' && <>
-              <div><dt>Отделы</dt><dd>{accessSummary(funnel, users).departments || 'Не выбраны'}</dd></div>
-              <div><dt>Сотрудники</dt><dd>{accessSummary(funnel, users).people || 'Не выбраны'}</dd></div>
+              <div><dt>{t('settings.departments')}</dt><dd>{accessSummary(funnel, users).departments || t('settings.notChosen')}</dd></div>
+              <div><dt>{t('settings.people')}</dt><dd>{accessSummary(funnel, users).people || t('settings.notChosen')}</dd></div>
             </>}
           </dl>
-          <p className="funnel-card__hint">Директора видят все воронки. Внутри воронки сотрудник видит только свои сделки, руководитель — сделки своего отдела.</p>
+          <p className="funnel-card__hint">{t('settings.accessHint')}</p>
         </Surface>
       </div>
     </div>}
 
-    {dialog?.kind === 'create' && <NameDialog label="Название воронки" placeholder="Например, Опт" describeError={funnelErrorMessage} title="Новая воронка" description="Будут созданы этапы «Новая», «В работе», «Успех» и «Проигрыш» — их можно изменить после создания." submitLabel="Создать воронку" initial="" onClose={close} onSubmit={async (name) => { const id = await funnelConfig.createFunnel({ name, stages: defaultStages }); setSelectedId(id); }} />}
-    {dialog?.kind === 'rename' && funnel && <NameDialog label="Название воронки" placeholder="Например, Опт" describeError={funnelErrorMessage} title="Переименовать воронку" submitLabel="Сохранить" initial={funnel.name} onClose={close} onSubmit={(name) => funnelConfig.updateFunnel(funnel.id, { name })} />}
+    {dialog?.kind === 'create' && <NameDialog label={t('settings.create.name')} placeholder={t('settings.create.placeholder')} describeError={funnelErrorMessage} title={t('settings.newFunnel')} description={t('settings.create.description')} submitLabel={t('settings.create.submit')} initial="" onClose={close} onSubmit={async (name) => { const id = await funnelConfig.createFunnel({ name, stages: defaultStages() }); setSelectedId(id); }} />}
+    {dialog?.kind === 'rename' && funnel && <NameDialog label={t('settings.create.name')} placeholder={t('settings.create.placeholder')} describeError={funnelErrorMessage} title={t('settings.create.renameTitle')} submitLabel={t('common:actions.save')} initial={funnel.name} onClose={close} onSubmit={(name) => funnelConfig.updateFunnel(funnel.id, { name })} />}
     {dialog?.kind === 'delete-funnel' && funnel && <DeleteFunnelDialog funnel={funnel} onClose={close} onDelete={async () => { await funnelConfig.deleteFunnel(funnel.id); setSelectedId(null); }} />}
     {dialog?.kind === 'stage' && funnel && <StageDialog stage={dialog.stage} onClose={close} onSubmit={(input) => dialog.stage ? funnelConfig.updateStage(funnel.id, dialog.stage.id, changedFields(dialog.stage, input)) : funnelConfig.addStage(funnel.id, input)} />}
     {dialog?.kind === 'delete-stage' && funnel && <DeleteStageDialog stage={dialog.stage} stages={funnel.stages} onClose={close} onDelete={(target) => funnelConfig.deleteStage(funnel.id, dialog.stage.id, target)} />}
@@ -118,13 +125,13 @@ export function FunnelSettingsPage() {
 
 function accessSummary(funnel: Funnel, users: ReturnType<typeof useWorkspace>['users']) {
   const departmentNames = new Map(users.filter((user) => user.departmentId).map((user) => [user.departmentId!, user.department]));
-  const departments = (funnel.departmentIds ?? []).map((id) => departmentNames.get(id) ?? 'Отдел').join(' · ');
-  const people = (funnel.userIds ?? []).map((id) => users.find((user) => user.id === id)?.fullName ?? 'Сотрудник').join(' · ');
+  const departments = (funnel.departmentIds ?? []).map((id) => departmentNames.get(id) ?? i18n.t('sales:settings.department')).join(' · ');
+  const people = (funnel.userIds ?? []).map((id) => users.find((user) => user.id === id)?.fullName ?? i18n.t('sales:settings.person')).join(' · ');
   const parts = [
-    funnel.departmentIds?.length ? plural(funnel.departmentIds.length, ['отдел', 'отдела', 'отделов']) : '',
-    funnel.userIds?.length ? plural(funnel.userIds.length, ['сотрудник', 'сотрудника', 'сотрудников']) : '',
+    funnel.departmentIds?.length ? i18n.t('sales:settings.count.departments', { count: funnel.departmentIds.length }) : '',
+    funnel.userIds?.length ? i18n.t('sales:settings.count.people', { count: funnel.userIds.length }) : '',
   ].filter(Boolean);
-  return { departments, people, short: funnel.accessMode === 'RESTRICTED' ? (parts.length ? parts.join(' · ') : 'Только директора') : 'Вся компания' };
+  return { departments, people, short: funnel.accessMode === 'RESTRICTED' ? (parts.length ? parts.join(' · ') : i18n.t('sales:settings.directorsOnly')) : i18n.t('sales:settings.wholeCompany') };
 }
 
 function changedFields(stage: DealStage, input: StageInput): Partial<StageInput> {
@@ -136,39 +143,42 @@ function changedFields(stage: DealStage, input: StageInput): Partial<StageInput>
 }
 
 function DeleteFunnelDialog({ funnel, onClose, onDelete }: { funnel: Funnel; onClose: () => void; onDelete: () => Promise<unknown> }) {
+  const { t } = useTranslation(['sales', 'common']);
   const { saving, error, run } = useSubmit(onClose, funnelErrorMessage);
   const deals = dealTotal(funnel);
-  return <Dialog open title={`Удалить воронку «${funnel.name}»?`} description={deals ? `В воронке ${plural(deals, DEALS)}. Перенесите их в другую воронку, чтобы удалить её.` : 'Этапы и настройки доступа будут удалены. Действие нельзя отменить.'} size="sm" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Отмена</Button><Button variant="danger" disabled={saving || deals > 0} onClick={() => void run(onDelete, 'Воронка не удалена')}>Удалить</Button></>}>
-    {error ? <div className="form-error" role="alert">{error}</div> : <p className="dialog-text">{deals ? 'Сделки переносятся на доске продаж: откройте сделку и выберите другую воронку.' : 'Сотрудники перестанут видеть эту воронку на доске продаж.'}</p>}
+  return <Dialog open title={t('settings.deleteFunnel.title', { name: funnel.name })} description={deals ? t('settings.deleteFunnel.hasDeals', { deals: count.deals(deals) }) : t('settings.deleteFunnel.empty')} size="sm" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>{t('common:actions.cancel')}</Button><Button variant="danger" disabled={saving || deals > 0} onClick={() => void run(onDelete, t('settings.deleteFunnel.failed'))}>{t('common:actions.delete')}</Button></>}>
+    {error ? <div className="form-error" role="alert">{error}</div> : <p className="dialog-text">{deals ? t('settings.deleteFunnel.hasDealsNote') : t('settings.deleteFunnel.emptyNote')}</p>}
   </Dialog>;
 }
 
 export function StageDialog({ stage, onClose, onSubmit }: { stage?: DealStage; onClose: () => void; onSubmit: (input: StageInput) => Promise<unknown> }) {
-  return <SharedStageDialog stage={stage && editable(stage)} kinds={outcomes} kindLabel="Итог этапа" defaultKind="OPEN" placement="Этап появится последней колонкой на доске. Порядок можно изменить." describeError={funnelErrorMessage} onClose={onClose} onSubmit={(input) => onSubmit({ name: input.name, color: input.color, outcome: input.kind })} />;
+  const { t } = useTranslation(['sales', 'common']);
+  return <SharedStageDialog stage={stage && editable(stage)} kinds={outcomes()} kindLabel={t('settings.stageDialog.kind')} defaultKind="OPEN" placement={t('settings.stageDialog.placement')} describeError={funnelErrorMessage} onClose={onClose} onSubmit={(input) => onSubmit({ name: input.name, color: input.color, outcome: input.kind })} />;
 }
 
 export function DeleteStageDialog({ stage, stages, onClose, onDelete }: { stage: DealStage; stages: DealStage[]; onClose: () => void; onDelete: (moveToStageId?: string) => Promise<unknown> }) {
-  return <SharedDeleteStageDialog stage={editable(stage)} stages={stages.map(editable)} countForms={DEALS} recordsLabel="сделки" describeError={funnelErrorMessage} onClose={onClose} onDelete={onDelete} />;
+  return <SharedDeleteStageDialog stage={editable(stage)} stages={stages.map(editable)} records={dealRecords()} describeError={funnelErrorMessage} onClose={onClose} onDelete={onDelete} />;
 }
 
 export function AccessDialog({ funnel, onClose, onSubmit }: { funnel: Funnel; onClose: () => void; onSubmit: (access: FunnelAccessInput) => Promise<unknown> }) {
+  const { t } = useTranslation(['sales', 'common']);
   const { users } = useWorkspace();
   const [mode, setMode] = useState<FunnelAccessMode>(funnel.accessMode ?? 'COMPANY');
   const [departmentIds, setDepartmentIds] = useState<string[]>(funnel.departmentIds ?? []);
   const [userIds, setUserIds] = useState<string[]>(funnel.userIds ?? []);
   const { saving, error, run } = useSubmit(onClose, funnelErrorMessage);
   const departments = useMemo(() => [...new Map(users.filter((user) => user.departmentId).map((user) => [user.departmentId!, user.department])).entries()]
-    .sort((a, b) => a[1].localeCompare(b[1], 'ru')), [users]);
+    .sort((a, b) => a[1].localeCompare(b[1], localeOf())), [users]);
   const toggle = (list: string[], id: string) => list.includes(id) ? list.filter((item) => item !== id) : [...list, id];
-  const submit = () => void run(() => onSubmit({ accessMode: mode, departmentIds: mode === 'RESTRICTED' ? departmentIds : [], userIds: mode === 'RESTRICTED' ? userIds : [] }), 'Доступ не сохранён');
-  return <Dialog open title="Доступ к воронке" description={funnel.name} size="lg" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Отмена</Button><Button disabled={saving} onClick={submit}>{saving ? 'Сохраняем…' : 'Сохранить доступ'}</Button></>}>
+  const submit = () => void run(() => onSubmit({ accessMode: mode, departmentIds: mode === 'RESTRICTED' ? departmentIds : [], userIds: mode === 'RESTRICTED' ? userIds : [] }), t('settings.accessDialog.failed'));
+  return <Dialog open title={t('settings.accessDialog.title')} description={funnel.name} size="lg" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>{t('common:actions.cancel')}</Button><Button disabled={saving} onClick={submit}>{saving ? t('common:actions.saving') : t('settings.accessDialog.save')}</Button></>}>
     <div className="form-grid">
-      <div className="field--wide"><Segmented label="Кто видит воронку" value={mode} onChange={setMode} options={[{ value: 'COMPANY', label: 'Вся компания' }, { value: 'RESTRICTED', label: 'Только выбранные' }]} /></div>
+      <div className="field--wide"><Segmented label={t('settings.whoSees')} value={mode} onChange={setMode} options={[{ value: 'COMPANY', label: t('settings.wholeCompany') }, { value: 'RESTRICTED', label: t('settings.accessDialog.selected') }]} /></div>
       {mode === 'RESTRICTED' ? <>
-        <fieldset className="check-list"><legend>Отделы</legend>{departments.length ? departments.map(([id, name]) => <label key={id}><input type="checkbox" checked={departmentIds.includes(id)} onChange={() => setDepartmentIds(toggle(departmentIds, id))} />{name}</label>) : <small>Отделов пока нет</small>}</fieldset>
-        <fieldset className="check-list"><legend>Сотрудники</legend>{users.filter((user) => user.role !== 'DIRECTOR').map((user) => <label key={user.id}><input type="checkbox" checked={userIds.includes(user.id)} onChange={() => setUserIds(toggle(userIds, user.id))} /><span>{user.fullName}<small>{user.department}</small></span></label>)}</fieldset>
+        <fieldset className="check-list"><legend>{t('settings.departments')}</legend>{departments.length ? departments.map(([id, name]) => <label key={id}><input type="checkbox" checked={departmentIds.includes(id)} onChange={() => setDepartmentIds(toggle(departmentIds, id))} />{name}</label>) : <small>{t('settings.accessDialog.noDepartments')}</small>}</fieldset>
+        <fieldset className="check-list"><legend>{t('settings.people')}</legend>{users.filter((user) => user.role !== 'DIRECTOR').map((user) => <label key={user.id}><input type="checkbox" checked={userIds.includes(user.id)} onChange={() => setUserIds(toggle(userIds, user.id))} /><span>{user.fullName}<small>{user.department}</small></span></label>)}</fieldset>
       </> : null}
-      <p className="dialog-text field--wide">{mode === 'COMPANY' ? 'Воронку видят все сотрудники компании.' : 'Директора видят воронку всегда.'} Внутри воронки сотрудник видит только свои сделки, руководитель — сделки своего отдела.</p>
+      <p className="dialog-text field--wide">{mode === 'COMPANY' ? t('settings.accessDialog.companyNote') : t('settings.accessDialog.restrictedNote')} {t('settings.accessDialog.scopeNote')}</p>
       {error && <div className="form-error field--wide" role="alert">{error}</div>}
     </div>
   </Dialog>;
