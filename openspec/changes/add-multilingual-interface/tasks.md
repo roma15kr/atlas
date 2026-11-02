@@ -22,8 +22,8 @@
 ## 4. Docs and checks
 
 - [x] 4.1 ADR 0006 (i18next); update `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/learnings.md` if needed, and the `web-workspace` purpose after archive. Commit.
-- [ ] 4.2 Run `make check`, `npm run build`, and a headless-browser pass of every screen in all three languages at desktop and phone width; verify all pass with no overflowing text.
-- [ ] 4.3 Run `npx openspec validate add-multilingual-interface --strict`; verify it passes.
+- [x] 4.2 Run `make check`, `npm run build`, and a headless-browser pass of every screen in all three languages at desktop and phone width; verify all pass with no overflowing text.
+- [x] 4.3 Run `npx openspec validate add-multilingual-interface --strict`; verify it passes.
 
 ## Workflow follow-up
 
