@@ -8,6 +8,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { BrowseChannelsDialog, ChannelFormDialog, ConfirmDialog, ConversationSettingsDialog, EditMessageDialog, NewMessageDialog, usePeopleByUsername } from '../components/chat/ChatDialogs';
 import { ChannelIconPicker } from '../components/chat/ChannelIconPicker';
 import { Composer, ConversationIcon, MessageItem } from '../components/chat/ChatParts';
+import { DaySeparator } from '../components/chat/DaySeparator';
+import { dayKey, dayLabel, withDays } from '../lib/days';
 import { Badge, Button, EmptyState, IconButton, LoadingState, PageHeader, SectionHeader, Surface } from '../components/ui';
 import { useAuth } from '../context/AppContext';
 import { useChat } from '../context/ChatContext';
@@ -213,9 +215,9 @@ function ConversationView({ conversation, threadId, onThread, onSettings, onEdit
       <div ref={history.sentinel} aria-hidden />
       {hasMore ? <button type="button" className="text-button chat-main__older" disabled={history.busy} onClick={() => void history.older()}>{history.busy ? t('view.loadingOlder') : t('view.showOlder')}</button>
         : items && items.length > 0 && <div className="chat-main__start">{t('view.start')}</div>}
-      {!items ? <LoadingState label={t('view.loadingMessages')} /> : items.length ? items.map((message) => <MessageItem key={message.id} message={message} people={people} me={me} canModerate={canModerate}
-        onReply={isMember && !conversation.archivedAt ? () => onThread(message.id) : undefined} onOpenThread={() => onThread(message.id)}
-        onEdit={() => onEdit(message)} onDelete={() => onDelete(message)}  onReact={react?.(message)} />)
+      {!items ? <LoadingState label={t('view.loadingMessages')} /> : items.length ? withDays(items).map((row) => row.kind === 'day' ? <DaySeparator key={`day-${row.key}`} label={row.label} /> : <MessageItem key={row.item.id} message={row.item} people={people} me={me} canModerate={canModerate}
+        onReply={isMember && !conversation.archivedAt ? () => onThread(row.item.id) : undefined} onOpenThread={() => onThread(row.item.id)}
+        onEdit={() => onEdit(row.item)} onDelete={() => onDelete(row.item)} onReact={react?.(row.item)} />)
         : <EmptyState title={t('view.emptyTitle')} description={conversation.kind === 'DM' ? t('view.emptyDm', { title }) : t('view.emptyChannel')} icon={conversation.kind === 'CHANNEL' ? Hash : MessageSquare} />}
     </div>
     {history.newBelow && <button type="button" className="new-messages" onClick={history.scrollToEnd}>{t('view.newBelow')}</button>}
@@ -247,9 +249,11 @@ function ThreadPanel({ conversation, rootId, onClose, onEdit, onDelete }: { conv
   return <Surface className="chat-thread" aria-label={t('thread.title')}>
     <SectionHeader title={t('thread.title')} meta={items ? <Badge>{items.length}</Badge> : undefined} action={<IconButton label={t('thread.close')} icon={X} onClick={onClose} />} />
     <div className="chat-thread__messages" ref={history.container} onScroll={history.onScroll}>
+      {root && <DaySeparator label={dayLabel(root.createdAt)} />}
       {root && <MessageItem message={root} people={people} me={me} canModerate={canModerate} onEdit={() => onEdit(root)} onDelete={() => onDelete(root)} onReact={react?.(root)} />}
       {items && items.length > 0 && <div className="chat-thread__divider">{t('count.replies', { count: items.length })}</div>}
-      {items?.map((message) => <MessageItem key={message.id} message={message} people={people} me={me} canModerate={canModerate} onEdit={() => onEdit(message)} onDelete={() => onDelete(message)} onReact={react?.(message)} />)}
+      {items && withDays(items).filter((row, index) => !(index === 0 && row.kind === 'day' && root && dayKey(root.createdAt) === row.key))
+        .map((row) => row.kind === 'day' ? <DaySeparator key={`day-${row.key}`} label={row.label} /> : <MessageItem key={row.item.id} message={row.item} people={people} me={me} canModerate={canModerate} onEdit={() => onEdit(row.item)} onDelete={() => onDelete(row.item)} onReact={react?.(row.item)} />)}
     </div>
     {error && <div className="form-error" role="alert">{error}</div>}
     {history.newBelow && <button type="button" className="new-messages" onClick={history.scrollToEnd}>{t('view.newBelow')}</button>}

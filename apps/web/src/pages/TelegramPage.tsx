@@ -11,6 +11,8 @@ import { useTelegram } from '../context/TelegramContext';
 import { fileSize, relativeTime } from '../lib/format';
 import { statusLabel, type ContactFilter, type TelegramContact, type TelegramMessage } from '../lib/telegram';
 import { telegramErrorMessage } from '../lib/telegramErrors';
+import { DaySeparator } from '../components/chat/DaySeparator';
+import { withDays } from '../lib/days';
 
 const time = (value: string) => new Date(value).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
@@ -186,7 +188,7 @@ function Conversation({ contact, onBack, onChanged }: { contact: TelegramContact
       <div ref={history.sentinel} aria-hidden />
       {hasMore ? <button type="button" className="text-button chat-main__older" disabled={history.busy} onClick={() => void history.older()}>{history.busy ? t('chat.loadingOlder') : t('chat.showOlder')}</button>
         : messages && messages.length > 0 && <div className="chat-main__start">{t('chat.start')}</div>}
-      {!messages ? <LoadingState label={t('chat.loading')} /> : messages.length ? messages.map((message) => <MessageBubble key={message.id} message={message} onReply={contact.status !== 'BLOCKED' ? () => setReplyTo(message) : undefined} />)
+      {!messages ? <LoadingState label={t('chat.loading')} /> : messages.length ? withDays(messages).map((row) => row.kind === 'day' ? <DaySeparator key={`day-${row.key}`} label={row.label} /> : <MessageBubble key={row.item.id} message={row.item} onReply={contact.status !== 'BLOCKED' ? () => setReplyTo(row.item) : undefined} />)
         : <EmptyState title={t('chat.empty')} description={contact.status === 'UNVERIFIED' ? t('chat.imported') : t('chat.writeFirst')} icon={Send} />}
     </div>
     {error && <div className="notice notice--danger tg-chat__notice" role="alert"><AlertTriangle size={15} />{error}<button onClick={() => setError('')}>{t('common:actions.close')}</button></div>}

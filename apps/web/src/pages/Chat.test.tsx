@@ -311,3 +311,48 @@ describe('file attachments', () => {
   });
 });
 
+
+describe('day separators', () => {
+  // Only the clock is fixed (16 November 2026, 12:00 local); timers stay real for the UI.
+  beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(2026, 10, 16, 12, 0)); resetDemoChat(); });
+  afterEach(() => { vi.useRealTimers(); });
+  // Separators and messages of a feed, in screen order.
+  const feed = (region: HTMLElement) => [...region.querySelectorAll('[role="separator"], article')]
+    .map((node) => node.getAttribute('role') === 'separator' ? `[${node.getAttribute('aria-label')}]` : node.querySelector('.chat-message__text')?.textContent?.trim() ?? '');
+
+  it('names the day above its first message, and «Сегодня» above a new message', async () => {
+    const user = userEvent.setup();
+    renderAs('director');
+    await user.click(await within(list()).findByRole('button', { name: /Общий/ }));
+    const view = main('Общий');
+    await within(view).findByText(/общая встреча/);
+    expect(feed(view)).toEqual(['[14 ноября]', 'Коллеги, в пятницу в 16:00 общая встреча по итогам квартала.']);
+    await user.type(await within(view).findByRole('textbox', { name: 'Сообщение' }), 'Обновление вышло{Enter}');
+    await within(view).findByText('Обновление вышло');
+    await user.type(within(view).getByRole('textbox', { name: 'Сообщение' }), 'И ещё одно{Enter}');
+    await within(view).findByText('И ещё одно');
+    expect(feed(view)).toEqual(['[14 ноября]', 'Коллеги, в пятницу в 16:00 общая встреча по итогам квартала.', '[Сегодня]', 'Обновление вышло', 'И ещё одно']);
+  });
+
+  it('separates a thread\'s root and its replies by day', async () => {
+    const user = userEvent.setup();
+    renderAs('director');
+    await user.click(await within(list()).findByRole('button', { name: /Общий/ }));
+    const view = main('Общий');
+    const message = (await within(view).findByText(/общая встреча/)).closest('article')!;
+    await user.click(within(message).getByRole('button', { name: 'Ответить в обсуждении' }));
+    const thread = screen.getByRole('region', { name: 'Обсуждение' });
+    await user.type(await within(thread).findByRole('textbox', { name: 'Ответ в обсуждении' }), 'Буду{Enter}');
+    await within(thread).findByText('Буду');
+    expect(feed(thread)).toEqual(['[14 ноября]', 'Коллеги, в пятницу в 16:00 общая встреча по итогам квартала.', '[Сегодня]', 'Буду']);
+  });
+
+  it('follows the interface language', async () => {
+    const { default: i18n } = await import('../i18n');
+    await i18n.changeLanguage('en');
+    onTestFinished(async () => { await i18n.changeLanguage('ru'); });
+    renderAs('director', '/messages?conversation=ch-ideas');
+    const separator = await screen.findByRole('separator', { name: 'Yesterday' });
+    expect(separator).toHaveTextContent('Yesterday');
+  });
+});

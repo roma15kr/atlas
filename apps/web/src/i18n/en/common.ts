@@ -7,6 +7,7 @@ export const common = {
   roles: { DIRECTOR: 'Director', MANAGER: 'Head', EMPLOYEE: 'Employee' },
   time: {
     noData: 'no data',
+    today: 'Today', yesterday: 'Yesterday',
     minutesAgo_one: '{{count}} min ago', minutesAgo_few: '{{count}} min ago', minutesAgo_many: '{{count}} min ago', minutesAgo_other: '{{count}} min ago',
     hoursAgo_one: '{{count}} h ago', hoursAgo_few: '{{count}} h ago', hoursAgo_many: '{{count}} h ago', hoursAgo_other: '{{count}} h ago',
   },
