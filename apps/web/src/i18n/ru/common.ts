@@ -6,6 +6,7 @@ export const common = {
   roles: { DIRECTOR: 'Директор', MANAGER: 'Руководитель', EMPLOYEE: 'Сотрудник' },
   time: {
     noData: 'нет данных',
+    today: 'Сегодня', yesterday: 'Вчера',
     minutesAgo_one: '{{count}} мин назад', minutesAgo_few: '{{count}} мин назад', minutesAgo_many: '{{count}} мин назад', minutesAgo_other: '{{count}} мин назад',
     hoursAgo_one: '{{count}} ч назад', hoursAgo_few: '{{count}} ч назад', hoursAgo_many: '{{count}} ч назад', hoursAgo_other: '{{count}} ч назад',
   },

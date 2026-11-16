@@ -1,7 +1,7 @@
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../App';
 import { AuthProvider, WorkspaceProvider } from '../context/AppContext';
 import { demoSessions } from '../data/demo';
@@ -140,5 +140,36 @@ describe('long Telegram history', () => {
     // Every message is there exactly once, in order.
     expect(within(chat).getAllByText(/^Старое сообщение \d+$/)).toHaveLength(120);
     expect(within(chat).getByText('Отлично, спасибо!')).toBeInTheDocument();
+  });
+});
+
+describe('Telegram day separators', () => {
+  // 16 November 2026, 01:10 local: София's messages are at 23:10 and 23:40 yesterday, 00:10 and 00:30 today.
+  beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(2026, 10, 16, 1, 10)); resetDemoTelegram(); });
+  afterEach(() => { vi.useRealTimers(); });
+  const separators = (region: HTMLElement) => within(region).queryAllByRole('separator').map((node) => node.getAttribute('aria-label'));
+
+  it('splits a customer conversation by day', async () => {
+    renderAs('employee', '/telegram?contact=tg1');
+    const chat = await screen.findByRole('region', { name: 'Переписка с София Тёрнер' });
+    await within(chat).findByText('Отлично, спасибо!');
+    expect(separators(chat)).toEqual(['Вчера', 'Сегодня']);
+    const today = within(chat).getByRole('separator', { name: 'Сегодня' });
+    const firstToday = within(chat).getAllByRole('article')[2]!;
+    expect(today.compareDocumentPosition(firstToday) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(chat).getAllByRole('article')[1]!.compareDocumentPosition(today) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('keeps one separator for a day while older pages load', async () => {
+    seedDemoTelegramHistory('tg1', 120);
+    const user = userEvent.setup();
+    renderAs('employee', '/telegram?contact=tg1');
+    const chat = await screen.findByRole('region', { name: 'Переписка с София Тёрнер' });
+    await within(chat).findByText('Отлично, спасибо!');
+    expect(separators(chat)).toEqual(['Вчера', 'Сегодня']);
+    await user.click(within(chat).getByRole('button', { name: 'Показать более ранние' }));
+    await user.click(await within(chat).findByRole('button', { name: 'Показать более ранние' }));
+    expect(await within(chat).findByText('Старое сообщение 1')).toBeInTheDocument();
+    expect(separators(chat)).toEqual(['Вчера', 'Сегодня']);
   });
 });
