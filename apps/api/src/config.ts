@@ -54,6 +54,8 @@ const envSchema = z.object({
   STRIPE_PRICE_STANDARD_YEARLY: z.preprocess((value) => value === "" ? undefined : value, z.string().optional()),
   STRIPE_PRICE_AI_MONTHLY: z.preprocess((value) => value === "" ? undefined : value, z.string().optional()),
   STRIPE_PRICE_AI_YEARLY: z.preprocess((value) => value === "" ? undefined : value, z.string().optional()),
+  // Optional: a customer-portal configuration of its own (`bpc_…`), so a Stripe account shared with other business keeps its default portal.
+  STRIPE_PORTAL_CONFIGURATION: z.preprocess((value) => value === "" ? undefined : value, z.string().optional()),
   AI_ANALYSIS_MODEL: z.string().default("gpt-6-luna"),
   FEEDBACK_MODEL: z.string().default("gpt-6-luna"),
   GITHUB_TOKEN: z.string().optional(),

@@ -95,7 +95,9 @@ billingRouter.post("/portal", asyncHandler(async (req, res) => {
   const row = await subscriptionRow(auth.companyId);
   if (!row) throw new ApiError(409, "BILLING_NO_CUSTOMER", "Choose a tariff first");
   const base = config.corsOrigins[0] ?? appUrl(req);
-  const session = await stripeRequest<{ url: string }>("POST", "/v1/billing_portal/sessions", { customer: row.stripe_customer_id, return_url: `${base}/settings/billing` });
+  const session = await stripeRequest<{ url: string }>("POST", "/v1/billing_portal/sessions", {
+    customer: row.stripe_customer_id, return_url: `${base}/settings/billing`, configuration: config.STRIPE_PORTAL_CONFIGURATION
+  });
   await writeAudit(req, { auth, action: "BILLING_PORTAL_OPENED", entityType: "company", entityId: auth.companyId });
   res.json({ data: { url: session.url } });
 }));

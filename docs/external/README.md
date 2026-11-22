@@ -18,6 +18,7 @@ Things outside this repository that agents need to know exist. NAMES only, never
   - `STRIPE_SECRET_KEY` — Stripe secret (or restricted) key for tariffs and payments: Checkout, Customers, Subscriptions, Billing Portal, Invoices, Prices (read). Use a test key on atlas-dev, a live key in production. Without it, billing shows «not configured» and every feature, AI included, stays on.
   - `STRIPE_WEBHOOK_SECRET` — the signing secret (`whsec_…`) of the webhook endpoint `https://<host>/api/stripe/webhook`.
   - `STRIPE_PRICE_STANDARD_MONTHLY`, `STRIPE_PRICE_STANDARD_YEARLY`, `STRIPE_PRICE_AI_MONTHLY`, `STRIPE_PRICE_AI_YEARLY` — the four Price ids (`price_…`), see `docs/OPERATIONS.md` → «Stripe billing».
+  - `STRIPE_PORTAL_CONFIGURATION` — optional; the id (`bpc_…`) of Atlas's own customer-portal configuration. Set it when the Stripe account also serves other business, so their default portal is untouched. Production uses one.
 - Third-party services and dashboards:
   - OpenAI API (platform.openai.com) — AI analysis. Set a monthly spending limit on the project.
   - Stripe (dashboard.stripe.com) — tariffs and card payments (ADR 0007): products and prices, the customer portal, the webhook, invoices.
