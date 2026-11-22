@@ -1,6 +1,7 @@
 import webPush from "web-push";
 import { config } from "../config";
 import { query } from "../db";
+import { brandingOf, type Branding } from "../branding";
 import { NOTIFICATION_GROUPS, setNotificationDelivery, type NotificationRow } from "./notify";
 
 export interface PushTarget { endpoint: string; keys: { p256dh: string; auth: string } }
@@ -25,6 +26,10 @@ const groupColumn = { tasks: "push_tasks", chat: "push_chat", telegram: "push_te
 
 interface SubscriptionRow { id: string; endpoint: string; p256dh: string; auth: string }
 
+/** The company logo as the pop-up's icon and badge; without a logo the service worker uses the standard icon. */
+export const pushIcons = (branding: Branding): { icon?: string; badge?: string } =>
+  branding.files ? { icon: branding.files.icon192, badge: branding.files.badge96 } : {};
+
 /** Chat pop-ups replace each other per conversation; other kinds per item. */
 export function pushTag(row: Pick<NotificationRow, "id" | "kind" | "link" | "entityId">): string {
   if (NOTIFICATION_GROUPS[row.kind] === "chat") return `chat:${row.link}`;
@@ -38,7 +43,8 @@ async function pushOne(row: NotificationRow): Promise<void> {
     `SELECT s.id, s.endpoint, s.p256dh, s.auth FROM push_subscriptions s
      LEFT JOIN notification_preferences p ON p.user_id = s.user_id
      WHERE s.user_id = $1 AND COALESCE(p.${column}, true)`, [row.userId]);
-  const payload = JSON.stringify({ id: row.id, title: row.title, body: row.body ?? "", link: row.link, tag: pushTag(row) });
+  const company = (await query<{ company_id: string }>("SELECT company_id FROM users WHERE id = $1", [row.userId])).rows[0]?.company_id ?? null;
+  const payload = JSON.stringify({ id: row.id, title: row.title, body: row.body ?? "", link: row.link, tag: pushTag(row), ...pushIcons(await brandingOf(company)) });
   await Promise.all(subscriptions.rows.map((subscription) => sendTo(subscription, payload)));
 }
 

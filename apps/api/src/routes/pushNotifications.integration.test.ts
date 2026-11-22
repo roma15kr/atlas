@@ -89,4 +89,13 @@ describe("desktop notifications", () => {
     await as(colleague).delete("/notifications/push/subscriptions", { endpoint: subscription("seller-chrome").endpoint });
     expect(await subscriptions(seller.id)).toHaveLength(1);
   });
+
+  it("names the company and shows its logo in the test notification", async () => {
+    const company = (await harness.query<{ company_id: string }>("SELECT company_id FROM users WHERE id = $1", [seller.id])).rows[0]!.company_id;
+    await harness.query("INSERT INTO company_branding (company_id, app_name, logo_version, logo_keys) VALUES ($1, 'RDIM Office', gen_random_uuid(), '{}')", [company]);
+    pushed.length = 0;
+    await as(seller).post("/notifications/push/test");
+    expect(pushed.at(-1)!.payload).toMatchObject({ title: "RDIM Office: перевірка сповіщень", icon: expect.stringMatching(/^\/api\/v1\/branding\/files\/.+\/icon192\.png$/) });
+    await harness.query("DELETE FROM company_branding WHERE company_id = $1", [company]);
+  });
 });

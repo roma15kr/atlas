@@ -8,6 +8,7 @@ import {
   requireAuth, setRefreshCookie, signAccessToken
 } from "../auth";
 import { writeAudit } from "../audit";
+import { soleCompanyId } from "../branding";
 import { query, transaction } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { loginIpLimiter, loginLimiter } from "../middleware";
@@ -94,11 +95,6 @@ authRouter.post("/login", loginIpLimiter, loginLimiter, asyncHandler(async (req,
   res.json({ data: { accessToken: signAccessToken(auth), user: await enrichedPublicUser(user) } });
 }));
 
-/** The only company of this installation, or null when there are several (then nothing is attributed). */
-async function soleCompanyId(): Promise<string | null> {
-  const result = await query<{ id: string }>("SELECT id FROM companies LIMIT 2");
-  return result.rows.length === 1 ? result.rows[0]!.id : null;
-}
 
 authRouter.post("/refresh", asyncHandler(async (req, res) => {
   const raw = req.cookies?.[REFRESH_COOKIE] as string | undefined;
