@@ -2,7 +2,7 @@
 
 ## 1. Tracer bullet: the title, end to end
 
-- [ ] 1.1 Migration `027_company_branding.sql`; `branding.ts` with `brandingOf` and defaults.
+- [x] 1.1 Migration `027_company_branding.sql`; `branding.ts` with `brandingOf` and defaults.
   - Routes: public `GET /branding` and director-only `PATCH /branding` for `appName`, audited (`BRANDING_UPDATED`, denied attempts), emitting `branding:changed`.
   - Web: `BrandingProvider` (with a demo-mode branch) and `BrandMark`. The sidebar, phone header and login screen show the title; the tab title reads «Page · App».
   - A minimal «Оформлення» screen (director-only route and nav item) with the «Назва і логотип» card and `TitleDialog`, in three languages.
@@ -21,8 +21,8 @@
 
 ## 2. Colours
 
-- [ ] 2.1 Replace the hard-coded teal and sidebar shades with tokens (D6); the standard look stays visually identical. Verify: a headless before/after pass of the dashboard, team, chat and login at 1440 and 390 px shows no visible difference. Commit.
-- [ ] 2.2 Add colours (accent and sidebar) to the API and web:
+- [x] 2.1 Replace the hard-coded teal and sidebar shades with tokens (D6); the standard look stays visually identical. Verify: a headless before/after pass of the dashboard, team, chat and login at 1440 and 390 px shows no visible difference. Commit.
+- [x] 2.2 Add colours (accent and sidebar) to the API and web:
   - the shared `contrastRatio` and refusal `BRANDING_LOW_CONTRAST`;
   - `brandingTokens` with derived shades and the sidebar text choice;
   - `applyBranding` on load and on `branding:changed`;
@@ -39,7 +39,7 @@
 
 ## 3. Logo
 
-- [ ] 3.1 Add the logo:
+- [x] 3.1 Add the logo:
   - `prepareBrandIcons` in `lib/image.ts`;
   - `PUT` and `DELETE /branding/logo` with PNG magic-byte and IHDR size checks, storage, removal of the old version, audit and emit;
   - public versioned `GET /branding/files/:version/:name.png` with immutable caching;
@@ -56,7 +56,7 @@
 
 ## 4. Installed app and notifications
 
-- [ ] 4.1 Add the installed app and notifications:
+- [x] 4.1 Add the installed app and notifications:
   - `GET /branding/manifest.webmanifest` (name, short name, theme colour, icons of the current version), with the `index.html` manifest link;
   - `applyBranding` updates `theme-color` and `apple-touch-icon`;
   - push payloads carry `icon`/`badge`, and `sw.js` uses them;
@@ -71,5 +71,5 @@
 
 ## 5. Reset, docs and checks
 
-- [ ] 5.1 Add «Повернути стандартне оформлення»: `DELETE /branding` deletes the row and files, audited (`BRANDING_RESET`), and a confirmation dialog. Verify: «resets to defaults and deletes the stored files», and a web test that the standard look returns. Commit.
-- [ ] 5.2 Update `docs/ARCHITECTURE.md` (code map: branding) and `STATUS.md`. Run `make check`, `npm run build`, a headless pass with a blue accent and a light sidebar (no unreadable sidebar text, no overflow) and `npx openspec validate add-company-branding --strict`. Verify that everything passes. Commit.
+- [x] 5.1 Add «Повернути стандартне оформлення»: `DELETE /branding` deletes the row and files, audited (`BRANDING_RESET`), and a confirmation dialog. Verify: «resets to defaults and deletes the stored files», and a web test that the standard look returns. Commit.
+- [x] 5.2 Update `docs/ARCHITECTURE.md` (code map: branding) and `STATUS.md`. Run `make check`, `npm run build`, a headless pass with a blue accent and a light sidebar (no unreadable sidebar text, no overflow) and `npx openspec validate add-company-branding --strict`. Verify that everything passes. Commit.

@@ -325,6 +325,10 @@ Where to look when a task spans several files.
   - Web: `apps/web/src/i18n/index.ts` sets up i18next (`applyLanguage`, `localeOf`, `detectLanguage`). Dictionaries are `i18n/{uk,ru,en}/<namespace>.ts` (Ukrainian is the source) and `i18n/types.ts` types them. API error codes by area are in the `errors` namespace (`lib/errorText.ts`).
   - The language is `users.language`, set in «Профиль» (`components/LanguageSettings.tsx`, `PATCH /team/me`); `AuthProvider` applies it from the session.
   - API: `apps/api/src/i18n` (`text`, `render`, `languagesOf`). `notify()` renders per recipient, `automation/alertText.ts` renders alerts per reader, and `ai.ts` answers in the requester's language.
+- **Company branding:**
+  - API: `branding.ts` (defaults, contrast, PNG size, manifest) and `routes/branding.ts`. Public reads are mounted before `authenticate` (`GET /branding`, the manifest, versioned logo files); changes are director-only and emit `branding:changed`. Migration 027.
+  - Web: `lib/branding.ts` (tokens, presets, demo backend; its contrast rule matches the API through `brandingContrast.fixture.json`), `context/BrandingContext.tsx` (inside `App`, so the login screen has it), `components/BrandMark.tsx` and `pages/BrandingSettingsPage.tsx`.
+  - Icons are made in the browser (`lib/image.ts prepareBrandIcons`). `styles.css` keeps the standard values, and `applyBranding` overrides the accent and sidebar tokens only for non-standard colours.
 - **Request ids:** `app.ts` `requestId` sets `X-Request-Id` and the pino `req.id`.
 - **Files:** `storage.ts` `objectStorage` stores files on the local volume, or on S3 when fully configured. `routes/avatars.ts` serves profile photos by a random id.
 - **Web:**
