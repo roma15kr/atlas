@@ -14,6 +14,7 @@ import { connectRedis } from "./redis";
 import { objectStorage } from "./storage";
 import { achievementsRouter } from "./routes/achievements";
 import { aiRouter } from "./routes/ai";
+import { brandingPublicRouter, brandingRouter } from "./routes/branding";
 import { alertsRouter } from "./routes/alerts";
 import { auditRouter } from "./routes/audit";
 import { avatarsRouter } from "./routes/avatars";
@@ -72,6 +73,7 @@ app.use(useCloudflareVisitorIp);
 app.post("/api/telegram/webhook", asyncHandler(webhookHandler));
 // Photos are loaded by <img> without a token, many per page from one office IP: only the flood limit applies.
 app.use("/api/v1/avatars", ipFloodLimiter, avatarsRouter);
+app.use("/api/v1/branding", ipFloodLimiter, brandingPublicRouter);
 app.use(ipFloodLimiter, apiLimiter);
 
 const healthHandler = asyncHandler(async (_req, res) => {
@@ -118,6 +120,7 @@ app.use("/api/v1/integrations", integrationsRouter);
 app.use("/api/v1/mail", mailRouter);
 app.use("/api/v1/chat", chatRouter);
 app.use("/api/v1/audit", auditRouter);
+app.use("/api/v1/branding", brandingRouter);
 app.use("/api/v1/ai", aiRouter);
 app.use("/api/v1/feedback", feedbackRouter);
 app.use("/api/v1/images", imagesRouter);
