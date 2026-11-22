@@ -10,6 +10,7 @@ import { presenceFor } from "../presence";
 import { recordScope } from "../scope";
 import { avatarUpload, replaceAvatar } from "./avatars";
 import type { AuthContext, Role } from "../types";
+import { syncSeatsLater } from "../billing/subscription";
 
 /** The strength rule for every password a person sets or is given. */
 export const passwordSchema = z.string().min(12).max(200)
@@ -89,6 +90,7 @@ teamRouter.post("/", asyncHandler(async (req, res) => {
     departmentId: created.departmentId,
     metadata: { role: created.role, departmentId: created.departmentId }
   });
+  syncSeatsLater(auth.companyId);
   res.status(201).json({
     data: {
       ...created,

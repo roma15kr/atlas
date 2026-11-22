@@ -11,6 +11,7 @@ import { disconnectUser } from "../realtime";
 import type { AuthContext, Role } from "../types";
 import { replaceAvatar } from "./avatars";
 import { passwordSchema, resolveCreationDepartment } from "./team";
+import { syncSeatsLater } from "../billing/subscription";
 
 /** Editing, disabling and password resets of team members by directors and department heads. */
 export const teamAdminRouter = Router();
@@ -140,6 +141,7 @@ teamAdminRouter.post("/:id/disable", asyncHandler(async (req, res) => {
     });
     disconnectUser(target.id);
     await writeAudit(req, { auth, action: "TEAM_MEMBER_DISABLED", entityType: "user", entityId: target.id, departmentId: target.department_id });
+    syncSeatsLater(auth.companyId);
   }
   res.json({ data: await memberSummary(target.id) });
 }));
@@ -151,6 +153,7 @@ teamAdminRouter.post("/:id/enable", asyncHandler(async (req, res) => {
     if (target.role !== "DIRECTOR" && !target.department_id) throw new ApiError(400, "DEPARTMENT_REQUIRED", "Assign a department before enabling this account");
     await query("UPDATE users SET status = 'ACTIVE', failed_login_count = 0, locked_until = NULL WHERE id = $1", [target.id]);
     await writeAudit(req, { auth, action: "TEAM_MEMBER_ENABLED", entityType: "user", entityId: target.id, departmentId: target.department_id });
+    syncSeatsLater(auth.companyId);
   }
   res.json({ data: await memberSummary(target.id) });
 }));

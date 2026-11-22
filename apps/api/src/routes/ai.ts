@@ -11,6 +11,7 @@ import { pagination } from "../http";
 import { canManageUser, scopeDepartments } from "../scope";
 import type { AuthContext } from "../types";
 import { llmConfigured } from "../llm/openai";
+import { aiIncluded } from "../billing/subscription";
 
 export const aiRouter = Router();
 
@@ -41,6 +42,7 @@ aiRouter.post("/analyze", asyncHandler(async (req, res) => {
     mode: z.enum(["ADVICE", "EVALUATION", "FORECAST"]),
     targetUserId: z.string().uuid().optional()
   }).parse(req.body);
+  if (!await aiIncluded(auth.companyId)) throw new ApiError(403, "PLAN_AI_REQUIRED", "AI analysis is part of the «Стандарт + AI» tariff");
   const target = await manageableUser(auth, input.targetUserId ?? auth.userId);
   const result = await analyzeWork(auth, target.id, input.mode);
   const stored = await query<{ id: string; createdAt: Date }>(

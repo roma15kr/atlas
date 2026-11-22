@@ -3,6 +3,7 @@ import { query } from "../db";
 import { createIssue, githubConfigured, type IssueSource } from "../feedback/github";
 import { triageReport, type Triage, type TriageInput } from "../feedback/triage";
 import { LlmError, llmConfigured } from "../llm/openai";
+import { AI_ALLOWED_SQL } from "../billing/subscription";
 
 export const MAX_ATTEMPTS = 5;
 const BATCH = 10;
@@ -56,7 +57,7 @@ export async function processFeedback(now = new Date(), deps: FeedbackDeps = {})
        SELECT id FROM feedback_reports
        WHERE issue_number IS NULL
          AND (status = 'PENDING' OR (status = 'FAILED' AND attempts < $1 AND next_attempt_at <= $2))
-         AND ((triaged_at IS NULL AND $3) OR (triaged_at IS NOT NULL AND $4))
+         AND ((triaged_at IS NULL AND $3 AND ${AI_ALLOWED_SQL("feedback_reports.company_id")}) OR (triaged_at IS NOT NULL AND $4))
        ORDER BY created_at LIMIT ${BATCH} FOR UPDATE SKIP LOCKED)
      RETURNING id, company_id, kind, message, page, attempts, triaged_at, issue_number, diagnostics`,
     [MAX_ATTEMPTS, now, canTriage, canFile]
