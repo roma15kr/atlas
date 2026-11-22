@@ -1,6 +1,7 @@
 import { achievements } from './achievements';
 import { ai } from './ai';
 import { audit } from './audit';
+import { branding } from './branding';
 import { chat } from './chat';
 import { common } from './common';
 import { crm } from './crm';
@@ -20,4 +21,4 @@ import { telegram } from './telegram';
 import { ui } from './ui';
 
 /** All namespaces of this language. */
-export const en = { achievements, ai, audit, chat, common, crm, dashboard, documents, errors, feedback, mail, profile, reports, sales, shell, stages, tasks, team, telegram, ui };
+export const en = { achievements, ai, audit, branding, chat, common, crm, dashboard, documents, errors, feedback, mail, profile, reports, sales, shell, stages, tasks, team, telegram, ui };

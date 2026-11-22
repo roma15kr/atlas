@@ -1,8 +1,7 @@
 import {
   BarChart3, BookOpenCheck, BriefcaseBusiness, ChevronLeft, ChevronRight,
   ClipboardList, FileText, Mail, MessageSquareWarning, Gauge, SquareKanban, LayoutDashboard, LogOut, Menu, MessageSquare,
-  PanelLeftClose, Search, Send, Settings, ShieldCheck, Trophy, Users, X,
-} from 'lucide-react';
+  PanelLeftClose, Search, Send, Settings, ShieldCheck, Trophy, Users, X, Palette } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth, useWorkspace } from '../context/AppContext';
@@ -17,6 +16,9 @@ import { NotificationBell } from './NotificationBell';
 import { FeedbackButton } from './FeedbackDialog';
 import { Avatar, Badge, IconButton } from './ui';
 import { useTranslation } from 'react-i18next';
+import { BrandMark } from './BrandMark';
+import { useBranding } from '../context/BrandingContext';
+import { tabTitle } from '../lib/branding';
 import type { shell } from '../i18n/uk/shell';
 
 type NavKey = Exclude<keyof typeof shell.nav, 'groupTeam' | 'groupCommunication'>;
@@ -41,6 +43,7 @@ const nav: Array<{ title?: 'groupTeam' | 'groupCommunication'; items: NavItem[] 
     { label: 'telegram', to: '/telegram', icon: Send },
     { label: 'feedback', to: '/feedback', icon: MessageSquareWarning },
     { label: 'audit', to: '/audit', icon: ShieldCheck, roles: ['DIRECTOR'] },
+    { label: 'appearance', to: '/settings/appearance', icon: Palette, roles: ['DIRECTOR'] },
     { label: 'profile', to: '/profile', icon: Settings },
   ] },
 ];
@@ -48,7 +51,7 @@ const nav: Array<{ title?: 'groupTeam' | 'groupCommunication'; items: NavItem[] 
 const routeNames: Record<string, keyof typeof shell.pages> = {
   '/': 'dashboard', '/crm': 'crm', '/sales': 'sales', '/sales/settings': 'salesSettings', '/tasks': 'tasks', '/boards': 'boards', '/boards/settings': 'boardSettings',
   '/documents': 'documents', '/team': 'team', '/reports': 'reports',
-  '/achievements': 'achievements', '/messages': 'messages', '/mail': 'mail', '/mail/settings': 'mailSettings', '/telegram': 'telegram', '/telegram/settings': 'telegramSettings', '/audit': 'audit', '/feedback': 'feedback', '/profile': 'profile',
+  '/achievements': 'achievements', '/messages': 'messages', '/mail': 'mail', '/mail/settings': 'mailSettings', '/telegram': 'telegram', '/telegram/settings': 'telegramSettings', '/audit': 'audit', '/settings/appearance': 'appearance', '/feedback': 'feedback', '/profile': 'profile',
 };
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -66,7 +69,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useTranslation('shell');
   useEffect(() => { recordDiagnostic({ type: 'route', path: location.pathname }); }, [location.pathname]);
   const pageKey = location.pathname.startsWith('/crm/') ? 'client' : /^\/boards\/[^/]+\/settings$/.test(location.pathname) ? 'boardSettings' : location.pathname.startsWith('/mail/oauth') ? 'mail' : routeNames[location.pathname];
-  const pageName = pageKey ? t(`pages.${pageKey}`) : 'Atlas';
+  const { branding } = useBranding();
+  const pageName = pageKey ? t(`pages.${pageKey}`) : branding.appName;
+  useEffect(() => { document.title = tabTitle(pageName, branding.appName); }, [pageName, branding.appName]);
 
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
   useBarHeights(phone);
@@ -75,7 +80,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return <div className={`app-layout ${collapsed ? 'app-layout--collapsed' : ''}`}>
     {mobileOpen && <button className="sidebar-scrim" aria-label={t('frame.closeMenu')} onClick={() => setMobileOpen(false)} />}
     <aside className={`sidebar ${mobileOpen ? 'sidebar--open' : ''}`}>
-      <div className="sidebar__brand"><span className="brand-mark">A</span><strong>ATLAS</strong><IconButton label={t('frame.closeMenu')} icon={X} className="sidebar__mobile-close" onClick={() => setMobileOpen(false)} /></div>
+      <div className="sidebar__brand"><BrandMark /><strong>{branding.appName}</strong><IconButton label={t('frame.closeMenu')} icon={X} className="sidebar__mobile-close" onClick={() => setMobileOpen(false)} /></div>
       <nav className="sidebar__nav" aria-label={t('frame.mainNav')}>
         {nav.map((group, index) => <div className="nav-group" key={group.title ?? index}>{group.title && <span className="nav-group__title">{t(`nav.${group.title}`)}</span>}{group.items.filter((item) => !item.roles || item.roles.includes(user.role)).map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`} title={collapsed ? t(`nav.${item.label}`) : undefined}><item.icon size={18} aria-hidden="true" /><span>{t(`nav.${item.label}`)}</span>{(badges[item.to] ?? 0) > 0 && <i className="nav-count" aria-label={t('frame.unreadIn', { label: t(`nav.${item.label}`), count: badges[item.to] })}>{badges[item.to]! > 99 ? '99+' : badges[item.to]}</i>}</NavLink>)}</div>)}
       </nav>
@@ -83,7 +88,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="sidebar__user"><Avatar name={user.fullName} src={user.avatarUrl} online size="sm" /><div><strong>{user.fullName}</strong><span>{roleLabel[user.role]}</span></div><IconButton label={t('frame.logout')} icon={LogOut} onClick={() => void logout()} /></div>
     </aside>
     <div className="app-main">
-      <header className="topbar"><div className="topbar__left"><IconButton label={t('frame.openMenu')} icon={Menu} className="topbar__menu" onClick={() => setMobileOpen(true)} /><div><span>{t('frame.workspace')}</span><strong>{pageName}</strong></div></div><div className="topbar__right"><label className="global-search"><Search size={16} /><input aria-label={t('frame.search')} placeholder={t('frame.search')} /></label>{dataStatus === 'offline' && <Badge tone="warning">{t('frame.offlineData')}</Badge>}<FeedbackButton /><NotificationBell /><div className="topbar__presence"><span className="presence presence--online" />{t('frame.online', { time: relativeTime(new Date().toISOString()) })}</div></div></header>
+      <header className="topbar"><div className="topbar__left"><IconButton label={t('frame.openMenu')} icon={Menu} className="topbar__menu" onClick={() => setMobileOpen(true)} /><BrandMark className="topbar__mark" /><div><span>{t('frame.workspace')}</span><strong>{pageName}</strong></div></div><div className="topbar__right"><label className="global-search"><Search size={16} /><input aria-label={t('frame.search')} placeholder={t('frame.search')} /></label>{dataStatus === 'offline' && <Badge tone="warning">{t('frame.offlineData')}</Badge>}<FeedbackButton /><NotificationBell /><div className="topbar__presence"><span className="presence presence--online" />{t('frame.online', { time: relativeTime(new Date().toISOString()) })}</div></div></header>
       <main className="page-content">{children}</main>
     </div>
     {phone && <BottomNav badges={badges} onMore={() => setMobileOpen(true)} />}

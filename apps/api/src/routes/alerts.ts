@@ -10,6 +10,7 @@ import { pagination } from "../http";
 import { dealScope } from "./deals";
 import { ALERT_TEXT_COLUMNS, localizeAlert, type AlertTextRow } from "../automation/alertText";
 import { languageOf } from "../i18n";
+import { brandingOf } from "../branding";
 
 export const alertsRouter = Router();
 
@@ -34,7 +35,8 @@ alertsRouter.get("/", asyncHandler(async (req, res) => {
     values
   );
   const language = await languageOf(auth.userId);
-  res.json({ data: await withOverdueTasks(auth, result.rows.map((row) => localizeAlert(language, stripTotal(row) as unknown as AlertTextRow))), meta: { ...page, total: Number(result.rows[0]?.totalCount ?? 0) } });
+  const { appName } = await brandingOf(auth.companyId);
+  res.json({ data: await withOverdueTasks(auth, result.rows.map((row) => localizeAlert(language, stripTotal(row) as unknown as AlertTextRow, appName))), meta: { ...page, total: Number(result.rows[0]?.totalCount ?? 0) } });
 }));
 
 alertsRouter.patch("/:id/acknowledge", requireRoles("DIRECTOR", "MANAGER"), asyncHandler(async (req, res) => {
