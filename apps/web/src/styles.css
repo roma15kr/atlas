@@ -1553,3 +1553,29 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
   .branding-identity { flex-direction: column; align-items: flex-start; }
   .branding-preview__side { width: 120px; }
 }
+
+/* Tariffs and payments. */
+.billing { max-width: 900px; display: grid; gap: 16px; }
+.billing-card { padding: 18px 20px; }
+.billing-card .section-header > div:first-child { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.billing-card__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.billing-card__notice { margin-bottom: 12px; }
+.billing-plans { margin-top: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.billing-plan { padding: 16px; display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--line); border-radius: 7px; }
+.billing-plan--ai { border-color: var(--primary); }
+.billing-plan header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.billing-plan__price { font-size: 22px; font-weight: 700; }
+.billing-plan__price small { font-size: 12px; font-weight: 500; }
+.billing-plan ul { margin: 6px 0 10px; padding: 0; display: grid; gap: 4px; list-style: none; color: var(--muted); }
+.billing-plan li { display: flex; align-items: center; gap: 6px; }
+.billing-plan li svg { color: var(--primary); }
+.billing-plan .button { align-self: flex-start; margin-top: auto; }
+.billing-invoices a { display: inline-flex; align-items: center; gap: 4px; }
+.billing-prompt__actions { margin-left: auto; display: flex; gap: 8px; }
+.ai-plan { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.ai-plan a { font-weight: 600; }
+@media (max-width: 780px) {
+  .billing-plans { grid-template-columns: 1fr; }
+  .billing-prompt__actions { margin-left: 0; }
+}
+.notice--warning { color: var(--amber); background: var(--amber-soft); border-color: transparent; }

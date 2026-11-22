@@ -1,5 +1,6 @@
 import i18n, { localeOf } from '../i18n';
 import { useTranslation } from 'react-i18next';
+import { BillingPrompt } from '../components/BillingPrompt';
 import { Activity, ArrowUpRight, ShieldCheck, Banknote, Bot, CalendarDays, Check, Clock3, FileWarning, Plus, Target, TrendingUp, UserCheck, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -38,6 +39,7 @@ export function DashboardPage() {
 
   return <>
     <PageHeader title={t('greeting', { name: firstName(user.fullName) })} description={`${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}`} action={<Button icon={Plus} onClick={() => setTaskOpen(true)}>{t('newTask')}</Button>} />
+    {isDirector && <BillingPrompt />}
     {!hasMonitoringConsent(user) && <Surface className="consent-notice" role="note"><span className="settings-icon"><ShieldCheck size={18} /></span><div><strong>{t('consent.title')}</strong><p>{t('consent.text')}</p></div><Button variant="secondary" onClick={() => navigate('/profile')}>{t('consent.go')}</Button></Surface>}
     <div className="metric-grid">
       <Metric label={isDirector ? t('metrics.teamOnline') : t('metrics.myRating')} value={isDirector ? `${online} / ${teamSize}` : `${user.rating}`} note={isDirector ? t('metrics.teamShare', { value: Math.round(online / Math.max(teamSize, 1) * 100) }) : t('metrics.outOf100')} icon={isDirector ? Users : Target} tone="teal" />

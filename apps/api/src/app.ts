@@ -15,6 +15,8 @@ import { objectStorage } from "./storage";
 import { achievementsRouter } from "./routes/achievements";
 import { aiRouter } from "./routes/ai";
 import { brandingPublicRouter, brandingRouter } from "./routes/branding";
+import { billingRouter } from "./routes/billing";
+import { stripeWebhook } from "./billing/webhook";
 import { alertsRouter } from "./routes/alerts";
 import { auditRouter } from "./routes/audit";
 import { avatarsRouter } from "./routes/avatars";
@@ -65,6 +67,8 @@ app.use(pinoHttp({
 }));
 app.use(helmet({ crossOriginResourcePolicy: { policy: "same-site" } }));
 app.use(cors({ origin: config.corsOrigins, credentials: true }));
+// Stripe signs the exact bytes it sends, so its webhook takes the raw body, before the JSON parser.
+app.post("/api/stripe/webhook", express.raw({ type: "application/json", limit: "1mb" }), asyncHandler(stripeWebhook));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 // Behind Cloudflare every request arrives from an edge address; rate limits and the audit log need the visitor's.
@@ -121,6 +125,7 @@ app.use("/api/v1/mail", mailRouter);
 app.use("/api/v1/chat", chatRouter);
 app.use("/api/v1/audit", auditRouter);
 app.use("/api/v1/branding", brandingRouter);
+app.use("/api/v1/billing", billingRouter);
 app.use("/api/v1/ai", aiRouter);
 app.use("/api/v1/feedback", feedbackRouter);
 app.use("/api/v1/images", imagesRouter);

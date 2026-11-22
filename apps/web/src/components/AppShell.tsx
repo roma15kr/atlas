@@ -1,7 +1,7 @@
 import {
   BarChart3, BookOpenCheck, BriefcaseBusiness, ChevronLeft, ChevronRight,
   ClipboardList, FileText, Mail, MessageSquareWarning, Gauge, SquareKanban, LayoutDashboard, LogOut, Menu, MessageSquare,
-  PanelLeftClose, Search, Send, Settings, ShieldCheck, Trophy, Users, X, Palette } from 'lucide-react';
+  PanelLeftClose, Search, Send, Settings, ShieldCheck, Trophy, Users, X, Palette, CreditCard } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth, useWorkspace } from '../context/AppContext';
@@ -44,6 +44,7 @@ const nav: Array<{ title?: 'groupTeam' | 'groupCommunication'; items: NavItem[] 
     { label: 'feedback', to: '/feedback', icon: MessageSquareWarning },
     { label: 'audit', to: '/audit', icon: ShieldCheck, roles: ['DIRECTOR'] },
     { label: 'appearance', to: '/settings/appearance', icon: Palette, roles: ['DIRECTOR'] },
+    { label: 'billing', to: '/settings/billing', icon: CreditCard, roles: ['DIRECTOR'] },
     { label: 'profile', to: '/profile', icon: Settings },
   ] },
 ];
@@ -51,7 +52,7 @@ const nav: Array<{ title?: 'groupTeam' | 'groupCommunication'; items: NavItem[] 
 const routeNames: Record<string, keyof typeof shell.pages> = {
   '/': 'dashboard', '/crm': 'crm', '/sales': 'sales', '/sales/settings': 'salesSettings', '/tasks': 'tasks', '/boards': 'boards', '/boards/settings': 'boardSettings',
   '/documents': 'documents', '/team': 'team', '/reports': 'reports',
-  '/achievements': 'achievements', '/messages': 'messages', '/mail': 'mail', '/mail/settings': 'mailSettings', '/telegram': 'telegram', '/telegram/settings': 'telegramSettings', '/audit': 'audit', '/settings/appearance': 'appearance', '/feedback': 'feedback', '/profile': 'profile',
+  '/achievements': 'achievements', '/messages': 'messages', '/mail': 'mail', '/mail/settings': 'mailSettings', '/telegram': 'telegram', '/telegram/settings': 'telegramSettings', '/audit': 'audit', '/settings/appearance': 'appearance', '/settings/billing': 'billing', '/feedback': 'feedback', '/profile': 'profile',
 };
 
 export function AppShell({ children }: { children: ReactNode }) {

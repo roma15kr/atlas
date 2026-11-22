@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тариф і оплата · mockup</title>
+<style>
+  :root { --bg:#f4f6f7; --line:#dfe5e3; --text:#202827; --muted:#687472; --primary:#176f68; --primary-soft:#e7f2f0; --amber:#a66c20; --amber-soft:#f8efe1; --green:#39815a; --green-soft:#e8f3ed; }
+  * { box-sizing:border-box; } body { margin:0; font:13px/1.45 Inter, system-ui, sans-serif; color:var(--text); background:var(--bg); padding:28px 32px; }
+  h1 { margin:0 0 4px; font-size:24px; } .sub { color:var(--muted); margin-bottom:20px; } h2 { margin:0; font-size:15px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:7px; padding:18px 20px; margin-bottom:16px; max-width:860px; }
+  .head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:12px; flex-wrap:wrap; }
+  .badge { display:inline-block; padding:2px 7px; border-radius:4px; font-size:11px; font-weight:600; margin-left:6px; } .ok { background:var(--green-soft); color:var(--green); } .warn { background:var(--amber-soft); color:var(--amber); } .info { background:var(--primary-soft); color:var(--primary); }
+  .btn { border:1px solid var(--line); background:#fff; border-radius:5px; padding:7px 12px; font:inherit; cursor:pointer; } .btn.primary { background:var(--primary); color:#fff; border-color:var(--primary); }
+  .facts { display:flex; gap:32px; } dt { color:var(--muted); font-size:11px; } dd { margin:2px 0 0; font-weight:600; }
+  .notice { background:var(--amber-soft); color:#6b4512; border-radius:5px; padding:10px 12px; margin-bottom:14px; }
+  .toggle { display:inline-flex; border:1px solid var(--line); border-radius:5px; overflow:hidden; } .toggle button { border:0; background:#fff; padding:6px 12px; font:inherit; } .toggle .on { background:var(--primary-soft); color:var(--primary); font-weight:600; }
+  .plans { display:grid; grid-template-columns:1fr 1fr; gap:12px; } .plan { border:1px solid var(--line); border-radius:7px; padding:16px; } .plan.ai { border-color:var(--primary); }
+  .price { font-size:22px; font-weight:700; margin:6px 0 2px; } .total { color:var(--muted); margin-bottom:10px; } ul { margin:0 0 12px; padding-left:18px; color:var(--muted); }
+  table { width:100%; border-collapse:collapse; } td, th { text-align:left; padding:8px 4px; border-top:1px solid #edf0ef; } th { color:var(--muted); font-weight:600; font-size:11px; border-top:0; }
+</style>
+</head>
+<body>
+<h1>Тариф і оплата</h1>
+<div class="sub">Оплата карткою через Stripe. Платите лише за активних співробітників.</div>
+
+<section class="card">
+  <div class="head"><h2>Стандарт + AI <span class="badge info">Щороку</span> <span class="badge warn">Оплата прострочена</span></h2>
+    <div><button class="btn">Змінити тариф</button> <button class="btn primary">Керувати оплатою</button></div></div>
+  <div class="notice">Оплата 22.11.2026 не пройшла. Оновіть картку в «Керувати оплатою». Atlas працює як і раніше.</div>
+  <dl class="facts"><div><dt>Користувачів</dt><dd>21</dd></div><div><dt>Наступне списання</dt><dd>22.11.2027 · $2 016,00</dd></div><div><dt>Картка</dt><dd>Visa •••• 4242</dd></div></dl>
+</section>
+
+<section class="card">
+  <div class="head"><h2>Оберіть тариф</h2><div class="toggle"><button>Щомісяця</button><button class="on">Щороку −28%</button></div></div>
+  <div class="plans">
+    <div class="plan"><b>Стандарт</b><div class="price">$5 <small style="font-size:12px;color:#687472">/ користувач / міс.</small></div><div class="total">21 користувач · $1 260 на рік</div>
+      <ul><li>CRM, воронки, задачі, документи</li><li>Чат, пошта, Telegram, сповіщення</li><li>Звіти, KPI, сигнали за правилами</li></ul><button class="btn">Оплатити</button></div>
+    <div class="plan ai"><b>Стандарт + AI</b><div class="price">$8 <small style="font-size:12px;color:#687472">/ користувач / міс.</small></div><div class="total">21 користувач · $2 016 на рік</div>
+      <ul><li>Усе зі «Стандарт»</li><li>AI-аналіз: порада, оцінка, прогноз</li><li>AI-переклад звернень</li></ul><button class="btn primary">Оплатити</button></div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="head"><h2>Рахунки</h2></div>
+  <table><tr><th>Період</th><th>Сума</th><th>Статус</th><th></th></tr>
+    <tr><td>22.11.2026 – 22.11.2027</td><td>$2 016,00</td><td><span class="badge warn">Не оплачено</span></td><td><a href="#">PDF</a></td></tr>
+    <tr><td>22.11.2025 – 22.11.2026</td><td>$1 920,00</td><td><span class="badge ok">Оплачено</span></td><td><a href="#">PDF</a></td></tr></table>
+</section>
+</body>
+</html>

@@ -3,14 +3,14 @@ export const shell = {
   nav: {
     dashboard: 'Дашборд', crm: 'CRM', sales: 'Воронка', tasks: 'Мої задачі', boards: 'Дошки', documents: 'Документи',
     team: 'Співробітники', reports: 'Звіти', achievements: 'Досягнення',
-    messages: 'Повідомлення', mail: 'Пошта', telegram: 'Telegram', feedback: 'Звернення', appearance: 'Оформлення', audit: 'Аудит', profile: 'Профіль',
+    messages: 'Повідомлення', mail: 'Пошта', telegram: 'Telegram', feedback: 'Звернення', billing: 'Тариф і оплата', appearance: 'Оформлення', audit: 'Аудит', profile: 'Профіль',
     groupTeam: 'КОМАНДА', groupCommunication: 'ЗВ’ЯЗОК І КОНТРОЛЬ',
   },
   pages: {
     dashboard: 'Дашборд', crm: 'CRM', client: 'Картка клієнта', sales: 'Воронка продажів', salesSettings: 'Налаштування воронок',
     tasks: 'Мої задачі', boards: 'Дошки задач', boardSettings: 'Налаштування дошок', documents: 'Документи', team: 'Команда',
     reports: 'Звіти', achievements: 'Досягнення', messages: 'Повідомлення', mail: 'Пошта', mailSettings: 'Налаштування пошти',
-    telegram: 'Telegram', telegramSettings: 'Налаштування Telegram', appearance: 'Оформлення', audit: 'Журнал аудиту', feedback: 'Звернення', profile: 'Профіль',
+    telegram: 'Telegram', telegramSettings: 'Налаштування Telegram', billing: 'Тариф і оплата', appearance: 'Оформлення', audit: 'Журнал аудиту', feedback: 'Звернення', profile: 'Профіль',
   },
   frame: {
     mainNav: 'Основна навігація', openMenu: 'Відкрити меню', closeMenu: 'Закрити меню', expandMenu: 'Розгорнути меню', collapseMenu: 'Згорнути меню',

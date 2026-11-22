@@ -334,3 +334,32 @@ For a bad application release, use Coolify's previous successful deployment and
 run the smoke test. Database migrations are forward-only; when a release changes
 the schema, use a reviewed compensating migration instead of editing an applied
 file. If data integrity is affected, stop writes and follow the restore procedure.
+
+## Stripe billing
+Tariffs are paid by card through Stripe (ADR 0007). Set it up once per environment: use **test mode** for atlas-dev and **live mode** for production.
+
+1. **Products and prices** (Products → Add product). Create two products, «Atlas Стандарт» and «Atlas Стандарт + AI», each with two recurring per-unit prices in USD:
+
+   | Variable | Product | Billing period | Price per unit |
+   |---|---|---|---|
+   | `STRIPE_PRICE_STANDARD_MONTHLY` | Стандарт | monthly | 7.00 |
+   | `STRIPE_PRICE_STANDARD_YEARLY` | Стандарт | yearly | 60.00 |
+   | `STRIPE_PRICE_AI_MONTHLY` | Стандарт + AI | monthly | 10.00 |
+   | `STRIPE_PRICE_AI_YEARLY` | Стандарт + AI | yearly | 96.00 |
+
+   Copy each `price_…` id into the variable.
+2. **Customer portal** (Settings → Billing → Customer portal). Allow:
+   - updating payment methods and viewing invoices;
+   - cancelling «at end of billing period»;
+   - switching plans between the two products and their four prices, with proration.
+3. **Webhook** (Developers → Webhooks → Add endpoint):
+   - endpoint: `https://<host>/api/stripe/webhook`;
+   - events: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`;
+   - copy the signing secret into `STRIPE_WEBHOOK_SECRET`.
+4. **API key:** set `STRIPE_SECRET_KEY` (a restricted key with write access to Checkout Sessions, Customers, Subscriptions, Customer portal, and read access to Prices and Invoices).
+5. **Redeploy, then check:** the director opens «Тариф і оплата». In test mode, pay with card `4242 4242 4242 4242`; a declined renewal can be tried with `4000 0000 0000 0341` attached through the portal.
+
+**Seats:** the quantity follows active users automatically. Extra or removed users are prorated on the next invoice.
+
+**Removing the variables** turns billing off again without losing data; AI and all features stay on.
+
