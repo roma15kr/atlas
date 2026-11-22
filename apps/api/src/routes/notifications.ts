@@ -5,7 +5,8 @@ import { query } from "../db";
 import { ApiError, asyncHandler } from "../errors";
 import { writeAudit } from "../audit";
 import { NOTIFICATION_COLUMNS } from "../notifications/notify";
-import { pushEnabled, sendTo } from "../notifications/push";
+import { pushEnabled, pushIcons, sendTo } from "../notifications/push";
+import { brandingOf } from "../branding";
 import { config } from "../config";
 import { languageOf, render, text } from "../i18n";
 
@@ -104,7 +105,8 @@ notificationsRouter.post("/push/test", asyncHandler(async (req, res) => {
   const subscriptions = await query<{ id: string; endpoint: string; p256dh: string; auth: string }>(
     "SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = $1", [auth.userId]);
   const language = await languageOf(auth.userId);
-  const payload = JSON.stringify({ id: `test-${Date.now()}`, title: render(language, text("push.testTitle")), body: render(language, text("push.testBody")), link: "/profile#notifications", tag: "test" });
+  const branding = await brandingOf(auth.companyId);
+  const payload = JSON.stringify({ id: `test-${Date.now()}`, title: render(language, text("push.testTitle", { app: branding.appName })), body: render(language, text("push.testBody")), link: "/profile#notifications", tag: "test", ...pushIcons(branding) });
   const results = await Promise.all(subscriptions.rows.map((subscription) => sendTo(subscription, payload)));
   res.json({ data: { browsers: subscriptions.rows.length, delivered: results.filter(Boolean).length } });
 }));

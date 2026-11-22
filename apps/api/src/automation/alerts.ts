@@ -2,6 +2,7 @@ import type { Role } from "../types";
 import { coveredDepartments, SUB_DEPARTMENTS_SQL } from "../auth";
 import { alertVisibility } from "../routes/alerts";
 import { notify } from "../notifications/notify";
+import { brandingOf } from "../branding";
 import { query } from "../db";
 import { ALERT_TEXT_COLUMNS, alertTexts, type AlertTextRow } from "./alertText";
 
@@ -116,7 +117,7 @@ export async function notifyAlert(alertId: string): Promise<void> {
     const visible = await query(`SELECT 1 FROM alerts a WHERE a.id = $${visibility.values.length + 1} AND ${visibility.sql}`, [...visibility.values, alertId]);
     if (visible.rowCount) recipients.push(person.id);
   }
-  const texts = alertTexts(alert);
+  const texts = alertTexts(alert, (await brandingOf(alert.company_id)).appName);
   await notify(alert.company_id, recipients, null, {
     kind: "ALERT_CREATED", title: texts.title, body: texts.summary, link: alert.deal_id ? `/sales?deal=${alert.deal_id}` : "/",
     entityType: "alert", entityId: alertId

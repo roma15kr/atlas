@@ -1,7 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Bot, History, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useWorkspace } from '../context/AppContext';
+import { useAuth, useWorkspace } from '../context/AppContext';
+import { createDemoBilling, isDemoBilling, remoteBilling } from '../lib/billing';
+import { Link } from 'react-router-dom';
 import { formatDateTime } from '../lib/format';
 import type { AiAnalysis, AiMode } from '../types';
 import { Badge, Button, Dialog, EmptyState, LoadingState, Segmented } from './ui';
@@ -9,14 +11,14 @@ import { Badge, Button, Dialog, EmptyState, LoadingState, Segmented } from './ui
 const MODES: AiMode[] = ['ADVICE', 'EVALUATION', 'FORECAST'];
 
 function SourceBadge({ analysis }: { analysis: AiAnalysis }) {
-  const { t } = useTranslation(['ai', 'common']);
+  const { t } = useTranslation(['ai', 'common', 'billing']);
   return analysis.source === 'AI'
     ? <Badge tone="info">{`AI · ${analysis.model ?? t('model')}`}</Badge>
     : <Badge>{t('rules')}</Badge>;
 }
 
 function AnalysisResult({ analysis }: { analysis: AiAnalysis }) {
-  const { t } = useTranslation(['ai', 'common']);
+  const { t } = useTranslation(['ai', 'common', 'billing']);
   return <section className="ai-result" aria-label={t('result')}>
     <header><Bot size={17} /><strong>{t(`mode.${analysis.mode}`)}</strong><SourceBadge analysis={analysis} /><time>{formatDateTime(analysis.createdAt)}</time></header>
     <p>{analysis.summary}</p>
@@ -28,7 +30,16 @@ function AnalysisResult({ analysis }: { analysis: AiAnalysis }) {
 
 /** Advice, evaluation or forecast from work metrics only — never message contents. Every result is kept in the history. */
 export function AiAnalysisDialog({ targetUserId, targetName, onClose }: { targetUserId: string; targetName: string; onClose: () => void }) {
-  const { t } = useTranslation(['ai', 'common']);
+  const { session } = useAuth();
+  const isDirector = session?.user.role === 'DIRECTOR';
+  // Whether the company's tariff includes AI; on an error the server decides (it refuses with PLAN_AI_REQUIRED).
+  const [aiIncluded, setAiIncluded] = useState(true);
+  useEffect(() => {
+    let active = true;
+    (isDemoBilling() ? createDemoBilling(0) : remoteBilling).features().then((features) => { if (active) setAiIncluded(features?.ai !== false); }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+  const { t } = useTranslation(['ai', 'common', 'billing']);
   const { analyze, loadAnalyses } = useWorkspace();
   const [view, setView] = useState<'new' | 'history'>('new');
   const [mode, setMode] = useState<AiMode>('ADVICE');
@@ -55,7 +66,7 @@ export function AiAnalysisDialog({ targetUserId, targetName, onClose }: { target
     finally { setLoading(false); }
   };
 
-  const footer = view === 'new'
+  const footer = view === 'new' && aiIncluded
     ? <><Button variant="secondary" onClick={onClose}>{t('common:actions.close')}</Button><Button icon={Sparkles} disabled={loading} onClick={() => void run()}>{loading ? t('analysing') : t('run')}</Button></>
     : <Button variant="secondary" onClick={onClose}>{t('common:actions.close')}</Button>;
 
@@ -66,7 +77,8 @@ export function AiAnalysisDialog({ targetUserId, targetName, onClose }: { target
       {loading && <LoadingState label={t('collecting')} />}
       {error && <div className="form-error" role="alert">{error}</div>}
       {result && <AnalysisResult analysis={result} />}
-      {!result && !loading && !error && <p className="dialog-note ai-hint">{t('hint')}</p>}
+      {!aiIncluded && <div className="notice notice--info ai-plan" role="note">{t('billing:ai.planRequired')}{isDirector && <Link to="/settings/billing" onClick={onClose}>{t('billing:ai.planLink')}</Link>}</div>}
+      {aiIncluded && !result && !loading && !error && <p className="dialog-note ai-hint">{t('hint')}</p>}
     </> : opened ? <>
       <Button variant="ghost" icon={ArrowLeft} onClick={() => setOpened(null)}>{t('back')}</Button>
       <AnalysisResult analysis={opened} />

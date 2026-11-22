@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Оформлення · mockup</title>
+<style>
+  :root { --bg:#f4f6f7; --surface:#fff; --line:#dfe5e3; --text:#202827; --muted:#687472; --primary:#3949ab; --primary-soft:#ebedf7; --sidebar:#1f2540; --sidebar-text:#fff; --sidebar-muted:#a9aecb; }
+  * { box-sizing: border-box; } body { margin:0; font: 13px/1.45 Inter, system-ui, sans-serif; color:var(--text); background:var(--bg); display:flex; min-height:100vh; }
+  aside { width:220px; background:var(--sidebar); color:var(--sidebar-text); display:flex; flex-direction:column; }
+  .brand { height:65px; display:flex; align-items:center; gap:10px; padding:0 17px; border-bottom:1px solid rgba(255,255,255,.08); font-weight:700; font-size:17px; }
+  .mark { width:31px; height:31px; border-radius:5px; background:#fff; display:grid; place-items:center; overflow:hidden; } .mark img { width:100%; }
+  nav a { display:flex; align-items:center; gap:10px; margin:2px 9px; padding:10px; border-radius:5px; color:var(--sidebar-muted); text-decoration:none; font-size:12.5px; }
+  nav a.active { color:var(--sidebar-text); background:rgba(255,255,255,.1); }
+  main { flex:1; padding:28px 32px; } h1 { margin:0 0 4px; font-size:24px; } .sub { color:var(--muted); margin-bottom:22px; }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:7px; padding:18px 20px; margin-bottom:16px; max-width:760px; }
+  .head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; } .head h2 { margin:0; font-size:15px; }
+  .btn { border:1px solid var(--line); background:#fff; border-radius:5px; padding:7px 12px; font:inherit; cursor:pointer; } .btn.primary { background:var(--primary); color:#fff; border-color:var(--primary); }
+  .row { display:flex; gap:24px; align-items:center; } dt { color:var(--muted); font-size:11px; } dd { margin:2px 0 0; font-weight:600; }
+  .logo { width:64px; height:64px; border:1px dashed var(--line); border-radius:7px; display:grid; place-items:center; }
+  .sw { display:inline-flex; align-items:center; gap:8px; } .sw i { width:28px; height:28px; border-radius:5px; display:inline-block; border:1px solid rgba(0,0,0,.08); }
+  .preview { display:flex; border:1px solid var(--line); border-radius:7px; overflow:hidden; } .preview .side { width:150px; background:var(--sidebar); color:var(--sidebar-text); padding:12px; }
+  .preview .side span { display:block; padding:6px 8px; border-radius:5px; color:var(--sidebar-muted); } .preview .side span.on { background:rgba(255,255,255,.1); color:var(--sidebar-text); }
+  .preview .body { flex:1; padding:16px; } a.link { color:var(--primary); }
+  .reset { color:#a44444; background:none; border:0; font:inherit; cursor:pointer; padding:0; }
+</style>
+</head>
+<body>
+<aside>
+  <div class="brand"><span class="mark"><svg width="22" height="22" viewBox="0 0 22 22"><rect x="2" y="2" width="18" height="18" rx="4" fill="#3949ab"/><path d="M7 15V7h4a3 3 0 0 1 0 6H9" stroke="#fff" stroke-width="2" fill="none"/></svg></span>RDIM Office</div>
+  <nav><a href="#">Головна</a><a href="#">CRM</a><a href="#">Задачі</a><a href="#">Аудит</a><a class="active" href="#">Оформлення</a><a href="#">Профіль</a></nav>
+</aside>
+<main>
+  <h1>Оформлення</h1>
+  <div class="sub">Назва, логотип і кольори для всієї компанії. Зміни бачать усі одразу.</div>
+
+  <section class="card">
+    <div class="head"><h2>Назва і логотип</h2><div><button class="btn">Змінити назву</button> <button class="btn">Завантажити логотип</button> <button class="btn">Прибрати логотип</button></div></div>
+    <div class="row"><div class="logo"><svg width="44" height="44" viewBox="0 0 22 22"><rect x="2" y="2" width="18" height="18" rx="4" fill="#3949ab"/><path d="M7 15V7h4a3 3 0 0 1 0 6H9" stroke="#fff" stroke-width="2" fill="none"/></svg></div>
+      <dl><dt>Назва</dt><dd>RDIM Office</dd></dl><dl><dt>Логотип</dt><dd>rdim-logo.png · оновлено 22 лист.</dd></dl></div>
+  </section>
+
+  <section class="card">
+    <div class="head"><h2>Кольори</h2><button class="btn">Змінити кольори</button></div>
+    <div class="row"><span class="sw"><i style="background:#3949ab"></i><span><small style="color:var(--muted)">Акцент</small><br><b>#3949ab</b></span></span>
+      <span class="sw"><i style="background:#1f2540"></i><span><small style="color:var(--muted)">Бічна панель</small><br><b>#1f2540</b></span></span></div>
+  </section>
+
+  <section class="card">
+    <div class="head"><h2>Як це виглядає</h2></div>
+    <div class="preview"><div class="side"><b>RDIM Office</b><span>CRM</span><span class="on">Задачі</span><span>Повідомлення</span></div>
+      <div class="body"><p>Кнопки, посилання й активні елементи — в акцентному кольорі.</p><button class="btn primary">Нова задача</button> <a class="link" href="#">Відкрити звіти</a></div></div>
+  </section>
+
+  <button class="reset">Повернути стандартне оформлення</button>
+</main>
+</body>
+</html>

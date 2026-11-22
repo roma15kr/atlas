@@ -8,6 +8,7 @@ import { alertVisibility, withOverdueTasks } from "./alerts";
 import { dealScope } from "./deals";
 import { ALERT_TEXT_COLUMNS, localizeAlert, type AlertTextRow } from "../automation/alertText";
 import { languageOf } from "../i18n";
+import { brandingOf } from "../branding";
 
 export const dashboardRouter = Router();
 
@@ -59,6 +60,7 @@ dashboardRouter.get("/", asyncHandler(async (req, res) => {
     )
   ]);
   const language = await languageOf(auth.userId);
+  const { appName } = await brandingOf(auth.companyId);
   const presence = await presenceFor(users.rows.map((user) => user.id));
   res.json({
     data: {
@@ -76,7 +78,7 @@ dashboardRouter.get("/", asyncHandler(async (req, res) => {
         ...user,
         presence: presence[user.id] ?? { userId: user.id, status: "OFFLINE", lastSeenAt: null }
       })),
-      alerts: await withOverdueTasks(auth, alerts.rows.map((row) => localizeAlert(language, row as AlertTextRow)))
+      alerts: await withOverdueTasks(auth, alerts.rows.map((row) => localizeAlert(language, row as AlertTextRow, appName)))
     }
   });
 }));
