@@ -72,7 +72,8 @@ describe("tariffs and payments", () => {
     } finally { config.STRIPE_SECRET_KEY = key; }
   });
 
-  it("gives a director the plans from Stripe and a checkout with the active-user quantity", async () => {
+  it("gives a director the plans from Stripe and a checkout with the active-user quantity, and opens Atlas's own portal when configured", async () => {
+    const { config } = await import("../config");
     const overview = (await request(app).get("/api/v1/billing").set(auth(boss))).body.data;
     expect(overview).toMatchObject({ configured: true, activeUsers: 3, subscription: null });
     expect(overview.plans).toEqual(expect.arrayContaining([{ plan: "STANDARD", period: "YEAR", unitAmount: 6000, currency: "USD" }, { plan: "STANDARD_AI", period: "MONTH", unitAmount: 1000, currency: "USD" }]));
@@ -82,6 +83,11 @@ describe("tariffs and payments", () => {
     expect(session).toMatchObject({ mode: "subscription", customer: "cus_1", client_reference_id: company, "line_items[0][price]": "price_ai_y", "line_items[0][quantity]": "3" });
     expect((await audits("BILLING_CHECKOUT_STARTED")).at(-1)!.metadata).toEqual({ plan: "STANDARD_AI", period: "YEAR" });
     expect((await request(app).post("/api/v1/billing/portal").set(auth(boss))).body.data.url).toBe("https://billing.stripe.test/p_1");
+    expect(calls.filter((call) => call.path === "/v1/billing_portal/sessions").at(-1)!.body.configuration).toBeUndefined();
+    config.STRIPE_PORTAL_CONFIGURATION = "bpc_atlas";
+    await request(app).post("/api/v1/billing/portal").set(auth(boss));
+    expect(calls.filter((call) => call.path === "/v1/billing_portal/sessions").at(-1)!.body).toMatchObject({ customer: "cus_1", configuration: "bpc_atlas" });
+    config.STRIPE_PORTAL_CONFIGURATION = undefined;
   });
 
   it("refuses a manager and an employee with 403 and audits it", async () => {

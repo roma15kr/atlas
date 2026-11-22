@@ -348,7 +348,7 @@ Tariffs are paid by card through Stripe (ADR 0007). Set it up once per environme
    | `STRIPE_PRICE_AI_YEARLY` | Стандарт + AI | yearly | 96.00 |
 
    Copy each `price_…` id into the variable.
-2. **Customer portal** (Settings → Billing → Customer portal). Allow:
+2. **Customer portal.** If the Stripe account also serves other business, create a separate configuration through the API and put its id in `STRIPE_PORTAL_CONFIGURATION`. Production does this: the account is shared and has its own products; the configuration has metadata `atlas=true`. Otherwise use the default (Settings → Billing → Customer portal). Either way, allow:
    - updating payment methods and viewing invoices;
    - cancelling «at end of billing period»;
    - switching plans between the two products and their four prices, with proration.
