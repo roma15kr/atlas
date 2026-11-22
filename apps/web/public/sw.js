@@ -1,5 +1,5 @@
 /* Atlas service worker: shows notifications pushed by the API and opens their link on click, and shows an
-   offline page when a page can't load. It holds no session data; the push payload is { id, title, body, link, tag }. */
+   offline page when a page can't load. It holds no session data; the push payload is { id, title, body, link, tag, icon?, badge? } (icon and badge come from the company logo). */
 const OFFLINE_CACHE = 'atlas-offline-v1';
 const OFFLINE_PAGE = '/offline.html';
 
@@ -32,7 +32,7 @@ self.addEventListener('push', (event) => {
     if (data.tag !== 'test' && windows.some((client) => client.focused && client.visibilityState === 'visible')) return;
     await self.registration.showNotification(data.title || 'Atlas', {
       body: data.body || '', tag: data.tag || data.id, renotify: Boolean(data.tag),
-      icon: '/notification-icon.png', badge: '/notification-icon.png', data: { link: data.link || '/' },
+      icon: data.icon || '/notification-icon.png', badge: data.badge || '/notification-icon.png', data: { link: data.link || '/' },
     });
   })());
 });

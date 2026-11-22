@@ -28,6 +28,8 @@ import { TelegramPage } from './pages/TelegramPage';
 import { TelegramSettingsPage } from './pages/TelegramSettingsPage';
 import { TasksPage } from './pages/TasksPage';
 import { TeamPage } from './pages/TeamPage';
+import { BrandingSettingsPage } from './pages/BrandingSettingsPage';
+import { BrandingProvider } from './context/BrandingContext';
 import type { Role } from './types';
 import i18n from './i18n';
 
@@ -36,7 +38,7 @@ function ProtectedLayout() {
   if (loading) return <div className="app-loading"><LoadingState label={i18n.t('ui:workspace')} /></div>;
   if (!session) return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   if (session.user.mustChangePassword) return <ChangePasswordPage />;
-  return <ChatProvider><MailProvider><TelegramProvider><AppShell><Routes><Route path="/" element={<DashboardPage />} /><Route path="/crm" element={<CrmPage />} /><Route path="/crm/:id" element={<ClientPage />} /><Route path="/sales" element={<SalesPage />} /><Route path="/sales/settings" element={<RoleGate roles={['DIRECTOR']}><FunnelSettingsPage /></RoleGate>} /><Route path="/tasks" element={<TasksPage />} /><Route path="/boards" element={<BoardsPage />} /><Route path="/boards/settings" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><BoardSettingsPage /></RoleGate>} /><Route path="/boards/:id/settings" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><BoardSettingsPage /></RoleGate>} /><Route path="/documents" element={<DocumentsPage />} /><Route path="/team" element={<TeamPage />} /><Route path="/reports" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><ReportsPage /></RoleGate>} /><Route path="/achievements" element={<AchievementsPage />} /><Route path="/messages" element={<MessagesPage />} /><Route path="/mail" element={<MailPage />} /><Route path="/mail/settings" element={<MailSettingsPage />} /><Route path="/mail/oauth/:provider" element={<MailOAuthPage />} /><Route path="/telegram" element={<TelegramPage />} /><Route path="/telegram/settings" element={<RoleGate roles={['DIRECTOR']}><TelegramSettingsPage /></RoleGate>} /><Route path="/audit" element={<RoleGate roles={['DIRECTOR']}><AuditPage /></RoleGate>} /><Route path="/profile" element={<ProfilePage />} /><Route path="/feedback" element={<FeedbackPage />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></AppShell></TelegramProvider></MailProvider></ChatProvider>;
+  return <ChatProvider><MailProvider><TelegramProvider><AppShell><Routes><Route path="/" element={<DashboardPage />} /><Route path="/crm" element={<CrmPage />} /><Route path="/crm/:id" element={<ClientPage />} /><Route path="/sales" element={<SalesPage />} /><Route path="/sales/settings" element={<RoleGate roles={['DIRECTOR']}><FunnelSettingsPage /></RoleGate>} /><Route path="/tasks" element={<TasksPage />} /><Route path="/boards" element={<BoardsPage />} /><Route path="/boards/settings" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><BoardSettingsPage /></RoleGate>} /><Route path="/boards/:id/settings" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><BoardSettingsPage /></RoleGate>} /><Route path="/documents" element={<DocumentsPage />} /><Route path="/team" element={<TeamPage />} /><Route path="/reports" element={<RoleGate roles={['DIRECTOR', 'MANAGER']}><ReportsPage /></RoleGate>} /><Route path="/achievements" element={<AchievementsPage />} /><Route path="/messages" element={<MessagesPage />} /><Route path="/mail" element={<MailPage />} /><Route path="/mail/settings" element={<MailSettingsPage />} /><Route path="/mail/oauth/:provider" element={<MailOAuthPage />} /><Route path="/telegram" element={<TelegramPage />} /><Route path="/telegram/settings" element={<RoleGate roles={['DIRECTOR']}><TelegramSettingsPage /></RoleGate>} /><Route path="/audit" element={<RoleGate roles={['DIRECTOR']}><AuditPage /></RoleGate>} /><Route path="/settings/appearance" element={<RoleGate roles={['DIRECTOR']}><BrandingSettingsPage /></RoleGate>} /><Route path="/profile" element={<ProfilePage />} /><Route path="/feedback" element={<FeedbackPage />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></AppShell></TelegramProvider></MailProvider></ChatProvider>;
 }
 
 function RoleGate({ roles, children }: { roles: Role[]; children: React.ReactNode }) {
@@ -45,5 +47,5 @@ function RoleGate({ roles, children }: { roles: Role[]; children: React.ReactNod
 }
 
 export default function App() {
-  return <Routes><Route path="/login" element={<LoginPage />} /><Route path="/*" element={<ProtectedLayout />} /></Routes>;
+  return <BrandingProvider><Routes><Route path="/login" element={<LoginPage />} /><Route path="/*" element={<ProtectedLayout />} /></Routes></BrandingProvider>;
 }

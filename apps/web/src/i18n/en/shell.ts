@@ -5,14 +5,14 @@ export const shell = {
   nav: {
     dashboard: 'Dashboard', crm: 'CRM', sales: 'Funnel', tasks: 'My tasks', boards: 'Boards', documents: 'Documents',
     team: 'Employees', reports: 'Reports', achievements: 'Achievements',
-    messages: 'Messages', mail: 'Mail', telegram: 'Telegram', feedback: 'Feedback', audit: 'Audit', profile: 'Profile',
+    messages: 'Messages', mail: 'Mail', telegram: 'Telegram', feedback: 'Feedback', appearance: 'Appearance', audit: 'Audit', profile: 'Profile',
     groupTeam: 'TEAM', groupCommunication: 'COMMUNICATION & CONTROL',
   },
   pages: {
     dashboard: 'Dashboard', crm: 'CRM', client: 'Client card', sales: 'Sales funnel', salesSettings: 'Funnel settings',
     tasks: 'My tasks', boards: 'Task boards', boardSettings: 'Board settings', documents: 'Documents', team: 'Team',
     reports: 'Reports', achievements: 'Achievements', messages: 'Messages', mail: 'Mail', mailSettings: 'Mail settings',
-    telegram: 'Telegram', telegramSettings: 'Telegram settings', audit: 'Audit log', feedback: 'Feedback', profile: 'Profile',
+    telegram: 'Telegram', telegramSettings: 'Telegram settings', appearance: 'Appearance', audit: 'Audit log', feedback: 'Feedback', profile: 'Profile',
   },
   frame: {
     mainNav: 'Main navigation', openMenu: 'Open menu', closeMenu: 'Close menu', expandMenu: 'Expand menu', collapseMenu: 'Collapse menu',
