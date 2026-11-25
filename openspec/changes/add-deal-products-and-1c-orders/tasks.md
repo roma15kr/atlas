@@ -18,30 +18,30 @@
 
   Commit.
 
-## 3. Sending to 1C
+## 3. Creating the order in BPI
 
-- [ ] 3.1 `erp/orderXml.ts` (golden-file test against b2b's tag order, escaping), the BPI `add-order` client, the replaceable `erp/exchange.ts` uploader (`.part` then rename), `POST /deals/:id/orders` with access rules, `bpi_manager_id` in the member dialog, audit, «Передати в 1С» and the order badge. Verify these tests:
-  - the «sends an order» integration test;
-  - the refusal cases (no products, no client, no BPI manager id);
-  - web: «sends to 1C and shows the order number».
+- [ ] 3.1 The BPI `add-order` client with a replaceable transport, `POST /deals/:id/orders` with the access rules, `bpi_manager_id` in the member dialog, audit, «Створити замовлення» and the order badge. Verify these tests:
+  - «creates the order in BPI with the client, the lines…, then locks the deal»;
+  - «makes exactly one BPI call and no other outside request»;
+  - the refusal cases;
+  - web: «creates the order and shows the BPI number».
 
   Commit.
-- [ ] 3.2 Add the protocol library once the exchange server's protocol is known (`ssh2-sftp-client` or `basic-ftp`, approved), and `ONEC_EXCHANGE_*` config with «not configured». Verify: «reports not configured and still saves products», and an upload test against a local SFTP/FTP test server if one is available; otherwise the faked uploader. Commit.
 
 ## 4. Reliability
 
-- [ ] 4.1 Add the scheduler step `erp-orders`: retries with growing pauses, `FAILED` after 24 h with a notification, the no-duplicate BPI create, and «Спробувати ще». Verify these tests:
-  - «queues the upload when the server is down and delivers it later under the same number»;
-  - «marks it failed after 24 hours and notifies the sender»;
-  - «never creates a second BPI order…».
+- [ ] 4.1 The scheduler step `erp-orders`: retries with growing pauses, the duplicate check by the comment marker (with the «Перевірте в BPI» fallback if BPI returns no comments), `FAILED` after 24 h with a notification, and «Спробувати ще». Verify these tests:
+  - «queues the order when BPI is down and creates it once later»;
+  - «adopts the order a timed-out call already created…»;
+  - «marks it failed after 24 hours…».
 
   Commit.
 
 ## 5. Changing a sent order
 
-- [ ] 5.1 Lock after sending, «Змінити замовлення», re-sending as a new order that names the old one, and the order history. Verify: «unlocks and re-sends a new order that names the one it replaces», and web: «a locked deal offers Змінити замовлення». Commit.
+- [ ] 5.1 Lock after creating, «Змінити замовлення», creating a new order that names the old one, and the order history. Verify: «unlocks and creates a new order that names the one it replaces», and web: «a locked deal offers Змінити замовлення». Commit.
 
 ## 6. Docs and live check
 
-- [ ] 6.1 ADR 0008, `docs/external/README.md` (`BPI_URL`, `ONEC_EXCHANGE_*`), the setup steps in `docs/OPERATIONS.md`, `docs/ARCHITECTURE.md` and `STATUS.md`. Run `make check`, `npm run build` and `npx openspec validate add-deal-products-and-1c-orders --strict`. Commit.
-- [ ] 6.2 Live check with the 1C admin: set the exchange settings in Coolify, set one manager's BPI id, send one real order, and confirm 1C imported it with the right lines. Verify that 1C shows the order.
+- [ ] 6.1 ADR 0008, `docs/external/README.md` (`BPI_URL`), the BPI manager ids step in `docs/OPERATIONS.md`, `docs/ARCHITECTURE.md` and `STATUS.md`. Run `make check`, `npm run build` and `npx openspec validate add-deal-products-and-1c-orders --strict`. Commit.
+- [ ] 6.2 Live check: set one manager's BPI id, create one real order from a deal, and confirm it appears in BPI with the right lines. Verify that BPI shows the order.
