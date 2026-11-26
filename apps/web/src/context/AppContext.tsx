@@ -139,6 +139,7 @@ const normalizeDeal = (source: Record<string, unknown>): Deal => {
     stage: { id: String(stage.id ?? ''), name: String(stage.name ?? ''), color: String(stage.color ?? '#6B7280'), outcome: stage.outcome ?? 'OPEN' },
     value: Number(source.value ?? 0), currency: 'UAH', probability: Number(source.probability ?? 0), expectedCloseAt: String(source.expectedCloseAt ?? ''),
     notes: typeof source.notes === 'string' ? source.notes : null,
+    productCount: Number(source.productCount ?? 0), productsLocked: Boolean(source.productsLocked),
   };
 };
 
@@ -417,6 +418,8 @@ interface WorkspaceValue {
   updateDealNotes: (id: string, notes: string) => Promise<void>;
   /** Corrects a deal's details; only the changed fields are sent. */
   updateDeal: (id: string, patch: DealPatch) => Promise<void>;
+  /** After a deal's products or order changed on the server (or in the demo store): its amount and product state. */
+  applyDealProducts: (id: string, change: { value?: number; productCount?: number; productsLocked?: boolean }) => void;
   funnelConfig: FunnelConfig;
   addTask: (input: TaskInput) => Promise<WorkTask>;
   updateTask: (id: string, patch: Partial<TaskInput>) => Promise<void>;
@@ -700,6 +703,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const raw = await remote(() => api.update<Record<string, unknown>>('deals', id, { notes }));
     setDeals((current) => current.map((deal) => deal.id !== id ? deal : raw ? normalizeDeal(raw) : { ...deal, notes: notes || null }));
   }, [remote]);
+
+  const applyDealProducts = useCallback((id: string, change: { value?: number; productCount?: number; productsLocked?: boolean }) => {
+    setDeals((current) => current.map((deal) => deal.id === id ? { ...deal, ...change } : deal));
+  }, []);
 
   const updateDeal = useCallback(async (id: string, patch: DealPatch) => {
     const raw = await remote(() => api.update<Record<string, unknown>>('deals', id, patch));
@@ -1055,10 +1062,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     users: visibleUsers,
     clients: scopedClients, deals: scopedDeals, funnels: visibleFunnels, taskBoards: visibleBoards, tasks: visibleTasks, documents, reports, alerts: visibleAlerts,
     achievements, audit, dashboardMetrics: metrics, refresh,
-    dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, teamDirectory, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, updateDealNotes, updateDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, loadAnalyses,
+    dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, teamDirectory, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, updateDealNotes, updateDeal, applyDealProducts, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, loadAnalyses,
   // scoped is intentionally derived from current session and collections.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, teamDirectory, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, updateDealNotes, updateDeal, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, loadAnalyses, session]);
+  }), [visibleUsers, clients, deals, funnels, visibleBoards, visibleTasks, documents, reports, alerts, achievements, audit, metrics, refresh, dataStatus, createTeamMember, disabledUsers, updateMember, setMemberActive, removeMemberAvatar, resetMemberPassword, teamDirectory, addKpi, updateKpi, deleteKpi, addClient, updateClient, addDeal, moveDeal, updateDealNotes, updateDeal, applyDealProducts, funnelConfig, addTask, updateTask, moveTask, deleteTask, taskBoardConfig, addDocument, addReport, acknowledgeAlert, setReportActive, deleteReport, loadReportRuns, analyze, loadAnalyses, session]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

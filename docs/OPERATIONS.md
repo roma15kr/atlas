@@ -363,3 +363,10 @@ Tariffs are paid by card through Stripe (ADR 0007). Set it up once per environme
 
 **Removing the variables** turns billing off again without losing data; AI and all features stay on.
 
+## Products in deals and orders in BPI
+Deals take products from b2b.rdim.ua's catalogue (BPI). «Створити замовлення» creates the order in BPI the way b2b's checkout does (ADR 0008). Nothing to configure except the optional `BPI_URL`.
+
+1. **After the deploy:** a director opens «Команда» → «Змінити» for each salesperson and checks «Менеджер у BPI». Atlas matches people to BPI staff by name, and a director can pick someone else.
+2. **First real order:** check that it appears in BPI with the right lines and number. Atlas keeps the exact body it sent in `deal_orders.request` for support.
+3. **If BPI is down:** orders wait as «Очікує створення» and are retried for 24 hours, never creating a duplicate; then the sender is notified and can press «Спробувати ще».
+

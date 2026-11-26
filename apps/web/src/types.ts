@@ -109,6 +109,10 @@ export interface Deal {
   expectedCloseAt: string;
   /** Markdown. */
   notes?: string | null;
+  /** Lines from the product catalogue; with any, the value is their sum. */
+  productCount?: number;
+  /** Set once the deal's order is created in BPI, until «Змінити замовлення». */
+  productsLocked?: boolean;
 }
 
 /** The deal fields that can be corrected after creation. */

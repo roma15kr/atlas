@@ -1,6 +1,7 @@
 import { CalendarDays, GripVertical, Layers, MoreHorizontal, NotebookText, Pencil, Plus, Settings2, SlidersHorizontal, UserRound } from 'lucide-react';
 import { useEffect, useMemo, useState, type DragEvent, type FormEvent, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { DealProducts } from '../components/sales/DealProducts';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fitsLimit, RichTextEditor } from '../components/richtext/RichTextEditor';
 import { RichTextView } from '../components/richtext/RichTextView';
@@ -144,6 +145,7 @@ function DealDetailsDialog({ deal, onClose }: { deal: Deal; onClose: () => void 
         </dl>
         <Button variant="secondary" icon={Pencil} onClick={() => setEditing(true)}>{t('details.edit')}</Button>
       </>}
+    <DealProducts deal={deal} />
     <section className="deal-notes" aria-label={t('form.notes')}>
       <header><h3>{t('form.notes')}</h3>{!notesEditing && <button type="button" className="text-button" onClick={() => { setDraft(deal.notes ?? ''); setNotesEditing(true); }}>{deal.notes ? t('details.editNotes') : t('details.addNotes')}</button>}</header>
       {notesEditing
@@ -159,7 +161,7 @@ function DealDetailsDialog({ deal, onClose }: { deal: Deal; onClose: () => void 
 
 /** The deal's fields as a form; sends only what changed. The owner can be changed by heads and directors only. */
 function DealDetailsForm({ deal, onCancel, onSaved }: { deal: Deal; onCancel: () => void; onSaved: () => void }) {
-  const { t } = useTranslation(['sales', 'common']);
+  const { t } = useTranslation(['sales', 'common', 'orders']);
   const { session } = useAuth();
   const { funnels, users, clients, updateDeal } = useWorkspace();
   const stages = funnels.find((item) => item.id === deal.funnelId)?.stages ?? [];
@@ -195,7 +197,7 @@ function DealDetailsForm({ deal, onCancel, onSaved }: { deal: Deal; onCancel: ()
       {clients.some((client) => client.id === deal.clientId) ? null : <option value={deal.clientId}>{deal.companyName}</option>}
       {[...clients].sort((a, b) => a.companyName.localeCompare(b.companyName, 'ru')).map((client) => <option value={client.id} key={client.id}>{client.companyName}</option>)}
     </SelectField>
-    <Field label={t('form.amount')}><input type="number" min="0" max="1000000000" step="0.01" required value={value} onChange={(event) => setValue(event.target.value)} /></Field>
+    <Field hint={deal.productCount ? t('orders:amountHint') : undefined} label={t('form.amount')}><input type="number" min="0" max="1000000000" step="0.01" required readOnly={Boolean(deal.productCount)} value={value} onChange={(event) => setValue(event.target.value)} /></Field>
     <Field label={t('form.probability')}><input type="number" min="0" max="100" step="1" required value={probability} onChange={(event) => setProbability(event.target.value)} /></Field>
     <Field label={t('form.closeDate')}><input type="date" required value={closeDate} onChange={(event) => setCloseDate(event.target.value)} /></Field>
     <SelectField label={t('form.stage')} value={stageId} onChange={(event) => setStageId(event.target.value)}>{stages.map((stage) => <option value={stage.id} key={stage.id}>{stage.name}</option>)}</SelectField>

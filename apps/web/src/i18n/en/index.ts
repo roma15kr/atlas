@@ -11,6 +11,7 @@ import { documents } from './documents';
 import { errors } from './errors';
 import { feedback } from './feedback';
 import { mail } from './mail';
+import { orders } from './orders';
 import { profile } from './profile';
 import { reports } from './reports';
 import { sales } from './sales';
@@ -22,4 +23,4 @@ import { telegram } from './telegram';
 import { ui } from './ui';
 
 /** All namespaces of this language. */
-export const en = { achievements, ai, audit, billing, branding, chat, common, crm, dashboard, documents, errors, feedback, mail, profile, reports, sales, shell, stages, tasks, team, telegram, ui };
+export const en = { achievements, ai, audit, billing, branding, chat, common, crm, dashboard, documents, errors, feedback, mail, orders, profile, reports, sales, shell, stages, tasks, team, telegram, ui };

@@ -47,6 +47,8 @@ const envSchema = z.object({
   VAPID_SUBJECT: z.preprocess((value) => value === "" ? undefined : value, z.string().regex(/^(mailto:|https:\/\/)/).default("mailto:admin@atlas.local")),
   PRESENCE_IDLE_MINUTES: z.coerce.number().int().min(5).max(120).default(15),
   OPENAI_API_KEY: z.string().optional(),
+  // b2b.rdim.ua's back office: product catalogue and orders (no authentication, as for b2b).
+  BPI_URL: z.preprocess((value) => value === "" ? undefined : value, z.string().url().default("https://bpi.rdim.ua")),
   // Stripe billing: without the key and all four prices, billing reports "not configured" and every feature stays on.
   STRIPE_SECRET_KEY: z.preprocess((value) => value === "" ? undefined : value, z.string().optional()),
   STRIPE_WEBHOOK_SECRET: z.preprocess((value) => value === "" ? undefined : value, z.string().optional()),

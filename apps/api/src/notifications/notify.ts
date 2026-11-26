@@ -7,7 +7,7 @@ export const NOTIFICATION_GROUPS = {
   TASK_ASSIGNED: "tasks", TASK_COMMENTED: "tasks", TASK_DUE: "tasks", TASK_OVERDUE: "tasks",
   CHAT_DIRECT: "chat", CHAT_MENTION: "chat", CHAT_MESSAGE: "chat",
   TELEGRAM_MESSAGE: "telegram",
-  ALERT_CREATED: "alerts", DEAL_ASSIGNED: "alerts", CLIENT_ASSIGNED: "alerts", BILLING_PAYMENT_FAILED: "alerts"
+  ALERT_CREATED: "alerts", DEAL_ASSIGNED: "alerts", CLIENT_ASSIGNED: "alerts", BILLING_PAYMENT_FAILED: "alerts", DEAL_ORDER_FAILED: "alerts"
 } as const;
 export type NotificationKind = keyof typeof NOTIFICATION_GROUPS;
 export type NotificationGroup = (typeof NOTIFICATION_GROUPS)[NotificationKind];

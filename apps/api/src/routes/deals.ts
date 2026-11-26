@@ -91,8 +91,10 @@ dealsRouter.get("/:id", asyncHandler(async (req, res) => {
 dealsRouter.patch("/:id", asyncHandler(async (req, res) => {
   const auth = requireAuth(req);
   const id = idSchema.parse(req.params.id);
-  const existing = await scopedDeal(auth, id) as { funnelId: string; ownerId: string };
+  const existing = await scopedDeal(auth, id) as { funnelId: string; ownerId: string; productCount: number };
   const input = dealPatch.parse(req.body);
+  // With products, the amount is their sum (see routes/dealOrders.ts); it can't be typed over.
+  if (input.value !== undefined && existing.productCount > 0) throw new ApiError(409, "DEAL_VALUE_FROM_PRODUCTS", "The amount is the sum of the deal's products");
   const data: Record<string, unknown> = {
     ...input,
     expectedCloseAt: asOptionalDate(input.expectedCloseAt),
@@ -178,7 +180,7 @@ async function resolveStage(companyId: string, funnelId: string, stageId?: strin
   return result.rows[0].id;
 }
 
-async function scopedDeal(auth: ReturnType<typeof requireAuth>, id: string): Promise<Record<string, unknown>> {
+export async function scopedDeal(auth: ReturnType<typeof requireAuth>, id: string): Promise<Record<string, unknown>> {
   const scope = dealScope(auth, 2);
   const result = await query(
     `SELECT ${dealColumns()}
@@ -198,7 +200,8 @@ function dealColumns(): string {
     d.expected_close_at AS "expectedCloseAt", d.closed_at AS "closedAt", d.notes,
     json_build_object('id', c.id, 'name', c.name, 'companyName', c.company_name) AS client,
     json_build_object('id', u.id, 'fullName', u.full_name) AS owner,
-    d.created_at AS "createdAt", d.updated_at AS "updatedAt"`;
+    d.created_at AS "createdAt", d.updated_at AS "updatedAt", d.products_locked AS "productsLocked",
+    (SELECT count(*)::int FROM deal_products dp WHERE dp.deal_id = d.id) AS "productCount"`;
 }
 
 function stripTotal(row: Record<string, unknown>): Record<string, unknown> {

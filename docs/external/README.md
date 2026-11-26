@@ -15,6 +15,7 @@ Things outside this repository that agents need to know exist. NAMES only, never
   - `MAIL_ENCRYPTION_KEY` — encrypts stored mailbox credentials (see `docs/OPERATIONS.md`).
   - `BACKUP_AGE_RECIPIENT` — public age key that backups are encrypted to.
   - `BOOTSTRAP_ADMIN_PASSWORD` — the first director's password on a new installation.
+  - `BPI_URL` — optional; b2b.rdim.ua's back office for the product catalogue and orders, default `https://bpi.rdim.ua` (no credentials, as for b2b).
   - `STRIPE_SECRET_KEY` — Stripe secret (or restricted) key for tariffs and payments: Checkout, Customers, Subscriptions, Billing Portal, Invoices, Prices (read). Use a test key on atlas-dev, a live key in production. Without it, billing shows «not configured» and every feature, AI included, stays on.
   - `STRIPE_WEBHOOK_SECRET` — the signing secret (`whsec_…`) of the webhook endpoint `https://<host>/api/stripe/webhook`.
   - `STRIPE_PRICE_STANDARD_MONTHLY`, `STRIPE_PRICE_STANDARD_YEARLY`, `STRIPE_PRICE_AI_MONTHLY`, `STRIPE_PRICE_AI_YEARLY` — the four Price ids (`price_…`), see `docs/OPERATIONS.md` → «Stripe billing».

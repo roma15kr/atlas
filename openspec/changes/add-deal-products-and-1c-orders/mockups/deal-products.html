@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Угода з товарами · mockup</title>
+<style>
+  body { margin:0; font:13px/1.45 Inter, system-ui, sans-serif; color:#202827; background:rgba(20,30,28,.45); min-height:100vh; display:grid; place-items:center; padding:24px; }
+  .dialog { width:760px; background:#fff; border-radius:7px; box-shadow:0 20px 60px rgba(0,0,0,.25); }
+  header, footer { padding:16px 20px; } header { border-bottom:1px solid #dfe5e3; } header h2 { margin:0; font-size:16px; } header p { margin:3px 0 0; color:#687472; }
+  .body { padding:16px 20px; display:grid; gap:16px; }
+  .facts { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; } .facts div { background:#f8faf9; border-radius:5px; padding:8px 10px; } dt { color:#687472; font-size:10px; text-transform:uppercase; } dd { margin:2px 0 0; font-weight:600; }
+  .hint { color:#687472; font-size:11px; }
+  .section h3 { margin:0 0 8px; font-size:14px; display:flex; justify-content:space-between; align-items:center; }
+  table { width:100%; border-collapse:collapse; } th, td { text-align:left; padding:8px 6px; border-top:1px solid #edf0ef; } th { color:#687472; font-size:11px; font-weight:600; border-top:0; } td.num, th.num { text-align:right; }
+  .code { color:#687472; font-size:11px; } .total td { font-weight:700; border-top:1px solid #cbd5d2; }
+  .badge { display:inline-block; padding:2px 7px; border-radius:4px; font-size:11px; font-weight:600; } .ok { background:#e8f3ed; color:#39815a; } .wait { background:#f8efe1; color:#a66c20; } .box { background:#e9f0f7; color:#366e9e; }
+  .btn { border:1px solid #dfe5e3; background:#fff; border-radius:5px; padding:7px 12px; font:inherit; } .primary { background:#176f68; border-color:#176f68; color:#fff; }
+  .orders { color:#687472; font-size:12px; } .orders li { margin:3px 0; }
+  footer { border-top:1px solid #dfe5e3; display:flex; justify-content:space-between; gap:8px; align-items:center; }
+</style>
+</head>
+<body>
+<div class="dialog" role="dialog" aria-label="Угода">
+  <header><h2>Поставка «Тепла підлога ТОВ», листопад</h2><p>Тепла підлога ТОВ · Воронка «Опт» · Етап «Замовлення й поставка»</p></header>
+  <div class="body">
+    <dl class="facts">
+      <div><dt>Сума</dt><dd>24 359,10 ₴</dd><span class="hint">Рахується з товарів</span></div>
+      <div><dt>Ймовірність</dt><dd>80%</dd></div>
+      <div><dt>Відповідальний</dt><dd>Олена Бабенко</dd></div>
+      <div><dt>Закриття</dt><dd>30.11.2026</dd></div>
+    </dl>
+    <section class="section">
+      <h3>Товари <span><span class="badge ok">Замовлення в BPI № 10452 · 25.11, 14:03</span></span></h3>
+      <table>
+        <tr><th>Товар</th><th class="num">Кількість</th><th class="num">Ціна</th><th class="num">Сума</th></tr>
+        <tr><td>TXLP/2R 200W 1.2-1.5 м²<div class="code">000006669</div></td><td class="num">3 шт</td><td class="num">5 010,00 ₴</td><td class="num">15 030,00 ₴</td></tr>
+        <tr><td>TXLP/2R 200W 1.2-1.5 м² <span class="badge box">ящик</span><div class="code">000007078 · знижка 10%</div></td><td class="num">2 ящ.</td><td class="num">4 662,90 ₴</td><td class="num">9 325,80 ₴</td></tr>
+        <tr class="total"><td colspan="3">Разом</td><td class="num">24 355,80 ₴</td></tr>
+      </table>
+      <ul class="orders"><li>№ 10452 — створено 25.11, 14:03 · Олена Бабенко</li><li>№ 10441 — замінене № 10452</li></ul>
+    </section>
+  </div>
+  <footer><span class="hint">Товари заблоковані після створення замовлення</span><span><button class="btn">Змінити замовлення</button> <button class="btn primary" disabled>Створити замовлення</button></span></footer>
+</div>
+</body>
+</html>
