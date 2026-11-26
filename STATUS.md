@@ -8,6 +8,12 @@ _Last updated: 2026-11-16 by Claude_
 - Open OpenSpec changes waiting for a live check: `add-email-client` (mailbox), `add-telegram-customer-inbox` (test bot), `add-alert-rules-and-scheduled-reports` (an automatic alert).
 
 ## Done recently
+- Products in deals and orders in BPI (`add-deal-products-and-1c-orders`, migration 029, branch `feat/deal-products-1c`, not yet deployed or archived), asked by the director:
+  - deals take products from the b2b catalogue (BPI `prods/price`), with the unit or box (box code and price), price or discount, and whole quantities; the deal amount follows them;
+  - «Створити замовлення» creates the order only through BPI's `add-order`, under the employee's BPI manager matched by name (directors can override);
+  - retried for 24 h without duplicates; locked after creation; «Змінити замовлення» re-creates it as a new order naming the old one.
+
+  Found while preparing, and left as the director decided: b2b.rdim.ua's container can't see `/var/www/1csync`, so its 1C XML files probably don't reach 1C. Next: PR into `dev`, check matches in «Команда» on atlas-dev, a first real order with the director, `dev` → `main`, archive.
 - Stripe live setup for production (2026-11-22, by API with the director's restricted live key in the workspace `.env`, never committed). This is the shared DigiSoft Stripe account (it has its own products). Created:
   - «Atlas Стандарт» and «Atlas Стандарт + AI» with four USD prices (lookup keys `atlas_standard_monthly`/`_yearly`, `atlas_ai_monthly`/`_yearly`);
   - an Atlas-only portal configuration (metadata `atlas=true`, not the account default);
