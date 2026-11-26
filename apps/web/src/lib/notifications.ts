@@ -1,7 +1,7 @@
 import { apiRequest } from './api';
 
 export type NotificationKind = 'TASK_ASSIGNED' | 'TASK_COMMENTED' | 'TASK_DUE' | 'TASK_OVERDUE' | 'CHAT_DIRECT' | 'CHAT_MENTION' | 'CHAT_MESSAGE'
-  | 'TELEGRAM_MESSAGE' | 'ALERT_CREATED' | 'DEAL_ASSIGNED' | 'CLIENT_ASSIGNED' | 'BILLING_PAYMENT_FAILED';
+  | 'TELEGRAM_MESSAGE' | 'ALERT_CREATED' | 'DEAL_ASSIGNED' | 'CLIENT_ASSIGNED' | 'BILLING_PAYMENT_FAILED' | 'DEAL_ORDER_FAILED';
 
 export interface AppNotification {
   id: string; kind: NotificationKind; title: string; body: string | null; link: string; createdAt: string; readAt: string | null;
