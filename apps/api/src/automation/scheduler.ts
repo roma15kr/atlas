@@ -8,6 +8,7 @@ import { runDueReports } from "./reports";
 import { runTaskReminders } from "./taskReminders";
 import { cleanupStaleUploads } from "./uploads";
 import { runBilling } from "../billing/subscription";
+import { retryDealOrders } from "../erp/orders";
 
 export interface AutomationStep { name: string; run: () => Promise<unknown> }
 
@@ -20,7 +21,8 @@ const steps: AutomationStep[] = [
   { name: "reports", run: () => runDueReports() },
   { name: "task-reminders", run: () => runTaskReminders() },
   { name: "attachment-uploads", run: () => cleanupStaleUploads() },
-  { name: "billing", run: () => runBilling() }
+  { name: "billing", run: () => runBilling() },
+  { name: "erp-orders", run: () => retryDealOrders() }
 ];
 
 export function registerAutomationStep(step: AutomationStep): void {
