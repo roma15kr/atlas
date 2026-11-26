@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Products in a deal
-Anyone who may edit a deal SHALL add products to it from the product catalogue (b2b.rdim.ua's BPI), by searching the name or 1C code, and SHALL set each line's quantity and whether it is sold by the unit or by the box. A line SHALL start at the catalogue's unit or box price, and the editor MAY change the line's price or give a discount in percent. Lines SHALL show the name, 1C code, quantity, price and line total. Lines MAY be removed while the deal's order is not locked.
+Anyone who may edit a deal SHALL add products to it from the product catalogue (b2b.rdim.ua's BPI), by searching the name or 1C code, and SHALL set each line's quantity, a whole number, and whether it is sold by the unit or by the box. A line SHALL start at the catalogue's unit or box price, and the editor MAY change the line's price or give a discount in percent. Lines SHALL show the name, 1C code, quantity, price and line total. Lines MAY be removed while the deal's order is not locked.
 
 #### Scenario: Adding a product
 - **WHEN** a manager searches «TXLP 200» in a deal and adds «TXLP/2R 200W 1.2-1.5 м²» with quantity 3
