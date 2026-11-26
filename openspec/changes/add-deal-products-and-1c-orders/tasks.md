@@ -20,10 +20,11 @@
 
 ## 3. Creating the order in BPI
 
-- [ ] 3.1 The BPI `add-order` client with a replaceable transport, `POST /deals/:id/orders` with the access rules, `bpi_manager_id` in the member dialog, audit, «Створити замовлення» and the order badge. Verify these tests:
+- [ ] 3.1 The BPI `add-order` client with a replaceable transport, `POST /deals/:id/orders` with the access rules, the BPI staff list and name matching (`bpiManagers.ts`) with the director's «Менеджер у BPI» select, audit, «Створити замовлення» and the order badge. Verify these tests:
   - «creates the order in BPI with the client, the lines…, then locks the deal»;
   - «makes exactly one BPI call and no other outside request»;
   - the refusal cases;
+  - the name matcher on today's 11 BPI staff names, and a director's choice kept over the automatic match;
   - web: «creates the order and shows the BPI number».
 
   Commit.
@@ -44,4 +45,4 @@
 ## 6. Docs and live check
 
 - [ ] 6.1 ADR 0008, `docs/external/README.md` (`BPI_URL`), the BPI manager ids step in `docs/OPERATIONS.md`, `docs/ARCHITECTURE.md` and `STATUS.md`. Run `make check`, `npm run build` and `npx openspec validate add-deal-products-and-1c-orders --strict`. Commit.
-- [ ] 6.2 Live check: set one manager's BPI id, create one real order from a deal, and confirm it appears in BPI with the right lines. Verify that BPI shows the order.
+- [ ] 6.2 Live check: confirm the automatic BPI matches for the team, create one real order from a deal, and confirm it appears in BPI with the right lines. Verify that BPI shows the order.

@@ -19,6 +19,17 @@ The deal's owner, a manager covering the deal's department, or a director SHALL 
 - **WHEN** an employee tries to create the order of a colleague's deal through the API
 - **THEN** the request is refused with 404 if they can't see the deal, or 403 if they can only view it, and the attempt is audited
 
+### Requirement: The BPI manager is found by name
+Atlas SHALL link each employee to their BPI staff account (an admin or manager in BPI) by matching full names. Word order, letter case, apostrophes and the Ukrainian and Russian spellings of a first name SHALL not matter. A director SHALL see the match in «Змінити співробітника» and MAY choose another BPI manager there. An employee without a match SHALL be told that a director has to choose their BPI manager before they can create an order.
+
+#### Scenario: Names written differently
+- **WHEN** Atlas has «Наталья Денисюк» and BPI has staff member 2 «Денисюк Наталія»
+- **THEN** Atlas links her to BPI manager 2, and her orders go to BPI with manager 2
+
+#### Scenario: No match
+- **WHEN** an employee whose name matches no BPI staff account presses «Створити замовлення»
+- **THEN** nothing is created, and they're told to ask a director to choose their BPI manager
+
 ### Requirement: Atlas changes nothing outside BPI
 Creating an order SHALL only call BPI. Atlas SHALL NOT write files for 1C or change b2b.rdim.ua. What happens to the order after BPI SHALL stay as it is for b2b's orders.
 

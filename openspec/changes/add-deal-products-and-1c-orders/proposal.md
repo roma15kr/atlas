@@ -48,6 +48,7 @@ Deals in Atlas now have products. Open a deal, add items from the same catalogue
 ## Impact
 - **API:** catalogue from BPI (cached), deal products, BPI orders with retries, audit.
 - **Web:** «Товари» on the deal card, a product picker, «Створити замовлення» and the order status, in three languages.
-- **Database:** one migration (deal products, deal orders, the BPI manager id on users).
+- **Database:** one migration (deal products, deal orders, each user's BPI manager).
+- **Matching managers:** Atlas links each employee to their BPI staff account by name automatically, and a director can correct it.
 - **Dependencies:** none new.
 - **Configuration:** the BPI address (default `https://bpi.rdim.ua`).

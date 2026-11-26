@@ -57,7 +57,8 @@ CREATE TABLE deal_orders (
 );
 CREATE INDEX deal_orders_deal_idx ON deal_orders (deal_id, created_at DESC);
 ALTER TABLE deals ADD COLUMN products_locked boolean NOT NULL DEFAULT false;
-ALTER TABLE users ADD COLUMN bpi_manager_id integer;   -- set by a director in the member dialog
+ALTER TABLE users ADD COLUMN bpi_manager_id integer;   -- matched by name, or chosen by a director
+ALTER TABLE users ADD COLUMN bpi_manager_source text CHECK (bpi_manager_source IN ('AUTO', 'DIRECTOR'));
 ```
 - `deals.value` is recomputed in the same transaction whenever lines change. With no lines left, the value stays where it was and becomes editable again.
 
@@ -89,7 +90,12 @@ ALTER TABLE users ADD COLUMN bpi_manager_id integer;   -- set by a director in t
      - `sum_total` and `date`;
      - `comment`: «Atlas: угода <title> · atlas:<order row id>», plus «замінює № …» when re-sending.
   4. On a response with an `id`, store `bpi_order_id` and set `SENT` (200). On a timeout or error, keep `CREATING` with a `next_attempt_at` and answer 202 «Очікує створення».
-- **Without `bpi_manager_id`:** the creation is refused with 409 `BPI_MANAGER_REQUIRED` («Директор має вказати ваш ID менеджера в BPI»). Directors set the id in «Змінити співробітника».
+- **Finding the BPI manager** (`catalogue/bpiManagers.ts`): BPI has no list endpoint that works without b2b's session (`managers/<id>` answers empty), but `user-id/<id>` does. BPI staff (`user_type` `admin` or `manager`) hold the lowest ids: 1–11 today, with clients (`b2b`) after them.
+  - Atlas reads `user-id/1…100` once a day, and on demand from the member dialog, keeping admins and managers in memory. «Superadmin» is skipped.
+  - **Matching:** names are normalised (lowercase; ё→е; апостроф removed; і/ї/и and є/е unified; word order ignored). A match needs an equal surname, and first names that are equal or that one starts with the other's first 3 letters, so «Наталья» ↔ «Наталія».
+  - `users.bpi_manager_id` stores the match with `bpi_manager_source` `AUTO` or `DIRECTOR`. A director's choice is never overwritten. An `AUTO` match is refreshed if names change.
+  - **No match:** the creation answers 409 `BPI_MANAGER_REQUIRED` («Попросіть директора вибрати ваш профіль менеджера в BPI»).
+  - **Member dialog:** a «Менеджер у BPI» select (BPI staff by name, with the auto match preselected), director only.
 - **Scheduler step `erp-orders`:**
   - retries due `CREATING` rows with pauses of 1, 2, 4, 8, 15, 30 and then 60 minutes;
   - after 24 h, marks them `FAILED` and notifies the sender (`DEAL_ORDER_FAILED`, group `alerts`).
@@ -105,7 +111,7 @@ ALTER TABLE users ADD COLUMN bpi_manager_id integer;   -- set by a director in t
 - **`DealProductsDialog`:** search (debounced 250 ms) with results showing name, code, price, box price and stock; for each chosen line, quantity, unit or box, and price or discount %, with live totals; «Зберегти».
 - **Locked deal:** products are read-only, and «Змінити замовлення» is offered.
 - **Amount field:** in `DealDetailsForm` it becomes read-only when there are lines, with the hint «Сума рахується з товарів».
-- **Member dialog:** a «ID менеджера в BPI» field, director only.
+- **Member dialog:** «Менеджер у BPI», a select of BPI staff by name with the automatic match preselected, director only.
 - **Demo mode:** a catalogue of 12 sample products, and order creation simulated with numbers starting at 90001.
 - **Translations:** new `erp` keys in the `sales` namespace, in three languages.
 
@@ -118,7 +124,8 @@ ALTER TABLE users ADD COLUMN bpi_manager_id integer;   -- set by a director in t
 | `apps/api/src/erp/orders.ts` | create, retry, the duplicate check, unlock, the scheduler step |
 | `apps/api/src/routes/catalogue.ts`, `routes/dealOrders.ts` | endpoints (D3) |
 | `apps/api/src/routes/deals.ts` | value follows the lines, lock checks on `value` edits |
-| `apps/api/src/routes/teamAdmin.ts` | `bpiManagerId` (director) |
+| `apps/api/src/catalogue/bpiManagers.ts` | BPI staff list and name matching |
+| `apps/api/src/routes/teamAdmin.ts` | `bpiManagerId` (director), `GET /team/bpi-managers` |
 | `apps/api/src/config.ts`, `compose.yaml` | `BPI_URL` |
 | `apps/web/src/lib/catalogue.ts`, `lib/dealOrders.ts` | clients and demo backends |
 | `apps/web/src/components/sales/DealProducts.tsx` | section, picker dialog, order status |
@@ -152,7 +159,8 @@ ALTER TABLE users ADD COLUMN bpi_manager_id integer;   -- set by a director in t
   - «adopts the order a timed-out call already created instead of creating a second one»;
   - «marks it failed after 24 hours and notifies the sender»;
   - «unlocks and creates a new order that names the one it replaces»;
-  - «refuses without products, without a client, or without the sender's BPI manager id».
+  - «refuses without products, without a client, or without a BPI manager»;
+  - «matches «Наталья Денисюк» to BPI «Денисюк Наталія» and keeps a director's choice over the automatic match» (unit test of the matcher with today's 11 BPI staff names).
 - **Web:**
   - «a manager adds two products and the amount becomes their sum»;
   - «the amount field is read-only with products»;
@@ -169,11 +177,12 @@ ALTER TABLE users ADD COLUMN bpi_manager_id integer;   -- set by a director in t
 ## Migration Plan
 - 029 only adds objects, so nothing changes for existing deals.
 - **After the deploy:**
-  1. directors fill in their managers' BPI ids;
+  1. a director opens «Команда» to check the automatic BPI matches and picks any that are missing;
   2. create one test order and check it in BPI's order list.
 
 ## Least confident decisions
-1. **Which BPI user the order belongs to:** the sender's BPI manager id as both client and manager. Alternatives: a dedicated «Atlas» BPI user, or the customer's BPI account matched by phone or email.
+1. **Which BPI user the order belongs to:** the sender's BPI manager id as both client and manager, as when a manager orders in b2b for a customer. The alternative is the customer's BPI account matched by phone or email.
+5. **Reading BPI staff by scanning `user-id/1…100`** works because staff hold the lowest ids. A staff account created after id 100 would be missed, and a director would have to pick it by hand. A real BPI list endpoint would be better if one can be added.
 2. **Re-sending creates a new BPI order** that names the old one, instead of updating the old order. Someone then has to cancel the first.
 3. **The duplicate check needs a BPI read that returns an order's comment.** If none does, a timed-out call could still duplicate an order. The fallback is to mark it «Перевірте в BPI» for a person instead of retrying blindly.
 4. **Quantities allow decimals** (cable sold by the metre). b2b sends whole numbers, and BPI may reject decimals; to be checked with the first live order.
