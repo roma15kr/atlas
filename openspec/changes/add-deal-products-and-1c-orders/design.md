@@ -182,6 +182,6 @@ ALTER TABLE users ADD COLUMN bpi_manager_source text CHECK (bpi_manager_source I
 
 ## Least confident decisions
 1. **Which BPI user the order belongs to:** the sender's BPI manager id as both client and manager, as when a manager orders in b2b for a customer. The alternative is the customer's BPI account matched by phone or email.
-5. **Reading BPI staff by scanning `user-id/1…100`** works because staff hold the lowest ids. A staff account created after id 100 would be missed, and a director would have to pick it by hand. A real BPI list endpoint would be better if one can be added.
 2. **Re-sending creates a new BPI order** that names the old one, instead of updating the old order (the director agreed). Someone then has to cancel the first.
 3. **The duplicate check needs a BPI read that returns an order's comment.** If none does, a timed-out call could still duplicate an order. The fallback is to mark it «Перевірте в BPI» for a person instead of retrying blindly.
+4. **Reading BPI staff by scanning `user-id/1…100`** works because staff hold the lowest ids. A staff account created after id 100 would be missed, and a director would have to pick it by hand. A real BPI list endpoint would be better if one can be added.
