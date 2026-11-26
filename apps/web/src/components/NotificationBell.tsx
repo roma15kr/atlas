@@ -1,4 +1,4 @@
-import { AtSign, Bell, BellRing, CheckCheck, ClipboardList, Hash, MessageSquare, Send, Settings2, TriangleAlert, CreditCard } from 'lucide-react';
+import { AtSign, Bell, BellRing, CheckCheck, ClipboardList, Hash, MessageSquare, Send, Settings2, TriangleAlert, CreditCard, PackageX } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AppContext';
@@ -10,12 +10,12 @@ import { Badge, EmptyState } from './ui';
 const icons: Record<NotificationKind, typeof Bell> = {
   TASK_ASSIGNED: ClipboardList, TASK_COMMENTED: MessageSquare, TASK_DUE: BellRing, TASK_OVERDUE: BellRing,
   CHAT_DIRECT: MessageSquare, CHAT_MENTION: AtSign, CHAT_MESSAGE: Hash, TELEGRAM_MESSAGE: Send,
-  ALERT_CREATED: TriangleAlert, DEAL_ASSIGNED: ClipboardList, CLIENT_ASSIGNED: ClipboardList, BILLING_PAYMENT_FAILED: CreditCard,
+  ALERT_CREATED: TriangleAlert, DEAL_ASSIGNED: ClipboardList, CLIENT_ASSIGNED: ClipboardList, BILLING_PAYMENT_FAILED: CreditCard, DEAL_ORDER_FAILED: PackageX,
 };
 /** Icon tile tone per kind, from the status pairs of the design tokens. */
 const tones: Partial<Record<NotificationKind, string>> = {
   CHAT_DIRECT: 'blue', CHAT_MENTION: 'blue', CHAT_MESSAGE: 'blue', TELEGRAM_MESSAGE: 'blue',
-  TASK_DUE: 'amber', TASK_OVERDUE: 'red', ALERT_CREATED: 'amber', BILLING_PAYMENT_FAILED: 'red',
+  TASK_DUE: 'amber', TASK_OVERDUE: 'red', ALERT_CREATED: 'amber', BILLING_PAYMENT_FAILED: 'red', DEAL_ORDER_FAILED: 'red',
 };
 
 /** The bell in the top bar: unread count, and a panel listing the user's notifications, updated live. */

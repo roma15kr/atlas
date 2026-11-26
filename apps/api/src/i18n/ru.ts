@@ -38,6 +38,8 @@ export const ru = {
   "billing.failedBody": "Обновите карту в «Тариф и оплата», чтобы продлить {plan}.",
   "billing.plan.STANDARD": "«Стандарт»",
   "billing.plan.STANDARD_AI": "«Стандарт + AI»",
+  "order.failedTitle": "Заказ не создан в BPI",
+  "order.failedBody": "BPI не отвечал сутки, поэтому заказ сделки «{deal}» не создан. Попробуйте ещё раз из сделки.",
   "ai.answerIn": "Answer in Russian.",
   "ai.overdue": "Разберите просроченные задачи ({count}) и назначьте новые сроки.",
   "ai.kpiFocus": "Сосредоточьтесь на KPI с наибольшим весом до конца периода.",

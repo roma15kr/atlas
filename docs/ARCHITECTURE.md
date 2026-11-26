@@ -333,6 +333,9 @@ Where to look when a task spans several files.
   - API: `billing/stripe.ts` (REST client without an SDK, signature check, price mapping; `setStripeTransport` in tests), `billing/subscription.ts` (state, `aiIncluded`/`AI_ALLOWED_SQL`, seats, reminders, the `billing` scheduler step), `billing/webhook.ts` (mounted with the raw body before `express.json`) and `routes/billing.ts` (director-only, plus `features` for everyone). Migration 028.
   - AI checks: `routes/ai.ts` (403 `PLAN_AI_REQUIRED`) and `automation/feedback.ts` (triage only where AI is allowed).
   - Web: `lib/billing.ts` (client, demo backend, prices), `pages/BillingPage.tsx`, `components/BillingPrompt.tsx` (dashboard), and the tariff hint in `AiAnalysisDialog`.
+- **Deal products and BPI orders (ADR 0008):**
+  - API: `catalogue/bpi.ts` (catalogue cache and search, `add-order`, a replaceable transport), `catalogue/bpiManagers.ts` (BPI staff by `user-id`, name matching), `erp/orders.ts` (create, retries with the `atlas:<id>` marker, the `erp-orders` scheduler step), `routes/dealOrders.ts` (`/catalogue/products`, `/deals/:id/products`, `/deals/:id/orders…`, `/bpi-managers`). Migration 029.
+  - Web: `lib/dealOrders.ts` (client, demo backend), `components/sales/DealProducts.tsx` (section, picker, order status), and the «Менеджер у BPI» select in `MemberDialogs`.
 - **Request ids:** `app.ts` `requestId` sets `X-Request-Id` and the pino `req.id`.
 - **Files:** `storage.ts` `objectStorage` stores files on the local volume, or on S3 when fully configured. `routes/avatars.ts` serves profile photos by a random id.
 - **Web:**

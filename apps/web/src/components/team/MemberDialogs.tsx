@@ -1,11 +1,40 @@
 import { useTranslation } from 'react-i18next';
 import { Check, Copy, Eye, EyeOff, KeyRound, RefreshCw, UserCheck, UserX } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import type { MemberUpdate } from '../../context/AppContext';
-import { ApiError } from '../../lib/api';
+import { ApiError, apiRequest, sessionStore } from '../../lib/api';
 import { noDepartment, roleLabel } from '../../lib/format';
 import i18n from '../../i18n';
 import type { Role, User } from '../../types';
+
+interface BpiLinks { staff: Array<{ id: number; name: string }>; links: Array<{ userId: string; bpiManagerId: number | null; source: 'AUTO' | 'DIRECTOR' }> }
+
+/**
+ * For a director: the BPI manager an employee's orders are created under. «Автоматично» keeps the name match;
+ * choosing someone stores a director's choice. Not shown in demo mode or when BPI can't be reached.
+ */
+function useBpiManager(member: User, actor: User) {
+  const [bpi, setBpi] = useState<{ staff: Array<{ id: number; name: string }>; autoName: string | null } | null>(null);
+  const [initial, setInitial] = useState('');
+  const [choice, setChoice] = useState('');
+  useEffect(() => {
+    if (actor.role !== 'DIRECTOR' || sessionStore.get()?.accessToken.startsWith('demo-')) return;
+    let active = true;
+    apiRequest<BpiLinks>('/bpi-managers').then((data) => {
+      if (!active || !data?.staff) return;
+      const link = data.links.find((item) => item.userId === member.id);
+      const current = link?.source === 'DIRECTOR' && link.bpiManagerId ? String(link.bpiManagerId) : '';
+      const auto = link?.source === 'AUTO' && link.bpiManagerId ? data.staff.find((staff) => staff.id === link.bpiManagerId)?.name ?? null : null;
+      setBpi({ staff: data.staff, autoName: auto }); setInitial(current); setChoice(current);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [actor.role, member.id]);
+  const persist = async () => {
+    if (!bpi || choice === initial) return;
+    await apiRequest(`/bpi-managers/${member.id}`, { method: 'PUT', body: { bpiManagerId: choice ? Number(choice) : null } });
+  };
+  return { bpi, choice, setChoice, persist };
+}
 import { Button, Dialog, Field, IconButton, SelectField } from '../ui';
 
 const MEMBER_ERRORS = ['ROLE_CHANGE_FORBIDDEN', 'MANAGER_EMPLOYEE_ONLY', 'LAST_DIRECTOR', 'DEPARTMENT_REQUIRED', 'CANNOT_DISABLE_SELF', 'CANNOT_RESET_SELF', 'INVALID_CURRENT_PASSWORD', 'PASSWORD_REUSED', 'VALIDATION_ERROR'] as const;
@@ -44,7 +73,10 @@ interface EditMemberDialogProps {
 
 /** Directors edit everything except their own role; heads edit the profile fields of their employees. */
 export function EditMemberDialog({ member, actor, departments, save, onClose }: EditMemberDialogProps) {
-  const { t } = useTranslation(['team', 'common']);
+  const bpiState = useBpiManager(member, actor);
+  const { bpi } = bpiState;
+  const [bpiChoice, setBpiChoice] = [bpiState.choice, bpiState.setChoice];
+  const { t } = useTranslation(['team', 'common', 'orders']);
   const canPlace = actor.role === 'DIRECTOR' && actor.id !== member.id;
   const [role, setRole] = useState<Role>(member.role);
   const [saving, setSaving] = useState(false);
@@ -61,7 +93,7 @@ export function EditMemberDialog({ member, actor, departments, save, onClose }: 
       if (department && department !== member.department) patch.departmentName = department;
     }
     setSaving(true); setError('');
-    try { await save(patch); onClose(); }
+    try { await save(patch); await bpiState.persist(); onClose(); }
     catch (reason) { setError(memberErrorMessage(reason, t('edit.failed'))); }
     finally { setSaving(false); }
   };
@@ -73,6 +105,10 @@ export function EditMemberDialog({ member, actor, departments, save, onClose }: 
       {canPlace && <SelectField label={t('add.role')} aria-label={t('add.role')} value={role} onChange={(event) => setRole(event.target.value as Role)}>{(['EMPLOYEE', 'MANAGER', 'DIRECTOR'] as Role[]).map((value) => <option key={value} value={value}>{roleLabel[value]}</option>)}</SelectField>}
       {canPlace && <Field label={role === 'DIRECTOR' ? t('add.departmentOptional') : t('add.department')} hint={t('edit.departmentHint')}><input name="departmentName" list="member-departments" defaultValue={member.department === noDepartment() ? '' : member.department} required={role !== 'DIRECTOR'} maxLength={120} /><datalist id="member-departments">{departments.map((name) => <option key={name} value={name} />)}</datalist></Field>}
       <Field label={t('page.specialty')}><input name="specialty" defaultValue={member.specialty ?? ''} maxLength={160} /></Field>
+      {bpi && <SelectField label={t('orders:member.bpi')} aria-label={t('orders:member.bpi')} value={bpiChoice} onChange={(event) => setBpiChoice(event.target.value)} className="field--wide">
+        <option value="">{bpi.autoName ? t('orders:member.bpiAutoName', { name: bpi.autoName }) : t('orders:member.bpiNone')}</option>
+        {bpi.staff.map((staff) => <option key={staff.id} value={String(staff.id)}>{staff.name}</option>)}
+      </SelectField>}
       {error && <div className="form-error field--wide" role="alert">{error}</div>}
     </form>
   </Dialog>;

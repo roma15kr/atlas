@@ -38,6 +38,8 @@ export const en = {
   "billing.failedBody": "Update the card in «Plan and billing» to continue {plan}.",
   "billing.plan.STANDARD": "«Standard»",
   "billing.plan.STANDARD_AI": "«Standard + AI»",
+  "order.failedTitle": "The order wasn't created in BPI",
+  "order.failedBody": "BPI didn't answer for a day, so the order for «{deal}» wasn't created. Try again from the deal.",
   "ai.answerIn": "Answer in English.",
   "ai.overdue": "Sort out the overdue tasks ({count}) and set new deadlines.",
   "ai.kpiFocus": "Focus on the KPIs with the highest weight until the end of the period.",

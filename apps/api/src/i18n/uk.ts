@@ -37,6 +37,8 @@ export const uk = {
   "billing.failedBody": "Оновіть картку в «Тариф і оплата», щоб продовжити {plan}.",
   "billing.plan.STANDARD": "«Стандарт»",
   "billing.plan.STANDARD_AI": "«Стандарт + AI»",
+  "order.failedTitle": "Замовлення не створено в BPI",
+  "order.failedBody": "BPI не відповідав добу, тож замовлення угоди «{deal}» не створено. Спробуйте ще раз з угоди.",
   "ai.answerIn": "Answer in Ukrainian.",
   "ai.overdue": "Розберіть прострочені задачі ({count}) і призначте нові терміни.",
   "ai.kpiFocus": "Зосередьтеся на KPI з найбільшою вагою до кінця періоду.",

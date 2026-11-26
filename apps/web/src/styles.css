@@ -1579,3 +1579,33 @@ button.mail-thread-row { padding: 10px 10px 10px 14px; }
   .billing-prompt__actions { margin-left: 0; }
 }
 .notice--warning { color: var(--amber); background: var(--amber-soft); border-color: transparent; }
+
+/* Products in a deal and its order in BPI. */
+.deal-products { margin-top: 16px; display: grid; gap: 10px; }
+.deal-products > header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.deal-products > header h3 { margin: 0 auto 0 0; font-size: 14px; }
+.deal-products__table td.num, .deal-products__table th.num { text-align: right; white-space: nowrap; }
+.deal-products__table tfoot td { font-weight: 700; border-top: 1px solid var(--line-strong); }
+.deal-products__empty { margin: 0; color: var(--muted); }
+.deal-products__history summary { color: var(--muted); cursor: pointer; }
+.deal-products__history ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); }
+.deal-products__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.deal-products__actions .form-hint { margin-right: auto; }
+.deal-products__search { margin-bottom: 8px; }
+.deal-products__results { max-height: 240px; margin: 0 0 12px; padding: 0; overflow-y: auto; list-style: none; border: 1px solid var(--line); border-radius: 5px; }
+.deal-products__results li { padding: 7px 10px; display: flex; align-items: center; gap: 10px; border-top: 1px solid #edf0ef; }
+.deal-products__results li:first-child { border-top: 0; }
+.deal-products__results li > span { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.deal-products__subtitle { margin: 0 0 6px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.deal-products__drafts { display: grid; gap: 6px; }
+.deal-products__draft { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 5px; }
+.deal-products__draft-name { min-width: 200px; flex: 1; display: flex; flex-direction: column; }
+.deal-products__draft input[type="number"] { height: 32px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: 5px; }
+.deal-products__qty { width: 80px; }
+.deal-products__price { width: 110px; }
+.deal-products__discount { width: 70px; }
+.deal-products__box { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 12px; }
+.deal-products__total { margin: 6px 0 0; text-align: right; }
+@media (max-width: 780px) {
+  .deal-products__draft-name { min-width: 100%; }
+}
