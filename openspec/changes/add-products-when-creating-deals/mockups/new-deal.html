@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="uk">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Нова угода з товарами · mockup</title>
+<style>
+body { margin:0; font:13px/1.45 Inter, system-ui, sans-serif; color:#202827; background:rgba(20,30,28,.45); min-height:100vh; display:grid; place-items:center; padding:24px; }
+.dialog { width:760px; background:#fff; border-radius:7px; box-shadow:0 20px 60px rgba(0,0,0,.25); }
+header, footer { padding:16px 20px; } header { border-bottom:1px solid #dfe5e3; } header h2 { margin:0; font-size:16px; } header p { margin:3px 0 0; color:#687472; }
+.body { padding:16px 20px; display:grid; gap:12px; grid-template-columns:1fr 1fr; }
+label span { display:block; font-weight:600; margin-bottom:4px; } input, select { width:100%; box-sizing:border-box; border:1px solid #cbd5d2; border-radius:5px; padding:7px 9px; font:inherit; }
+input[readonly] { background:#f4f6f7; color:#687472; } .hint { color:#687472; font-size:11px; } .wide { grid-column:1/-1; }
+.section { grid-column:1/-1; border:1px solid #dfe5e3; border-radius:7px; padding:12px; }
+.section h3 { margin:0 0 8px; font-size:14px; display:flex; justify-content:space-between; }
+.line { display:flex; gap:8px; align-items:center; padding:6px 0; border-top:1px solid #edf0ef; } .line span { flex:1; } .line small { display:block; color:#687472; }
+.line input { width:80px; } .total { text-align:right; font-weight:700; }
+footer { border-top:1px solid #dfe5e3; display:flex; justify-content:flex-end; gap:8px; } .btn { border:1px solid #dfe5e3; background:#fff; border-radius:5px; padding:7px 12px; } .primary { background:#176f68; color:#fff; border-color:#176f68; }
+</style></head>
+<body><div class="dialog" role="dialog" aria-label="Нова угода">
+<header><h2>Нова угода</h2><p>Клієнт, воронка, етап і сума</p></header>
+<div class="body">
+  <label class="wide"><span>Назва</span><input value="Поставка для ТОВ Тепло"></label>
+  <label><span>Клієнт</span><select><option>ТОВ Тепло</option></select></label>
+  <label><span>Воронка</span><select><option>Опт</option></select></label>
+  <label><span>Сума, ₴</span><input readonly value="17 680,00"><small class="hint">Сума рахується з товарів</small></label>
+  <label><span>Ймовірність, %</span><input value="50"></label>
+  <section class="section"><h3>Товари <a href="#">Знайти в каталозі</a></h3>
+    <div class="line"><span>TXLP/2R 200W 1.2-1.5 м²<small>000006669 · за каталогом 5 010 ₴</small></span><input value="3"> шт <input value="5010"> ₴</div>
+    <div class="line"><span>Терморегулятор Nexans N-Comfort TR<small>000004402 · за каталогом 2 650 ₴</small></span><input value="1"> шт <input value="2650"> ₴</div>
+    <p class="total">Разом: 17 680,00 ₴</p>
+  </section>
+</div>
+<footer><button class="btn">Скасувати</button><button class="btn primary">Створити угоду</button></footer>
+</div></body></html>
