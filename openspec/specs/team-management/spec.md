@@ -198,7 +198,7 @@ The system SHALL store a job description of up to 20,000 characters for every me
 - **THEN** the member has no job description
 
 ### Requirement: Honest profile screen
-The profile screen SHALL save only through the API and SHALL NOT show controls for settings that Atlas does not implement.
+The profile screen SHALL save only through the API and SHALL NOT show controls for settings that Quorfield does not implement.
 
 #### Scenario: Saving the profile
 - **WHEN** a user changes their full name and clicks "Сохранить"
@@ -294,7 +294,7 @@ The system SHALL let every authenticated user list the ACTIVE users of their own
 - **THEN** the member is listed with `inTeam: false`, and the edit answers 404
 
 #### Scenario: Colleague online
-- **WHEN** a colleague from another department has Atlas open and is active
+- **WHEN** a colleague from another department has Quorfield open and is active
 - **THEN** their entry has `online: true`, and no `lastSeenAt`
 
 ### Requirement: Colleague contact card

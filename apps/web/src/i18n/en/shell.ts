@@ -20,11 +20,11 @@ export const shell = {
     unreadIn: '{{label}}: {{count}} unread', quickNav: 'Quick navigation', unread: 'unread: {{count}}', tasks: 'Tasks', more: 'More',
   },
   login: {
-    visual: 'Atlas workspace', photo: 'The Atlas team’s modern office', day: 'Working day', tagline1: 'Team, clients and decisions', tagline2: 'in one workspace.',
+    visual: 'Quorfield workspace', photo: 'The Quorfield team’s modern office', day: 'Working day', tagline1: 'Team, clients and decisions', tagline2: 'in one workspace.',
     demoReady: 'Demo team is ready', demoData: 'Sample data is loaded', welcome: 'Welcome', title: 'Sign in to your workspace',
     subtitle: 'Use your company account', username: 'Username', usernamePlaceholder: 'Your username', password: 'Password', passwordPlaceholder: 'Your password',
     showPassword: 'Show password', hidePassword: 'Hide password', capsLock: 'Caps Lock is on', submit: 'Sign in', submitting: 'Signing in…',
-    demoProfiles: 'Demo profiles', footer: 'Atlas Virtual Office · secure connection', language: 'Language',
+    demoProfiles: 'Demo profiles', footer: 'Quorfield Virtual Office · secure connection', language: 'Language',
     contactHint: 'Sign in with your username (e.g. ivanenko), not a phone number or email. Your head gives you the username.',
     cyrillicHint: 'Usernames are in Latin letters — switch your keyboard layout.',
     errors: {
@@ -57,7 +57,7 @@ export const shell = {
     tooShort: 'Please describe the problem in more detail', tooLong: 'At most {{max}} characters', notFound: 'Report not found',
     logSummary: {
       errors: 'App errors: {{errors}}; server requests: {{requests}}', failed: ' (failed: {{failed}})',
-      routes: 'Page changes: {{routes}}; server connection state', version: 'Atlas version {{version}}, {{viewport}}, {{language}}, {{timeZone}}',
+      routes: 'Page changes: {{routes}}; server connection state', version: 'Quorfield version {{version}}, {{viewport}}, {{language}}, {{timeZone}}',
     },
   },
 } satisfies Dictionary<typeof source>;

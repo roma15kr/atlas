@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Channel icon
-A channel admin or a DIRECTOR SHALL be able to give a channel an icon from Atlas's icon library, searchable in the interface language, on one of the palette colours, or clear it. It SHALL replace the channel's «#» or lock tile wherever the channel is shown. An icon or colour outside the library SHALL get 400 `CHAT_INVALID_ICON`. Changes SHALL be audited with ids only and reach open screens live; others SHALL get 403 `CHAT_FORBIDDEN`, audited.
+A channel admin or a DIRECTOR SHALL be able to give a channel an icon from Quorfield's icon library, searchable in the interface language, on one of the palette colours, or clear it. It SHALL replace the channel's «#» or lock tile wherever the channel is shown. An icon or colour outside the library SHALL get 400 `CHAT_INVALID_ICON`. Changes SHALL be audited with ids only and reach open screens live; others SHALL get 403 `CHAT_FORBIDDEN`, audited.
 
 #### Scenario: Admin picks an icon
 - **WHEN** the admin of «Общий», using Russian, picks the red colour, types «мег» and chooses «Мегафон»

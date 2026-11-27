@@ -4,7 +4,7 @@
 
 > "I press «AI-анализ» and get the same three generic sentences whichever mode I choose."
 
-The Team and Profile screens offer three kinds of AI analysis: advice, evaluation and forecast. On the test app they fall back to fixed rule texts, because no AI key is configured. The code is tied to Claude, with a default model that is now outdated. A result is shown once and then lost: nobody can look back at last month's evaluation or compare forecasts over time. Atlas is about to use OpenAI for problem reports anyway, and the product owner wants one inexpensive model for both, with the option to switch later if quality isn't good enough.
+The Team and Profile screens offer three kinds of AI analysis: advice, evaluation and forecast. On the test app they fall back to fixed rule texts, because no AI key is configured. The code is tied to Claude, with a default model that is now outdated. A result is shown once and then lost: nobody can look back at last month's evaluation or compare forecasts over time. Quorfield is about to use OpenAI for problem reports anyway, and the product owner wants one inexpensive model for both, with the option to switch later if quality isn't good enough.
 
 ## Evidence
 
@@ -31,8 +31,8 @@ The Team and Profile screens offer three kinds of AI analysis: advice, evaluatio
   - **forecast:** the expected outcome of open deals, based on their weighted value, and stating what it's based on.
 - Amounts are shown in hryvnia with "₴".
 - The result says which model produced it. When no key is configured, or the model fails, the built-in rule texts are used as before, labelled "Правила".
-- **Every analysis is stored in Atlas.** The result, the mode, who asked, about whom, the source (model or rules), the model and the figures it was based on are kept inside Atlas only. The "AI-анализ" dialog gets a "История" tab with past analyses of that person.
-- Claude is no longer used anywhere in Atlas.
+- **Every analysis is stored in Quorfield.** The result, the mode, who asked, about whom, the source (model or rules), the model and the figures it was based on are kept inside Quorfield only. The "AI-анализ" dialog gets a "История" tab with past analyses of that person.
+- Claude is no longer used anywhere in Quorfield.
 
 ## Non-goals
 
@@ -40,4 +40,4 @@ The Team and Profile screens offer three kinds of AI analysis: advice, evaluatio
 - Changing who may request an analysis for whom.
 - Choosing the model from the user interface.
 - Deleting or editing stored analyses, or exporting them.
-- Sending analyses anywhere outside Atlas, apart from the request to the model itself.
+- Sending analyses anywhere outside Quorfield, apart from the request to the model itself.

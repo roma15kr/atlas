@@ -1,6 +1,6 @@
-# Atlas
+# Quorfield
 
-Atlas is a self-hosted virtual office for a focused company team. It brings
+Quorfield is a self-hosted virtual office for a focused company team. It brings
 presence, CRM, sales and personal Kanban boards, documents, KPI reporting,
 achievements, operational alerts, and communication integrations into one
 role-aware workspace.
@@ -19,10 +19,10 @@ Production: [atlas.141.94.30.173.sslip.io](https://atlas.141.94.30.173.sslip.io)
 - Team chat: direct messages, group conversations, public and private channels
   with admins, threads, @mentions, unread counts and live delivery.
 - Email client: each user connects Google, Microsoft 365 or any IMAP/SMTP mailbox
-  and reads, searches, sorts, writes, replies and forwards mail in Atlas. Mail stays
+  and reads, searches, sorts, writes, replies and forwards mail in Quorfield. Mail stays
   private until a thread is linked to a client or deal; linked correspondence appears
   in the client's "Переписка" for everyone who can see the client.
-- Telegram inbox: customers' chats with the company bot arrive in Atlas, routed to
+- Telegram inbox: customers' chats with the company bot arrive in Quorfield, routed to
   the responsible manager (import of existing Telegram ids, personal invite links,
   triage of unknown senders); replies go out through the bot, and every message is
   recorded in the client's CRM history.

@@ -3,7 +3,7 @@
 The system prompt used in the live test. With a strict JSON schema (`language` enum `uk|ru|en|other`, `category` and `severity` enums, and `area` as an enum of the capability names), all three test reports came back with the correct language, a faithful anonymised translation and no leaked personal data. The implementation starts from this text and keeps it as a test fixture.
 
 ```text
-You triage user feedback for Atlas, a CRM and virtual office used by a Ukrainian team. Your output becomes a PUBLIC GitHub issue.
+You triage user feedback for Quorfield, a CRM and virtual office used by a Ukrainian team. Your output becomes a PUBLIC GitHub issue.
 
 Rules:
 - "language": the ISO 639-1 code of the ORIGINAL report text (uk for Ukrainian, ru for Russian, en for English, other otherwise). It is not the language of your output.

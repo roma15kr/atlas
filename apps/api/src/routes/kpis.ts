@@ -99,7 +99,7 @@ kpisRouter.post("/", asyncHandler(async (req, res) => {
   const owner = await loadOwner(auth, input.userId);
   await assertCanManage(req, auth, owner, null);
   const automatic = input.source !== "MANUAL";
-  if (automatic && input.actual !== undefined) throw new ApiError(400, "KPI_ACTUAL_COMPUTED", "Automatic KPIs are measured by Atlas");
+  if (automatic && input.actual !== undefined) throw new ApiError(400, "KPI_ACTUAL_COMPUTED", "Automatic KPIs are measured by Quorfield");
   if (!automatic && !input.unit) throw new ApiError(400, "VALIDATION_ERROR", "Unit is required");
   const unit = automatic ? KPI_SOURCE_UNITS[input.source as Exclude<KpiSource, "MANUAL">] : input.unit!;
   const result = await query<{ id: string }>(
@@ -125,7 +125,7 @@ kpisRouter.patch("/:id", asyncHandler(async (req, res) => {
   await assertCanManage(req, auth, owner, id);
   const input = updateSchema.parse(req.body);
   if (input.source && input.source !== source) throw new ApiError(400, "KPI_SOURCE_LOCKED", "Delete the KPI and create a new one to change its source");
-  if (source !== "MANUAL" && input.actual !== undefined) throw new ApiError(400, "KPI_ACTUAL_COMPUTED", "Automatic KPIs are measured by Atlas");
+  if (source !== "MANUAL" && input.actual !== undefined) throw new ApiError(400, "KPI_ACTUAL_COMPUTED", "Automatic KPIs are measured by Quorfield");
   if (source !== "MANUAL" && input.unit !== undefined) throw new ApiError(400, "KPI_UNIT_LOCKED", "Automatic KPIs have a fixed unit");
   await query(
     `UPDATE kpis SET name = COALESCE($2, name), target = COALESCE($3, target), unit = COALESCE($4, unit),

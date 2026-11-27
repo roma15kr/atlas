@@ -92,9 +92,9 @@ describe('plan and billing', () => {
     const user = userEvent.setup();
     noSubscription();
     renderAs('director', '/');
-    const prompt = await screen.findByText('Выберите тариф Atlas', {}, { timeout: 5_000 });
+    const prompt = await screen.findByText('Выберите тариф Quorfield', {}, { timeout: 5_000 });
     await user.click(within(prompt.closest('section, div.consent-notice, [role="note"]') as HTMLElement).getByRole('button', { name: 'Позже' }));
-    expect(screen.queryByText('Выберите тариф Atlas')).not.toBeInTheDocument();
+    expect(screen.queryByText('Выберите тариф Quorfield')).not.toBeInTheDocument();
     expect(localStorage.getItem('atlas.billingPromptDismissed')).toBe('1');
   }, 15_000);
 

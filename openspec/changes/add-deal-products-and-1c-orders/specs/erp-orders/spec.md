@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Creating a deal's order in BPI
-The deal's owner, a manager covering the deal's department, or a director SHALL create the deal's order with «Створити замовлення», which needs a client and at least one product. Atlas SHALL create it with BPI's order call, as b2b.rdim.ua does, and the deal SHALL show the BPI order number. Every creation and every refused attempt SHALL be audited with ids only.
+The deal's owner, a manager covering the deal's department, or a director SHALL create the deal's order with «Створити замовлення», which needs a client and at least one product. Quorfield SHALL create it with BPI's order call, as b2b.rdim.ua does, and the deal SHALL show the BPI order number. Every creation and every refused attempt SHALL be audited with ids only.
 
 #### Scenario: What BPI receives
 - **WHEN** an order is created for a deal with two products
@@ -20,22 +20,22 @@ The deal's owner, a manager covering the deal's department, or a director SHALL 
 - **THEN** the request is refused with 404 if they can't see the deal, or 403 if they can only view it, and the attempt is audited
 
 ### Requirement: The BPI manager is found by name
-Atlas SHALL link each employee to their BPI staff account (an admin or manager in BPI) by matching full names. Word order, letter case, apostrophes and the Ukrainian and Russian spellings of a first name SHALL not matter. A director SHALL see the match in «Змінити співробітника» and MAY choose another BPI manager there. An employee without a match SHALL be told that a director has to choose their BPI manager before they can create an order.
+Quorfield SHALL link each employee to their BPI staff account (an admin or manager in BPI) by matching full names. Word order, letter case, apostrophes and the Ukrainian and Russian spellings of a first name SHALL not matter. A director SHALL see the match in «Змінити співробітника» and MAY choose another BPI manager there. An employee without a match SHALL be told that a director has to choose their BPI manager before they can create an order.
 
 #### Scenario: Names written differently
-- **WHEN** Atlas has «Наталья Денисюк» and BPI has staff member 2 «Денисюк Наталія»
-- **THEN** Atlas links her to BPI manager 2, and her orders go to BPI with manager 2
+- **WHEN** Quorfield has «Наталья Денисюк» and BPI has staff member 2 «Денисюк Наталія»
+- **THEN** Quorfield links her to BPI manager 2, and her orders go to BPI with manager 2
 
 #### Scenario: No match
 - **WHEN** an employee whose name matches no BPI staff account presses «Створити замовлення»
 - **THEN** nothing is created, and they're told to ask a director to choose their BPI manager
 
-### Requirement: Atlas changes nothing outside BPI
-Creating an order SHALL only call BPI. Atlas SHALL NOT write files for 1C or change b2b.rdim.ua. What happens to the order after BPI SHALL stay as it is for b2b's orders.
+### Requirement: Quorfield changes nothing outside BPI
+Creating an order SHALL only call BPI. Quorfield SHALL NOT write files for 1C or change b2b.rdim.ua. What happens to the order after BPI SHALL stay as it is for b2b's orders.
 
 #### Scenario: One call, nothing else
 - **WHEN** an order is created from a deal
-- **THEN** Atlas makes one order call to BPI and nothing else outside Atlas
+- **THEN** Quorfield makes one order call to BPI and nothing else outside Quorfield
 
 ### Requirement: Retries without duplicates
 If BPI doesn't answer, the order SHALL wait as «Очікує створення» and be retried automatically with growing pauses for up to 24 hours. It SHALL then be marked «Не створено», with a notification to the sender and a «Спробувати ще» action. A retry SHALL never create a second BPI order for the same send.

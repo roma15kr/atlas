@@ -1,7 +1,7 @@
 # Proposal: Tariffs and card payments (Stripe)
 
 ## Problem
-«I need to create tariffs, available for the director only. $5 per user for yearly billing and $7 per user for monthly payments for the regular tariff without AI, and $8 per user yearly and $10 per user monthly for the tariff with AI. Via the Stripe API.» Today Atlas has no notion of a paid plan: every feature, AI included, is always on, and there is no way to pay for it inside the app.
+«I need to create tariffs, available for the director only. $5 per user for yearly billing and $7 per user for monthly payments for the regular tariff without AI, and $8 per user yearly and $10 per user monthly for the tariff with AI. Via the Stripe API.» Today Quorfield has no notion of a paid plan: every feature, AI included, is always on, and there is no way to pay for it inside the app.
 
 ## Evidence
 - The director's request in the working session on 2026-11-22 (no inbox report).
@@ -11,7 +11,7 @@
 The company has an active, paid Stripe subscription within two weeks of release, and its charged quantity equals the number of active users on every invoice. Measured from the stored subscription and Stripe invoices.
 
 ## Why
-Paying by card from inside Atlas, with the price following the number of people actually using it, removes manual invoicing. Tying AI to its own tariff lets the company decide whether the AI features are worth their extra price.
+Paying by card from inside Quorfield, with the price following the number of people actually using it, removes manual invoicing. Tying AI to its own tariff lets the company decide whether the AI features are worth their extra price.
 
 ## What Changes
 - **Two tariffs, each billed monthly or yearly, priced per active user per month** (USD, charged by Stripe):
@@ -37,8 +37,8 @@ Paying by card from inside Atlas, with the price following the number of people 
   - new problem reports are kept but not translated or summarised by AI.
 
   Rule-based signals, reminders and everything else keep working on both tariffs.
-- **Overdue payments only remind:** when a charge fails, directors get a notification, repeated every 3 days while unpaid, and a warning on the screen. Atlas keeps working for everyone.
-- **Before the first payment, Atlas works as today,** AI included, and the director sees a prompt to choose a tariff.
+- **Overdue payments only remind:** when a charge fails, directors get a notification, repeated every 3 days while unpaid, and a warning on the screen. Quorfield keeps working for everyone.
+- **Before the first payment, Quorfield works as today,** AI included, and the director sees a prompt to choose a tariff.
 - Every billing action is recorded in the audit log.
 
 ## Capabilities
@@ -50,7 +50,7 @@ Paying by card from inside Atlas, with the price following the number of people 
 - `alerts-ai`: AI analysis is available only when the company's tariff includes AI (an added requirement).
 
 ## Non-goals
-- Selling Atlas to other companies, or a platform-owner level above directors.
+- Selling Quorfield to other companies, or a platform-owner level above directors.
 - Restricting or blocking anyone for non-payment.
 - Free trials, coupons, discounts and promo codes.
 - Payment methods other than cards and wallets on Stripe's page.
@@ -58,7 +58,7 @@ Paying by card from inside Atlas, with the price following the number of people 
 - Per-department or per-person tariffs.
 
 ## Announcement
-Atlas now has tariffs you can pay for by card right in the app. In «Тариф і оплата» the director chooses «Стандарт» or «Стандарт + AI», monthly or yearly (yearly is cheaper), and pays on Stripe's secure page. You only pay for active employees: when someone joins or is disabled, the next invoice follows. The AI analysis is part of «Стандарт + AI»; everything else works on both tariffs.
+Quorfield now has tariffs you can pay for by card right in the app. In «Тариф і оплата» the director chooses «Стандарт» or «Стандарт + AI», monthly or yearly (yearly is cheaper), and pays on Stripe's secure page. You only pay for active employees: when someone joins or is disabled, the next invoice follows. The AI analysis is part of «Стандарт + AI»; everything else works on both tariffs.
 
 ## Impact
 - **API:**
@@ -72,6 +72,6 @@ Atlas now has tariffs you can pay for by card right in the app. In «Тариф 
 - **Database:** one new migration.
 - **External:** a Stripe account with four prices, its secret key and webhook secret set in Coolify.
 - **Docs:**
-  - an ADR on billing in USD through Stripe (Atlas's UAH-only rule covers deals, not this);
+  - an ADR on billing in USD through Stripe (Quorfield's UAH-only rule covers deals, not this);
   - `docs/external/README.md` with the new variable names.
 - **Translations:** new texts in Ukrainian, Russian and English.

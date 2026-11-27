@@ -8,7 +8,7 @@
 4. Run `openspec list` to see active changes; read `openspec/specs/<area>/spec.md` for the area you change.
 
 ## Project
-- Name: Atlas
+- Name: Quorfield
 - Purpose: a self-hosted virtual office for a ~20-person team. It covers CRM with sales funnels, task boards, documents, chat, email, a Telegram inbox, presence, KPIs, alerts, reports and AI analysis.
 - Stack: an npm-workspaces monolith on Node.js 22:
   - `apps/api`: Express, zod and pg, with Socket.IO and Redis;

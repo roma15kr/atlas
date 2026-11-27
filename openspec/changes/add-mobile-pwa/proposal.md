@@ -3,20 +3,20 @@
 ## Why
 
 **Problem.**
-- Atlas is a desktop website: no app icon, and nothing that opens full-screen. Managers on the road (Ковальчук in the call centre, the DIY promoters in shops, Денисюк between meetings) use it in a phone browser tab.
+- Quorfield is a desktop website: no app icon, and nothing that opens full-screen. Managers on the road (Ковальчук in the call centre, the DIY promoters in shops, Денисюк between meetings) use it in a phone browser tab.
 - On a phone, «Мои задачи» is a sideways-scrolling board, chat and Telegram stack a list above a fixed-height conversation, and the 13-item sidebar hides behind a menu button.
 - Desktop pop-ups now exist, but iPhones receive Web Push only from an app added to the home screen.
 
 **Evidence.** The director, 2026-10-16: «Is there any possibility to make PWA or fast mobile app?», then «go ahead» for a PWA with phone layouts of the screens used on the go.
 
-**Success metric.** Staff install Atlas on their phones and use tasks, chat, Telegram and notifications without zooming or sideways scrolling. Checked:
+**Success metric.** Staff install Quorfield on their phones and use tasks, chat, Telegram and notifications without zooming or sideways scrolling. Checked:
 - live on an Android phone and an iPhone (install, push, the four screens);
 - after two weeks, at least the sales department has installed it.
 
 ## What Changes
 
 - **Installable app.**
-  - Atlas gets a web app manifest (name, icons, the brand colour, full-screen «standalone» mode), so Chrome offers «Установить приложение» on Android and desktop, and iPhone Safari offers «На экран Домой».
+  - Quorfield gets a web app manifest (name, icons, the brand colour, full-screen «standalone» mode), so Chrome offers «Установить приложение» on Android and desktop, and iPhone Safari offers «На экран Домой».
   - «Профиль → Приложение» shows an install button where the browser supports one, or short iPhone instructions.
 - **Phone navigation** (screens up to 640px): a bottom bar with «Задачи», «Сообщения», «Telegram», «CRM» and «Ещё», which opens the full menu. The bell stays at the top.
 - **Phone layouts of the screens used on the go:**
@@ -30,7 +30,7 @@
 
 ## Announcement
 
-Atlas can now be installed on your phone. On Android open atlas.rdim.ua in Chrome and tap «Установить приложение»; on iPhone tap «Поделиться → На экран Домой». The app opens full-screen, receives notifications, and «Мои задачи», chat, Telegram and client cards are laid out for the phone.
+Quorfield can now be installed on your phone. On Android open atlas.rdim.ua in Chrome and tap «Установить приложение»; on iPhone tap «Поделиться → На экран Домой». The app opens full-screen, receives notifications, and «Мои задачи», chat, Telegram and client cards are laid out for the phone.
 
 ## Non-goals
 

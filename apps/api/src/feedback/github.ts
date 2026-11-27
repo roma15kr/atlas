@@ -57,9 +57,9 @@ export function feedbackIssueBody(source: IssueSource): string {
     `- App version: \`${source.app_version ?? "unknown"}\``,
     `- Browser: ${browserName(source.user_agent)}`,
     `- Category: ${categoryTitle[source.category]} · severity ${source.severity.toLowerCase()} · area \`${source.area}\``,
-    `- Atlas report: \`${source.id.slice(0, 8)}\``, "",
+    `- Quorfield report: \`${source.id.slice(0, 8)}\``, "",
     "---",
-    "_Created automatically from an in-app report. The original text, screenshot and diagnostic log stay in Atlas for directors._"
+    "_Created automatically from an in-app report. The original text, screenshot and diagnostic log stay in Quorfield for directors._"
   ].join("\n"));
 }
 

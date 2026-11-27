@@ -43,7 +43,7 @@ describe("company branding", () => {
   it("gives the standard look before anything is saved, without a token", async () => {
     const response = await request(app).get("/api/v1/branding");
     expect(response.status).toBe(200);
-    expect(response.body.data).toMatchObject({ appName: "Atlas", accentColor: "#176f68", sidebarColor: "#1d2a28", logoVersion: null, files: null });
+    expect(response.body.data).toMatchObject({ appName: "Quorfield", accentColor: "#176f68", sidebarColor: "#1d2a28", logoVersion: null, files: null });
   });
 
   it("lets a director change the title and colours, audits the field names and tells everyone", async () => {
@@ -129,7 +129,7 @@ describe("company branding", () => {
     await uploadLogo(boss);
     const keys = (await harness.query<{ logo_keys: Record<string, string> }>("SELECT logo_keys FROM company_branding")).rows[0]!.logo_keys;
     const reset = await request(app).delete("/api/v1/branding").set(auth(boss));
-    expect(reset.body.data).toMatchObject({ appName: "Atlas", accentColor: "#176f68", files: null });
+    expect(reset.body.data).toMatchObject({ appName: "Quorfield", accentColor: "#176f68", files: null });
     expect((await harness.query("SELECT 1 FROM company_branding")).rowCount).toBe(0);
     const { objectStorage } = await import("../storage");
     expect(await objectStorage.get(keys.icon512!).catch(() => null)).toBeNull();

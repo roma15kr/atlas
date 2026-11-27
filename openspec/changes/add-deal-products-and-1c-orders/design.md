@@ -10,8 +10,8 @@
   1. `POST https://bpi.rdim.ua/add-order` with `{ name, user_id, phone, organization, manager_id, delivery, payment_status, execution_status, goods[{id, art, name, url, image, number, price, power, length, box}], sum_total, date, town, address, sum_np, comment }` → `{ id, manager_id }`;
   2. then the XML `<data><id_order/><client/><login/><email/><ship/><city/><sklad/><tel/><prim/><manager/>…<tovs><itemN><id/><art/><name/><col/><sum/></itemN></tovs></data>`, written to `SYNC_1C_DIR/orders/<id>.xml`.
   - b2b never fills the manager fields (it reads an undefined `$manager`), and it doesn't escape text.
-- **Servers:** b2b and BPI run on another server than Atlas. 1C reads `/var/www/1csync` on that server, which b2b's container doesn't mount.
-- **The director's decision:** Atlas only calls BPI's API. It writes no files and changes neither b2b nor the server.
+- **Servers:** b2b and BPI run on another server than Quorfield. 1C reads `/var/www/1csync` on that server, which b2b's container doesn't mount.
+- **The director's decision:** Quorfield only calls BPI's API. It writes no files and changes neither b2b nor the server.
 - **Background work:** `automation/scheduler.ts` steps under an advisory lock, as for billing and feedback.
 
 ## Decisions
@@ -88,10 +88,10 @@ ALTER TABLE users ADD COLUMN bpi_manager_source text CHECK (bpi_manager_source I
      - `organization`: the client's company; `name`: the contact; `phone`;
      - `goods`: `[{ id, art, name, number, price, box }]` from the lines. `art` is the box code for a box; `price` is rounded to whole UAH, which BPI stores;
      - `sum_total` and `date`;
-     - `comment`: «Atlas: угода <title> · atlas:<order row id>», plus «замінює № …» when re-sending.
+     - `comment`: «Quorfield: угода <title> · atlas:<order row id>», plus «замінює № …» when re-sending.
   4. On a response with an `id`, store `bpi_order_id` and set `SENT` (200). On a timeout or error, keep `CREATING` with a `next_attempt_at` and answer 202 «Очікує створення».
 - **Finding the BPI manager** (`catalogue/bpiManagers.ts`): BPI has no list endpoint that works without b2b's session (`managers/<id>` answers empty), but `user-id/<id>` does. BPI staff (`user_type` `admin` or `manager`) hold the lowest ids: 1–11 today, with clients (`b2b`) after them.
-  - Atlas reads `user-id/1…100` once a day, and on demand from the member dialog, keeping admins and managers in memory. «Superadmin» is skipped.
+  - Quorfield reads `user-id/1…100` once a day, and on demand from the member dialog, keeping admins and managers in memory. «Superadmin» is skipped.
   - **Matching:** names are normalised (lowercase; ё→е; апостроф removed; і/ї/и and є/е unified; word order ignored). A match needs an equal surname, and first names that are equal or that one starts with the other's first 3 letters, so «Наталья» ↔ «Наталія».
   - `users.bpi_manager_id` stores the match with `bpi_manager_source` `AUTO` or `DIRECTOR`. A director's choice is never overwritten. An `AUTO` match is refreshed if names change.
   - **No match:** the creation answers 409 `BPI_MANAGER_REQUIRED` («Попросіть директора вибрати ваш профіль менеджера в BPI»).
@@ -103,7 +103,7 @@ ALTER TABLE users ADD COLUMN bpi_manager_source text CHECK (bpi_manager_source I
   - a call that timed out may still have created the order, so before calling `add-order` again the step looks in BPI's recent orders (`orders/…` or `last-order`) for the `atlas:<row id>` marker in the comment;
   - if it's there, the step adopts that order's number instead of creating another;
   - which BPI read endpoint returns the comment is checked during implementation (least confident decision 3).
-- **Nothing beyond BPI:** Atlas writes no files and makes no calls to b2b.
+- **Nothing beyond BPI:** Quorfield writes no files and makes no calls to b2b.
 
 ### D6. Web
 - **Deal card** (`DealDetailsDialog`): a «Товари» section in read-only rows (name, code, quantity and unit, price, total) with «Додати товар», and «Створити замовлення» as the dialog's one primary action when the deal can be sent.
@@ -169,10 +169,10 @@ ALTER TABLE users ADD COLUMN bpi_manager_source text CHECK (bpi_manager_source I
   - «the picker says the catalogue is unavailable».
 
 ## Risks / Trade-offs
-- **BPI has no authentication**, the same as for b2b. Atlas only reads the catalogue and creates orders, adding no new exposure, but anyone can create BPI orders; that's worth raising with whoever runs BPI.
+- **BPI has no authentication**, the same as for b2b. Quorfield only reads the catalogue and creates orders, adding no new exposure, but anyone can create BPI orders; that's worth raising with whoever runs BPI.
 - **Uncertain BPI `add-order` contract:** it's taken from b2b's code, with no documentation. The first live order needs watching, and the stored `request` body helps with support.
 - **Whole-UAH prices in BPI:** a discounted kopeck price is rounded to whole UAH there.
-- **Orders may not reach 1C:** if nothing passes BPI orders to 1C while b2b's XML step can't reach `/var/www/1csync`, Atlas orders won't reach 1C either, exactly like b2b's. That's outside this change by the director's decision.
+- **Orders may not reach 1C:** if nothing passes BPI orders to 1C while b2b's XML step can't reach `/var/www/1csync`, Quorfield orders won't reach 1C either, exactly like b2b's. That's outside this change by the director's decision.
 
 ## Migration Plan
 - 029 only adds objects, so nothing changes for existing deals.

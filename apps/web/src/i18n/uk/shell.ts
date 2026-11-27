@@ -18,11 +18,11 @@ export const shell = {
     unreadIn: '{{label}}: непрочитаних {{count}}', quickNav: 'Швидка навігація', unread: 'непрочитаних: {{count}}', tasks: 'Задачі', more: 'Ще',
   },
   login: {
-    visual: 'Робочий простір Atlas', photo: 'Сучасний офіс команди Atlas', day: 'Робочий день', tagline1: 'Команда, клієнти й рішення', tagline2: 'в одному робочому просторі.',
+    visual: 'Робочий простір Quorfield', photo: 'Сучасний офіс команди Quorfield', day: 'Робочий день', tagline1: 'Команда, клієнти й рішення', tagline2: 'в одному робочому просторі.',
     demoReady: 'Демо-команда готова', demoData: 'Дані для огляду завантажено', welcome: 'Ласкаво просимо', title: 'Вхід до робочого простору',
     subtitle: 'Використовуйте корпоративний обліковий запис', username: 'Логін', usernamePlaceholder: 'Ваш логін', password: 'Пароль', passwordPlaceholder: 'Ваш пароль',
     showPassword: 'Показати пароль', hidePassword: 'Сховати пароль', capsLock: 'Увімкнено Caps Lock', submit: 'Увійти', submitting: 'Входимо…',
-    demoProfiles: 'Демо-профілі', footer: 'Atlas Virtual Office · захищене з’єднання', language: 'Мова',
+    demoProfiles: 'Демо-профілі', footer: 'Quorfield Virtual Office · захищене з’єднання', language: 'Мова',
     contactHint: 'Входьте за логіном (наприклад, ivanenko), а не за телефоном чи email. Логін видає керівник.',
     cyrillicHint: 'Логін вводиться латиницею — перемкніть розкладку.',
     errors: {
@@ -55,7 +55,7 @@ export const shell = {
     tooShort: 'Опишіть проблему докладніше', tooLong: 'Не довше за {{max}} символів', notFound: 'Звернення не знайдено',
     logSummary: {
       errors: 'Помилок застосунку: {{errors}}; запитів до сервера: {{requests}}', failed: ' (з помилкою: {{failed}})',
-      routes: 'Переходів сторінками: {{routes}}; стан підключення до сервера', version: 'Версія Atlas {{version}}, {{viewport}}, {{language}}, {{timeZone}}',
+      routes: 'Переходів сторінками: {{routes}}; стан підключення до сервера', version: 'Версія Quorfield {{version}}, {{viewport}}, {{language}}, {{timeZone}}',
     },
   },
 };

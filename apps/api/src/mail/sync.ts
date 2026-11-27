@@ -256,7 +256,7 @@ async function syncFolder(client: ImapFlow, account: MailAccountRow, folder: Fol
       const source = body ? (full ? body.source : body.headers) : undefined;
       if (!source) continue;
       const parsed = await simpleParser(source, { skipTextLinks: true });
-      if ((meta.size ?? 0) > MAX_FULL_MESSAGE_BYTES) parsed.text = "Письмо слишком большое для показа в Atlas — откройте его в почтовом клиенте.";
+      if ((meta.size ?? 0) > MAX_FULL_MESSAGE_BYTES) parsed.text = "Письмо слишком большое для показа в Quorfield — откройте его в почтовом клиенте.";
       if (!parsed.date && meta.internalDate) parsed.date = new Date(meta.internalDate);
       const result = await ingestMessage({ account, folderId: folder.id, uid, flags: meta.flags ?? new Set(), size: meta.size ?? 0, providerThreadId: meta.threadId ?? null, parsed });
       touched.add(result.threadId);

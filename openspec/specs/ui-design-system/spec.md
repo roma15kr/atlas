@@ -1,7 +1,7 @@
 # ui-design-system Specification
 
 ## Purpose
-Defines how every Atlas web screen looks and behaves: design tokens, page and card structure, lists, dialogs, buttons, status colors, copy and responsiveness, derived from the existing Team, CRM, Sales and Documents screens.
+Defines how every Quorfield web screen looks and behaves: design tokens, page and card structure, lists, dialogs, buttons, status colors, copy and responsiveness, derived from the existing Team, CRM, Sales and Documents screens.
 
 ## Requirements
 
@@ -148,7 +148,7 @@ An empty collection SHALL render `EmptyState` with an icon, a short title, one e
 All visible text SHALL be Russian:
 - sentence case
 - short labels
-- no English words except product names (Atlas, Gmail, Telegram, …)
+- no English words except product names (Quorfield, Gmail, Telegram, …)
 
 Money SHALL use `formatMoney` in hryvnia (₴), and dates `formatDate` or `relativeTime`. Counts in captions SHALL use a middle dot separator, e.g. "6 этапов · вся компания".
 

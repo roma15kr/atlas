@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Receive and answer customers' Telegram messages sent to the company bot inside Atlas. Each conversation is routed to the customer's responsible manager and kept with the CRM client.
+Receive and answer customers' Telegram messages sent to the company bot inside Quorfield. Each conversation is routed to the customer's responsible manager and kept with the CRM client.
 
 ## ADDED Requirements
 
 ### Requirement: Bot connection
 The system SHALL connect to the company bot using the server-side bot token. It SHALL receive updates:
-- through a webhook at a public Atlas URL, which the system registers itself; or
+- through a webhook at a public Quorfield URL, which the system registers itself; or
 - through long polling when the server is configured for polling mode.
 
 Webhook requests SHALL be accepted only when they carry the configured secret token, and SHALL otherwise be rejected with 401 without processing. Each update SHALL be processed at most once. Updates from group chats, channels and other bots SHALL be ignored.
@@ -88,7 +88,7 @@ A message from a Telegram user with no client and no responsible user SHALL:
 When the director has set a default responsible user, the new contact SHALL be assigned to that user instead of the queue. From the queue, a DIRECTOR SHALL be able to bind a contact to any client and responsible user, and a MANAGER to clients and users of their own department. A user SHALL also be able to create a new client from the contact, prefilled with the Telegram name.
 
 #### Scenario: New customer writes
-- **WHEN** a Telegram user who is not in Atlas writes "Здравствуйте, сколько стоит доставка?"
+- **WHEN** a Telegram user who is not in Quorfield writes "Здравствуйте, сколько стоит доставка?"
 - **THEN** the contact appears in "Неразобранные" with that message, and the greeting is sent once
 
 ### Requirement: Conversation access and routing
@@ -108,7 +108,7 @@ An unassigned contact SHALL be visible to DIRECTORs and MANAGERs only. Other use
 
 #### Scenario: Head covers for an absent manager
 - **WHEN** a MANAGER opens a conversation of an employee in their department and replies
-- **THEN** the customer receives the reply from the bot, and Atlas shows it as sent by that manager
+- **THEN** the customer receives the reply from the bot, and Quorfield shows it as sent by that manager
 
 ### Requirement: Receiving messages
 The system SHALL store every incoming private-chat message:
@@ -131,7 +131,7 @@ A user who can see a conversation SHALL be able to send text of 1–4096 charact
 
 #### Scenario: Reply
 - **WHEN** a manager replies "Доставка 150 грн" to a customer
-- **THEN** the customer receives the text from the company bot, and Atlas stores it as SENT by that manager
+- **THEN** the customer receives the text from the company bot, and Quorfield stores it as SENT by that manager
 
 #### Scenario: Customer blocked the bot
 - **WHEN** a manager sends to a customer who has blocked the bot
@@ -149,7 +149,7 @@ Every Telegram message of a contact linked to a client, incoming and outgoing, S
 - the direction;
 - the time;
 - the text or attachment summary;
-- for replies, the Atlas user who sent them.
+- for replies, the Quorfield user who sent them.
 
 The history SHALL include:
 - messages exchanged before the link was made, from the start of the conversation;

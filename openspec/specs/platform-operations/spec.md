@@ -1,7 +1,7 @@
 # platform-operations Specification
 
 ## Purpose
-Runs Atlas as a containerized single-origin service with safe production configuration, checksummed migrations, one-time director bootstrap, health checks, general rate limiting, and daily backups.
+Runs Quorfield as a containerized single-origin service with safe production configuration, checksummed migrations, one-time director bootstrap, health checks, general rate limiting, and daily backups.
 
 ## Requirements
 

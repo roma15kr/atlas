@@ -6,7 +6,7 @@ export const dashboard = {
   newTask: "New task",
   consent: {
     title: "Accept the monitoring policy",
-    text: "Atlas counts presence in reports and recommendations only after you consent. Message content isn't analysed.",
+    text: "Quorfield counts presence in reports and recommendations only after you consent. Message content isn't analysed.",
     go: "Go to profile",
   },
   metrics: {

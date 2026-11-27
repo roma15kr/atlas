@@ -37,7 +37,7 @@ export const branding = {
   reset: {
     action: "Restore the standard look",
     title: "Restore the standard look?",
-    text: "The title becomes «Atlas» again, the logo is removed and the colours are standard. Everyone sees it at once.",
+    text: "The title becomes «Quorfield» again, the logo is removed and the colours are standard. Everyone sees it at once.",
     confirm: "Restore",
   },
   name: {
@@ -73,7 +73,7 @@ export const branding = {
     lowContrast: "White text is hard to read on this colour (contrast {{ratio}} : 1, at least 4.5 : 1 is needed). Choose a darker shade.",
   },
   presets: {
-    atlas: "Atlas",
+    atlas: "Quorfield",
     indigo: "Indigo",
     ocean: "Ocean",
     forest: "Forest",

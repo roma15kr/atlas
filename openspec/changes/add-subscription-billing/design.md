@@ -32,8 +32,8 @@
   Without the key and all four prices, billing reports `configured: false` (the adapter rule).
 - **One Stripe Customer per company,** created at the first checkout with the company name and the director's email as the billing email. It is stored on the company.
 - **First payment:** Stripe **Checkout** (`mode: subscription`, line item `{ price, quantity: activeUsers }`, `success_url` and `cancel_url` back to `/settings/billing?checkout=success|cancel`).
-- **Changes:** Stripe **Customer Portal**, configured in the dashboard to allow switching between the four prices, cancelling at period end, updating the card and downloading invoices. Atlas opens a portal session; it never updates prices itself.
-- **Seats:** `POST /v1/subscriptions/:id` with `items[0][quantity]` and `proration_behavior=create_prorations`, so the difference lands on the next invoice. Atlas never charges immediately.
+- **Changes:** Stripe **Customer Portal**, configured in the dashboard to allow switching between the four prices, cancelling at period end, updating the card and downloading invoices. Quorfield opens a portal session; it never updates prices itself.
+- **Seats:** `POST /v1/subscriptions/:id` with `items[0][quantity]` and `proration_behavior=create_prorations`, so the difference lands on the next invoice. Quorfield never charges immediately.
 - **No SDK:** Stripe's REST API is called with `fetch` and form-encoded bodies. The webhook signature (`Stripe-Signature: t=…,v1=…`, HMAC-SHA256 over `t.payload`, 5-minute tolerance, constant-time compare) is verified with Node `crypto`. This avoids a new dependency; the official `stripe` package is the alternative if approved.
 
 ### D2. Storage: migration `028_billing.sql`
@@ -222,6 +222,6 @@ It is used in:
 1. **«$5/user yearly» is read as $5 per user per month, charged $60 per user per year** (likewise $8 → $96). If you meant $5 per user per *year*, the yearly prices change in Stripe only, not in code.
 2. **AI stays on until the first subscription.** This keeps today's behaviour and the overdue rule («reminders only»), but means AI is free if nobody ever subscribes. The alternative is AI off until a «Стандарт + AI» payment.
 3. **Proration on the next invoice** (`create_prorations`) rather than charging the extra seats immediately. It's gentler, but a large mid-year team growth on a yearly plan is paid only at the next invoice.
-4. **Plan changes only through Stripe's portal.** Less UI to build, but the director leaves Atlas to change tariffs.
+4. **Plan changes only through Stripe's portal.** Less UI to build, but the director leaves Quorfield to change tariffs.
 5. **No Stripe SDK.** Fewer dependencies, but the signature check and form encoding are ours to maintain.
 6. **Problem-report AI translation follows the customer's tariff,** though those reports serve the development team. Kept because you asked for all AI features.
