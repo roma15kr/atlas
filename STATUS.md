@@ -8,6 +8,13 @@ _Last updated: 2026-11-16 by Claude_
 - Open OpenSpec changes waiting for a live check: `add-email-client` (mailbox), `add-telegram-customer-inbox` (test bot), `add-alert-rules-and-scheduled-reports` (an automatic alert).
 
 ## Done recently
+- Product renamed **Atlas → Quorfield** (2026-11-27, branch `chore/rename-quorfield`, everything people see):
+  - all texts in three languages, the login screen, tab and installed-app defaults, the offline page, notification defaults and server texts;
+  - the default «A» icons redrawn as «Q»;
+  - the standard branding name, with migration 030 updating companies still called «Atlas»;
+  - living docs and specs.
+
+  Kept on purpose: code packages (`@atlas/…`), storage keys (`atlas.*`, so nobody is signed out), the database, the repository, Coolify apps, the domain `atlas.rdim.ua`, the demo password and the BPI dedupe marker `atlas:<id>`. ADRs, archived changes and older status entries keep the old name as history.
 - Products in deals and orders in BPI (`add-deal-products-and-1c-orders`, migration 029, branch `feat/deal-products-1c`, not yet deployed or archived), asked by the director:
   - deals take products from the b2b catalogue (BPI `prods/price`), with the unit or box (box code and price), price or discount, and whole quantities; the deal amount follows them;
   - «Створити замовлення» creates the order only through BPI's `add-order`, under the employee's BPI manager matched by name (directors can override);

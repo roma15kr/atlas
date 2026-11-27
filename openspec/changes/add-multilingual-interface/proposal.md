@@ -2,9 +2,9 @@
 
 ## Why
 
-**Problem.** Atlas speaks only Russian. The team is Ukrainian: most names, clients and messages are already in Ukrainian, some colleagues prefer it, and partners or new hires may need English. Everyone has to read the whole interface, notifications and pop-ups in one language.
+**Problem.** Quorfield speaks only Russian. The team is Ukrainian: most names, clients and messages are already in Ukrainian, some colleagues prefer it, and partners or new hires may need English. Everyone has to read the whole interface, notifications and pop-ups in one language.
 
-**Evidence.** The director, 2026-11-01: «make Atlas 3 lingual — Ukrainian, Russian and English (user can switch in settings)». Chosen with the director: Ukrainian by default, i18next as the library, and everything a person reads in the first release.
+**Evidence.** The director, 2026-11-01: «make Quorfield 3 lingual — Ukrainian, Russian and English (user can switch in settings)». Chosen with the director: Ukrainian by default, i18next as the library, and everything a person reads in the first release.
 
 **Success metric.** Any user picks Українська, Русский or English in «Профиль». From then on every screen, message, notification, phone pop-up and AI answer they see is in that language, on every device they sign in from.
 
@@ -27,11 +27,11 @@
 
 ## Announcement
 
-Atlas now speaks Ukrainian, Russian and English. It starts in Ukrainian; to change it, open «Профиль» → «Мова інтерфейсу» and pick Українська, Русский or English. Your choice applies everywhere you sign in, including notifications on your phone.
+Quorfield now speaks Ukrainian, Russian and English. It starts in Ukrainian; to change it, open «Профиль» → «Мова інтерфейсу» and pick Українська, Русский or English. Your choice applies everywhere you sign in, including notifications on your phone.
 
 ## Non-goals
 
-- Translating people's content (messages, notes, client data) or data names set up in Atlas.
+- Translating people's content (messages, notes, client data) or data names set up in Quorfield.
 - Telegram replies to customers and outgoing email text (they follow the conversation, not the staff member).
 - More languages, or per-company default languages.
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-A full email client inside Atlas for each user's own mailboxes, connected through Google or Microsoft OAuth or through IMAP/SMTP. It keeps mail private to its owner, and links threads to CRM clients and deals so client correspondence becomes shared work history.
+A full email client inside Quorfield for each user's own mailboxes, connected through Google or Microsoft OAuth or through IMAP/SMTP. It keeps mail private to its owner, and links threads to CRM clients and deals so client correspondence becomes shared work history.
 
 ## ADDED Requirements
 
@@ -60,10 +60,10 @@ The system SHALL keep a synced copy of each connected mailbox:
 
 #### Scenario: Mail arrives
 - **WHEN** a client emails the user's connected inbox
-- **THEN** the message appears in "Входящие" within 2 minutes, and the owner's open Atlas tab shows it live
+- **THEN** the message appears in "Входящие" within 2 minutes, and the owner's open Quorfield tab shows it live
 
 #### Scenario: Revoked access
-- **WHEN** the user revokes Atlas's access in their Google account
+- **WHEN** the user revokes Quorfield's access in their Google account
 - **THEN** the mailbox shows "Требует внимания" with a reconnect action, and sync stops
 
 ### Requirement: Folders and threads
@@ -77,7 +77,7 @@ Messages SHALL be grouped into threads:
 A folder view SHALL list threads newest first, 50 per page. Each entry SHALL show the correspondents, subject, snippet, message count, unread state, star, attachment marker and the linked client.
 
 #### Scenario: Reply lands in the same thread
-- **WHEN** a client answers a message the user sent from Atlas
+- **WHEN** a client answers a message the user sent from Quorfield
 - **THEN** the answer appears in the same thread as the original message
 
 ### Requirement: Reading messages
@@ -88,7 +88,7 @@ The system SHALL return a thread's messages oldest first with:
 - plain-text body, and an HTML body sanitized on the server;
 - attachments (name, type, size).
 
-Remote images in HTML SHALL be blocked until the owner chooses "Показать изображения" for that message. HTML SHALL be displayed isolated from the Atlas page, so scripts and forms in mail never run. Opening a thread SHALL mark its messages read on the server. Attachments SHALL download with their original name and as a download, never rendered inline as HTML.
+Remote images in HTML SHALL be blocked until the owner chooses "Показать изображения" for that message. HTML SHALL be displayed isolated from the Quorfield page, so scripts and forms in mail never run. Opening a thread SHALL mark its messages read on the server. Attachments SHALL download with their original name and as a download, never rendered inline as HTML.
 
 #### Scenario: Tracking pixel
 - **WHEN** the owner opens a newsletter containing remote images
@@ -111,7 +111,7 @@ Delete SHALL move to Корзина; deleting from Корзина SHALL remove p
 
 #### Scenario: Archiving a thread
 - **WHEN** the owner archives a thread
-- **THEN** its messages move to the mailbox's archive folder on the server and leave "Входящие" in Atlas
+- **THEN** its messages move to the mailbox's archive folder on the server and leave "Входящие" in Quorfield
 
 ### Requirement: Composing and sending
 The owner SHALL be able to write a new message, reply, reply all or forward from any of their CONNECTED mailboxes:
@@ -132,7 +132,7 @@ Replies SHALL carry correct `In-Reply-To` and `References` headers and SHALL joi
 - **THEN** the response is 409 `MAIL_ACCOUNT_UNAVAILABLE` and the draft is kept
 
 ### Requirement: Drafts and signatures
-The system SHALL save the message being composed as a draft automatically at least every 5 seconds while it changes. Drafts SHALL be listed in "Черновики" and SHALL be deletable. Drafts that exist only on the mail server SHALL be listed there, and opening one SHALL let the owner continue it in Atlas. Each mailbox SHALL have an optional signature of up to 2000 characters that is added to new messages, replies and forwards.
+The system SHALL save the message being composed as a draft automatically at least every 5 seconds while it changes. Drafts SHALL be listed in "Черновики" and SHALL be deletable. Drafts that exist only on the mail server SHALL be listed there, and opening one SHALL let the owner continue it in Quorfield. Each mailbox SHALL have an optional signature of up to 2000 characters that is added to new messages, replies and forwards.
 
 #### Scenario: Closing the composer
 - **WHEN** the owner closes the composer without sending

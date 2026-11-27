@@ -200,17 +200,17 @@ set it in Coolify, redeploy, then delete the old key in OpenAI.
 
 Every signed-in screen has «Сообщить о проблеме». A report keeps the person's
 text, an automatic screenshot (password fields blanked) and a diagnostic log of
-the last 15 minutes in Atlas (`feedback_reports`, migration 014; screenshots on
+the last 15 minutes in Quorfield (`feedback_reports`, migration 014; screenshots on
 the documents volume). The automation step, also run right after each report,
 translates and anonymises it with `FEEDBACK_MODEL` (OpenAI) and files one issue
 in `GITHUB_REPOSITORY`, labelled `feedback`, the category, `severity:<level>` and
 `area:<area>`. The repository is public, so the issue holds only the anonymised
 English text and technical context; the original, screenshot, log and reporter
-stay in Atlas for directors («Обращения» → «Все обращения»). There is no
-moderation in Atlas: moderate on GitHub.
+stay in Quorfield for directors («Обращения» → «Все обращения»). There is no
+moderation in Quorfield: moderate on GitHub.
 
 **GitHub token:** GitHub → Settings → Developer settings → Fine-grained tokens →
-Generate new token. Set "Only select repositories" to the Atlas repository, and
+Generate new token. Set "Only select repositories" to the Quorfield repository, and
 the repository permission "Issues" to Read and write; nothing else. Set it as
 `GITHUB_TOKEN` in Coolify with `GITHUB_REPOSITORY=owner/name`, then redeploy.
 Waiting reports are filed at the next run. Rotate it before it expires.
@@ -274,7 +274,7 @@ days that isn't linked to a client is pruned daily.
 
 ## Telegram
 
-Customers write to the company bot; Atlas stores every private chat as a contact,
+Customers write to the company bot; Quorfield stores every private chat as a contact,
 routes it to a responsible user, and keeps the whole conversation with the CRM
 client. Migration `008_telegram_inbox.sql` is additive.
 
@@ -287,8 +287,8 @@ development): one API instance long-polls under an advisory lock. Without a toke
 the Telegram screens show the bot as not configured. The bot serves the first
 company in the database.
 
-**Switching an existing bot to Atlas.** Telegram delivers a bot's updates to one
-receiver only, so connecting Atlas cuts off any system that handles the bot today.
+**Switching an existing bot to Quorfield.** Telegram delivers a bot's updates to one
+receiver only, so connecting Quorfield cuts off any system that handles the bot today.
 Telegram keeps undelivered updates for 24 hours, so a short gap loses nothing.
 1. Export the customers from the old system: their Telegram user ids *for this
    bot*, and each one's client and responsible manager. Ids collected by another
@@ -301,7 +301,7 @@ Telegram keeps undelivered updates for 24 hours, so a short gap loses nothing.
    press "Проверить подключение" in Telegram settings. Send a test message from a
    staff Telegram account and check it appears in "Неразобранные".
 4. To roll back, unset the token (or call `deleteWebhook`) and let the old system
-   register its webhook again. Atlas keeps its data.
+   register its webhook again. Quorfield keeps its data.
 
 **Routing and privacy.** The responsible user, heads of that user's department and
 directors read and answer a conversation; unassigned ones are visible to directors
@@ -319,7 +319,7 @@ expect every user to sign in again. Rotate `MAIL_ENCRYPTION_KEY` as described
 under Email. To rotate the Telegram bot token, revoke it in @BotFather, set the new
 token and restart; the webhook is registered again at startup.
 
-The Coolify provisioning token is not an Atlas runtime secret. Rotate it after
+The Coolify provisioning token is not an Quorfield runtime secret. Rotate it after
 provisioning and keep future tokens least-privileged. Never put a token in Git,
 deployment logs, support tickets, or browser storage.
 
@@ -338,7 +338,7 @@ file. If data integrity is affected, stop writes and follow the restore procedur
 ## Stripe billing
 Tariffs are paid by card through Stripe (ADR 0007). Set it up once per environment: use **test mode** for atlas-dev and **live mode** for production.
 
-1. **Products and prices** (Products → Add product). Create two products, «Atlas Стандарт» and «Atlas Стандарт + AI», each with two recurring per-unit prices in USD:
+1. **Products and prices** (Products → Add product). Create two products, «Quorfield Стандарт» and «Quorfield Стандарт + AI», each with two recurring per-unit prices in USD:
 
    | Variable | Product | Billing period | Price per unit |
    |---|---|---|---|
@@ -366,7 +366,7 @@ Tariffs are paid by card through Stripe (ADR 0007). Set it up once per environme
 ## Products in deals and orders in BPI
 Deals take products from b2b.rdim.ua's catalogue (BPI). «Створити замовлення» creates the order in BPI the way b2b's checkout does (ADR 0008). Nothing to configure except the optional `BPI_URL`.
 
-1. **After the deploy:** a director opens «Команда» → «Змінити» for each salesperson and checks «Менеджер у BPI». Atlas matches people to BPI staff by name, and a director can pick someone else.
-2. **First real order:** check that it appears in BPI with the right lines and number. Atlas keeps the exact body it sent in `deal_orders.request` for support.
+1. **After the deploy:** a director opens «Команда» → «Змінити» for each salesperson and checks «Менеджер у BPI». Quorfield matches people to BPI staff by name, and a director can pick someone else.
+2. **First real order:** check that it appears in BPI with the right lines and number. Quorfield keeps the exact body it sent in `deal_orders.request` for support.
 3. **If BPI is down:** orders wait as «Очікує створення» and are retried for 24 hours, never creating a duplicate; then the sender is notified and can press «Спробувати ще».
 

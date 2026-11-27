@@ -2,7 +2,7 @@
 
 ## Why
 
-Managers do most client communication by email, but Atlas can't read or send mail. The "Сообщения" inbox shows Gmail and Outlook as disabled and rejects every external send. As a result, correspondence lives only in personal mail apps: a colleague or head can't see what was promised to a client, and a deal can't be traced back to the email that started it. Each user needs to connect their own mailbox and work with it fully inside Atlas, with threads tied to CRM clients and deals.
+Managers do most client communication by email, but Quorfield can't read or send mail. The "Сообщения" inbox shows Gmail and Outlook as disabled and rejects every external send. As a result, correspondence lives only in personal mail apps: a colleague or head can't see what was promised to a client, and a deal can't be traced back to the email that started it. Each user needs to connect their own mailbox and work with it fully inside Quorfield, with threads tied to CRM clients and deals.
 
 ## What Changes
 
@@ -22,7 +22,7 @@ Managers do most client communication by email, but Atlas can't read or send mai
   - drafts;
   - search across synced mail;
   - new mail arrives live.
-- **Sync.** Atlas keeps a synced copy of the last 90 days by default (configurable) and keeps it current in the background. Changes made in other mail apps show up in Atlas, and changes in Atlas reach the server.
+- **Sync.** Quorfield keeps a synced copy of the last 90 days by default (configurable) and keeps it current in the background. Changes made in other mail apps show up in Quorfield, and changes in Quorfield reach the server.
 - **Privacy.** A mailbox is visible only to its owner, including to directors. Mail becomes visible to others only when a thread is linked to a CRM client or deal. It then appears in that client's or deal's "Переписка", read-only, to everyone who can see that client or deal.
 - **CRM linking.**
   - Threads are linked automatically when a correspondent's address matches exactly one client the owner can see.

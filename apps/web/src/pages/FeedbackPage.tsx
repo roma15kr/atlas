@@ -71,7 +71,7 @@ function ReportDetail({ id, onClose, onRetried }: { id: string; onClose: () => v
     setRetrying(true);
     try { await retryFeedback(id); onRetried(); onClose(); } catch { setError(t('retryFailed')); } finally { setRetrying(false); }
   };
-  const meta = report ? [report.reporterName, report.departmentName, report.page, report.appVersion && `Atlas ${report.appVersion}`, report.viewport].filter(Boolean).join(' · ') : '';
+  const meta = report ? [report.reporterName, report.departmentName, report.page, report.appVersion && `Quorfield ${report.appVersion}`, report.viewport].filter(Boolean).join(' · ') : '';
   return <Dialog open size="lg" title={report?.titleEn ?? t('report')} description={meta} onClose={onClose}
     footer={<>{report?.issueUrl && <a className="button button--secondary" href={report.issueUrl} target="_blank" rel="noreferrer"><ExternalLink size={16} aria-hidden="true" />{`GitHub #${report.issueNumber}`}</a>}{report && report.status === 'FAILED' && <Button variant="secondary" icon={RefreshCw} disabled={retrying} onClick={() => void retry()}>{t('retry')}</Button>}<Button onClick={onClose}>{t('common:actions.close')}</Button></>}>
     {error ? <div className="form-error" role="alert">{error}</div> : !report ? <LoadingState label={t('loadingOne')} /> : <div className="feedback-detail">

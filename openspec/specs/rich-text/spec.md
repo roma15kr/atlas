@@ -1,7 +1,7 @@
 # rich-text Specification
 
 ## Purpose
-Shared rules for formatted text in Atlas: how people write it, which formatting exists, how it is shown safely, and how images and checklists behave wherever a feature uses formatted text.
+Shared rules for formatted text in Quorfield: how people write it, which formatting exists, how it is shown safely, and how images and checklists behave wherever a feature uses formatted text.
 
 ## Requirements
 
@@ -38,7 +38,7 @@ Other Markdown and any raw HTML SHALL be shown as plain text.
 - **THEN** readers see the characters as text or a plain word, and no script runs
 
 ### Requirement: Safe display
-The system SHALL display formatted text only after removing everything outside the supported formatting. Links SHALL open in a new tab without access to Atlas. Images SHALL be shown only from Atlas's own image storage.
+The system SHALL display formatted text only after removing everything outside the supported formatting. Links SHALL open in a new tab without access to Quorfield. Images SHALL be shown only from Quorfield's own image storage.
 
 #### Scenario: External image
 - **WHEN** saved text references an image on another site

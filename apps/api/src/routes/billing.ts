@@ -63,7 +63,7 @@ async function customerOf(auth: AuthContext): Promise<string> {
   const company = (await query<{ name: string; email: string | null }>(
     "SELECT c.name, u.contact_email AS email FROM companies c JOIN users u ON u.id = $2 WHERE c.id = $1", [auth.companyId, auth.userId])).rows[0];
   const customer = await stripeRequest<{ id: string }>("POST", "/v1/customers", {
-    name: company?.name ?? "Atlas", email: company?.email ?? undefined, metadata: { companyId: auth.companyId }
+    name: company?.name ?? "Quorfield", email: company?.email ?? undefined, metadata: { companyId: auth.companyId }
   });
   await query("INSERT INTO company_subscriptions (company_id, stripe_customer_id) VALUES ($1, $2) ON CONFLICT (company_id) DO NOTHING", [auth.companyId, customer.id]);
   return (await subscriptionRow(auth.companyId))!.stripe_customer_id;

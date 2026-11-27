@@ -21,8 +21,8 @@
 - Scheduled send, undo send and snooze.
 - Mail rules and filters.
 - Bulk campaigns or newsletters.
-- Syncing Atlas drafts back to the server's Drafts folder.
-- Fetching mail older than the sync window, except when a thread already in Atlas references it.
+- Syncing Quorfield drafts back to the server's Drafts folder.
+- Fetching mail older than the sync window, except when a thread already in Quorfield references it.
 - Gmail and Microsoft Graph REST APIs.
 - Mobile push notifications.
 

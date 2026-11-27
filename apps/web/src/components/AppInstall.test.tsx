@@ -41,6 +41,6 @@ describe('app install', () => {
   it('suggests Chrome where installing is not available', () => {
     setStandalone(false);
     render(<AppInstall />);
-    expect(screen.getByText(/Откройте Atlas в Google Chrome/)).toBeInTheDocument();
+    expect(screen.getByText(/Откройте Quorfield в Google Chrome/)).toBeInTheDocument();
   });
 });

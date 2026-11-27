@@ -20,14 +20,14 @@ A director SHALL find «Оформлення» in the navigation. It SHALL open 
 
 #### Scenario: Opening the screen
 - **WHEN** a director opens «Оформлення» on a company that never changed its appearance
-- **THEN** the title reads «Atlas», no logo is set, and the colours are the standard accent #176f68 and sidebar #1d2a28
+- **THEN** the title reads «Quorfield», no logo is set, and the colours are the standard accent #176f68 and sidebar #1d2a28
 
 #### Scenario: Card actions
 - **WHEN** a director looks at the cards of a company with a logo
 - **THEN** «Назва і логотип» offers «Змінити назву», «Завантажити логотип» and «Прибрати логотип», and «Кольори» shows both colours with their codes and offers «Змінити кольори»
 
 ### Requirement: Title
-The title SHALL be 1–30 characters after trimming spaces and SHALL replace «Atlas» wherever the app names itself (see «Where the branding appears»). Texts inside messages, documents and other user content SHALL NOT change.
+The title SHALL be 1–30 characters after trimming spaces and SHALL replace «Quorfield» wherever the app names itself (see «Where the branding appears»). Texts inside messages, documents and other user content SHALL NOT change.
 
 #### Scenario: An empty title is refused
 - **WHEN** a director saves a title made only of spaces
@@ -67,14 +67,14 @@ The accent colour SHALL give white text a contrast of at least 4.5:1, and every 
 - **THEN** the sidebar shows dark text and icons on it
 
 ### Requirement: Reset
-«Повернути стандартне оформлення» SHALL, after confirmation, set the title back to «Atlas», remove the logo and restore the standard colours, and SHALL be audited.
+«Повернути стандартне оформлення» SHALL, after confirmation, set the title back to «Quorfield», remove the logo and restore the standard colours, and SHALL be audited.
 
 #### Scenario: Resetting
 - **WHEN** a director confirms the reset
-- **THEN** everyone sees «Atlas», the letter mark and the standard teal colours again
+- **THEN** everyone sees «Quorfield», the letter mark and the standard teal colours again
 
 ### Requirement: Where the branding appears
-The title, logo and colours SHALL appear wherever the app presents itself: the sidebar and phone header, the login screen before sign-in, the browser tab, the installed app, and pop-up notifications. When there is no saved branding, the standard Atlas look SHALL be used everywhere.
+The title, logo and colours SHALL appear wherever the app presents itself: the sidebar and phone header, the login screen before sign-in, the browser tab, the installed app, and pop-up notifications. When there is no saved branding, the standard Quorfield look SHALL be used everywhere.
 
 #### Scenario: The login screen before sign-in
 - **WHEN** someone opens the login screen of a company titled «RDIM Office» with a logo
@@ -90,7 +90,7 @@ The title, logo and colours SHALL appear wherever the app presents itself: the s
 
 #### Scenario: The test notification
 - **WHEN** a person presses «Перевірити» in notification settings of a company titled «RDIM Office»
-- **THEN** the pop-up's title names «RDIM Office», not «Atlas», and shows the logo icon
+- **THEN** the pop-up's title names «RDIM Office», not «Quorfield», and shows the logo icon
 
 #### Scenario: An alert that names the app
 - **WHEN** an inactivity alert is raised in a company titled «RDIM Office»

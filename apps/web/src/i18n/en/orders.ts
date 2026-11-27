@@ -28,7 +28,7 @@ export const orders = {
     retry: "Try again",
     sent: "BPI order № {{number}} · {{time}}",
     pending: "Waiting to be created",
-    pendingNote: "BPI isn't answering right now. Atlas will retry by itself and create the order once.",
+    pendingNote: "BPI isn't answering right now. Quorfield will retry by itself and create the order once.",
     failed: "Not created",
     locked: "Products are locked after the order is created",
     history: "Orders",

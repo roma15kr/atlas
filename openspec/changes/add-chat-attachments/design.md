@@ -27,4 +27,4 @@
 ## Risks / Trade-offs
 
 - **Storage growth:** about 20 people and 20 MB per file is modest on the existing volume, and the same backups cover it.
-- **Malware in Office files:** files are only stored and downloaded, never opened by Atlas. The type check rejects executables, and desktop antivirus still applies.
+- **Malware in Office files:** files are only stored and downloaded, never opened by Quorfield. The type check rejects executables, and desktop antivirus still applies.

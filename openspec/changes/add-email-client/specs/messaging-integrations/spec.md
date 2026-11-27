@@ -23,7 +23,7 @@ A provider whose configuration is missing SHALL be reported as DISCONNECTED what
 ## ADDED Requirements
 
 ### Requirement: Client communication history
-The system SHALL return, for a client and for a deal, the customer conversations linked to it, newest activity first. Each entry SHALL show the channel, the participants, the subject or first line, the last activity time, the message count and the Atlas user whose mailbox or chat it belongs to. The history SHALL be available to every user who can see that client or deal. Opening an entry SHALL show its messages read-only. A request for a client or deal outside the caller's scope SHALL return 404.
+The system SHALL return, for a client and for a deal, the customer conversations linked to it, newest activity first. Each entry SHALL show the channel, the participants, the subject or first line, the last activity time, the message count and the Quorfield user whose mailbox or chat it belongs to. The history SHALL be available to every user who can see that client or deal. Opening an entry SHALL show its messages read-only. A request for a client or deal outside the caller's scope SHALL return 404.
 
 #### Scenario: Client card
 - **WHEN** a user opens a client with two linked email threads from different colleagues

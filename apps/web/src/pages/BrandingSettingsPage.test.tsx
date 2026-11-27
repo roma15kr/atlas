@@ -94,7 +94,7 @@ describe('appearance settings', () => {
     await waitFor(() => expect(within(sidebar()).getByText('RDIM Office')).toBeInTheDocument(), { timeout: 5_000 });
     await user.click(screen.getByRole('button', { name: /Вернуть стандартное оформление/ }));
     await user.click(within(screen.getByRole('dialog', { name: 'Вернуть стандартное оформление?' })).getByRole('button', { name: 'Вернуть' }));
-    await waitFor(() => expect(within(sidebar()).getByText('Atlas')).toBeInTheDocument());
+    await waitFor(() => expect(within(sidebar()).getByText('Quorfield')).toBeInTheDocument());
     expect(root().getPropertyValue('--primary')).toBe('');
   });
 

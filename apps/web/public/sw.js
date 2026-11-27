@@ -1,4 +1,4 @@
-/* Atlas service worker: shows notifications pushed by the API and opens their link on click, and shows an
+/* Quorfield service worker: shows notifications pushed by the API and opens their link on click, and shows an
    offline page when a page can't load. It holds no session data; the push payload is { id, title, body, link, tag, icon?, badge? } (icon and badge come from the company logo). */
 const OFFLINE_CACHE = 'atlas-offline-v1';
 const OFFLINE_PAGE = '/offline.html';
@@ -30,7 +30,7 @@ self.addEventListener('push', (event) => {
     const chromium = Boolean(self.navigator.userAgentData);
     const windows = chromium ? await self.clients.matchAll({ type: 'window', includeUncontrolled: true }) : [];
     if (data.tag !== 'test' && windows.some((client) => client.focused && client.visibilityState === 'visible')) return;
-    await self.registration.showNotification(data.title || 'Atlas', {
+    await self.registration.showNotification(data.title || 'Quorfield', {
       body: data.body || '', tag: data.tag || data.id, renotify: Boolean(data.tag),
       icon: data.icon || '/notification-icon.png', badge: data.badge || '/notification-icon.png', data: { link: data.link || '/' },
     });

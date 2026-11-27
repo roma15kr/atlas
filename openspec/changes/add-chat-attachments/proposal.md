@@ -2,11 +2,11 @@
 
 ## Why
 
-**Problem.** Chat accepts only pasted images. A spreadsheet, PDF or Word file can't be shared in Atlas, so people send files through Telegram and keep only a screenshot or a mention in Atlas. The file then lives outside the company's system, and colleagues have to look for it elsewhere.
+**Problem.** Chat accepts only pasted images. A spreadsheet, PDF or Word file can't be shared in Quorfield, so people send files through Telegram and keep only a screenshot or a mention in Quorfield. The file then lives outside the company's system, and colleagues have to look for it elsewhere.
 
 **Evidence.** Харруд Хишам, 2026-10-19, in «Общий»: «я закрепил файл… для склада… я файл отправил его в телеграм здесь не смог», then «кто то знает как тут загрузить файлы? программа только изображений грузить». He posted a screenshot of the Excel table instead of the file.
 
-**Success metric.** Харруд attaches the Excel list of goods to a message in «Общий», and a colleague downloads the original file from Atlas, with no Telegram detour.
+**Success metric.** Харруд attaches the Excel list of goods to a message in «Общий», and a colleague downloads the original file from Quorfield, with no Telegram detour.
 
 ## What Changes
 
@@ -29,7 +29,7 @@ You can now attach files in chat: press the paper clip next to «Отправи�
 
 ## Non-goals
 
-- Previewing PDFs or spreadsheets inside Atlas (the file downloads).
+- Previewing PDFs or spreadsheets inside Quorfield (the file downloads).
 - Attachments in task comments, client comments or Telegram (later, on the same storage).
 - Executable or unknown file types.
 

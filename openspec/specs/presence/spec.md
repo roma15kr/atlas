@@ -33,7 +33,7 @@ The system SHALL track each user's open connections. A user SHALL be ONLINE whil
 - **THEN** the user stays ONLINE and no `presence:changed` event is sent
 
 #### Scenario: Idle for five minutes
-- **WHEN** the user's browser reports `active: false` after 5 minutes without keyboard, mouse, scroll or touch activity in any Atlas tab
+- **WHEN** the user's browser reports `active: false` after 5 minutes without keyboard, mouse, scroll or touch activity in any Quorfield tab
 - **THEN** the user becomes OFFLINE and their managers receive `presence:changed`
 
 ### Requirement: Role-scoped presence broadcast
@@ -81,7 +81,7 @@ The web app SHALL open an authenticated Socket.IO connection and apply `presence
 - **THEN** their indicator turns green without reloading
 
 #### Scenario: Activity in another tab
-- **WHEN** the user works in one Atlas tab while another Atlas tab is in the background
+- **WHEN** the user works in one Quorfield tab while another Quorfield tab is in the background
 - **THEN** both tabs report `active: true`
 
 ### Requirement: Monitoring consent notice
