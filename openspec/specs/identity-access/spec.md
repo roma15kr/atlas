@@ -1,7 +1,7 @@
 # identity-access Specification
 
 ## Purpose
-Authenticates Atlas users with username and password, issues short-lived access tokens and rotating refresh sessions, and enforces the DIRECTOR / MANAGER / EMPLOYEE record scope used by every other capability.
+Authenticates Quorfield users with username and password, issues short-lived access tokens and rotating refresh sessions, and enforces the DIRECTOR / MANAGER / EMPLOYEE record scope used by every other capability.
 
 ## Requirements
 

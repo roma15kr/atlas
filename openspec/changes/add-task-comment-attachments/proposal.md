@@ -29,7 +29,7 @@ Task comments can now carry files: press the paper clip under «Написать
 
 - Files on the task itself outside comments (the description keeps pasted images only).
 - Attachments in client comments or Telegram.
-- Previews inside Atlas.
+- Previews inside Quorfield.
 
 ## Capabilities
 

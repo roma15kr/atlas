@@ -1,6 +1,6 @@
-# Atlas architecture
+# Quorfield architecture
 
-Atlas is a Docker-first modular monolith sized for a 20-person company and a
+Quorfield is a Docker-first modular monolith sized for a 20-person company and a
 straightforward path to 100+ users. The browser talks to one origin. Nginx serves
 the React application, proxies REST traffic to the API, and upgrades Socket.IO
 connections for presence and live chat.
@@ -167,7 +167,7 @@ check.
 Presence tracks connections per user (Redis sorted set `presence:sockets:<id>`,
 or memory without Redis) and an "active" state with a 5-minute expiry. The
 browser reports `presence:heartbeat { active }` every minute, where active means
-keyboard, mouse, scroll or touch input in any Atlas tab (shared through
+keyboard, mouse, scroll or touch input in any Quorfield tab (shared through
 `localStorage`) within the idle period, and immediately when that flips. The period
 is `PRESENCE_IDLE_MINUTES` (default 15), sent to the browser as `presence:config`
 on connect. A person is
@@ -283,7 +283,7 @@ against silently changing applied files. The demo seed is enabled only by the
 local override; production skips it and bootstraps one director from a random
 runtime secret when the user table is empty.
 
-Atlas uses Ukrainian hryvnia (`UAH`) as its single operating currency. The API
+Quorfield uses Ukrainian hryvnia (`UAH`) as its single operating currency. The API
 and database reject other deal currencies so dashboard, pipeline, report, and AI
 aggregates cannot mix incompatible monetary values.
 

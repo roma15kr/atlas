@@ -18,7 +18,7 @@
 ## What Changes
 
 - **Reactions (ClickUp-style) on team chat messages, thread replies and task comments.**
-  - Hovering a message (or tapping it on a phone) shows six quick reactions: 👍 ❤️ 😂 🎉 👀 ✅. The «+» button opens a searchable picker of about 180 common emoji with Russian names, built into Atlas.
+  - Hovering a message (or tapping it on a phone) shows six quick reactions: 👍 ❤️ 😂 🎉 👀 ✅. The «+» button opens a searchable picker of about 180 common emoji with Russian names, built into Quorfield.
   - Each emoji shows as a chip with its count. Your own reactions are highlighted, a click adds or removes yours, and hovering a chip lists who reacted.
   - Chat reactions appear live for everyone in the conversation. Reacting needs the same right as posting there (a member, and the conversation not archived). A task comment can be reacted to by anyone who can see the task.
   - Reactions don't create notifications and aren't audited (they're not sensitive).
@@ -29,7 +29,7 @@
 
 ## Announcement
 
-You can now react to messages and task comments: hover a message and pick 👍, ❤️, 😂, 🎉, 👀, ✅ or any emoji from «+». Long chats and Telegram conversations open on the latest messages and load earlier ones as you scroll up. Atlas no longer jumps to the bottom while you read history.
+You can now react to messages and task comments: hover a message and pick 👍, ❤️, 😂, 🎉, 👀, ✅ or any emoji from «+». Long chats and Telegram conversations open on the latest messages and load earlier ones as you scroll up. Quorfield no longer jumps to the bottom while you read history.
 
 ## Non-goals
 

@@ -1,12 +1,12 @@
 # notifications Specification
 
 ## Purpose
-Tell staff about events that concern them (tasks, chat, Telegram customers, alerts and handed-over records) on the bell in Atlas and, when they allow it, as desktop and phone pop-ups even while Atlas is closed.
+Tell staff about events that concern them (tasks, chat, Telegram customers, alerts and handed-over records) on the bell in Quorfield and, when they allow it, as desktop and phone pop-ups even while Quorfield is closed.
 
 ## Requirements
 
 ### Requirement: Notification centre
-The system SHALL keep notifications per user and SHALL let each user list their own notifications newest first, with the number of unread ones, and mark one or all as read. A user SHALL never see or change another user's notifications; such an id SHALL answer 404 `NOTIFICATION_NOT_FOUND`. New notifications SHALL reach the user's open Atlas tabs immediately. Notifications older than 90 days SHALL be deleted.
+The system SHALL keep notifications per user and SHALL let each user list their own notifications newest first, with the number of unread ones, and mark one or all as read. A user SHALL never see or change another user's notifications; such an id SHALL answer 404 `NOTIFICATION_NOT_FOUND`. New notifications SHALL reach the user's open Quorfield tabs immediately. Notifications older than 90 days SHALL be deleted.
 
 #### Scenario: Reading a notification
 - **WHEN** a user lists notifications and marks one read
@@ -76,18 +76,18 @@ A user SHALL be able to turn desktop notifications on for a browser, which store
 - **THEN** the profile shows desktop notifications as unavailable, and the bell still works
 
 ### Requirement: Desktop notification delivery
-Each new notification of an enabled group SHALL be pushed to all of the user's subscriptions with a title, a plain-text preview of at most 120 characters and a link. Pushes SHALL be sent with high urgency, so a locked or idle phone shows them at once. A subscription the push service reports as gone SHALL be deleted. In Chrome, while an Atlas window is visible and focused, no pop-up SHALL be shown; browsers that require every push to be shown (Safari on iPhone and Mac) SHALL always show it.
+Each new notification of an enabled group SHALL be pushed to all of the user's subscriptions with a title, a plain-text preview of at most 120 characters and a link. Pushes SHALL be sent with high urgency, so a locked or idle phone shows them at once. A subscription the push service reports as gone SHALL be deleted. In Chrome, while an Quorfield window is visible and focused, no pop-up SHALL be shown; browsers that require every push to be shown (Safari on iPhone and Mac) SHALL always show it.
 
-#### Scenario: Atlas closed
-- **WHEN** a user with desktop notifications on has no Atlas tab open and a task is assigned to them
-- **THEN** their browser shows a desktop notification, and clicking it opens the task in Atlas
+#### Scenario: Quorfield closed
+- **WHEN** a user with desktop notifications on has no Quorfield tab open and a task is assigned to them
+- **THEN** their browser shows a desktop notification, and clicking it opens the task in Quorfield
 
-#### Scenario: Atlas in focus
-- **WHEN** a notification arrives while an Atlas tab is focused
+#### Scenario: Quorfield in focus
+- **WHEN** a notification arrives while an Quorfield tab is focused
 - **THEN** the bell updates and no desktop pop-up is shown
 
 #### Scenario: Phone locked
-- **WHEN** a user's phone with the installed Atlas is locked and a colleague sends them a direct message
+- **WHEN** a user's phone with the installed Quorfield is locked and a colleague sends them a direct message
 - **THEN** the notification appears on the lock screen at once, without waiting for the phone to be unlocked
 
 ### Requirement: Notification screens
@@ -98,5 +98,5 @@ The bell in the top bar SHALL open a panel with the user's notifications, show t
 - **THEN** the task opens and the notification is no longer unread
 
 #### Scenario: Blocked by the browser
-- **WHEN** the browser's permission for Atlas is «Блокировать»
+- **WHEN** the browser's permission for Quorfield is «Блокировать»
 - **THEN** the section explains how to allow notifications in Chrome's site settings, and «Включить» is not offered

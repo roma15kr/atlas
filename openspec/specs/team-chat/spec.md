@@ -1,7 +1,7 @@
 # team-chat Specification
 
 ## Purpose
-Internal team communication inside Atlas: direct messages, group conversations and public or private channels with managed membership, threads, mentions, unread tracking and realtime delivery.
+Internal team communication inside Quorfield: direct messages, group conversations and public or private channels with managed membership, threads, mentions, unread tracking and realtime delivery.
 
 ## Requirements
 
@@ -150,7 +150,7 @@ The system SHALL keep, per member and conversation, the time up to which the mem
 The system SHALL push new, edited and deleted messages, membership changes and read-state changes over the authenticated Socket.IO connection. Each event SHALL go only to users who may currently see the affected conversation. A user removed from a conversation SHALL stop receiving its events immediately. Clients SHALL recover missed messages by re-fetching after reconnecting.
 
 #### Scenario: Live message
-- **WHEN** a member posts a message while another member has Atlas open
+- **WHEN** a member posts a message while another member has Quorfield open
 - **THEN** the other member's conversation and unread count update without reloading the page
 
 #### Scenario: Removed member
@@ -176,7 +176,7 @@ Typing `@` in the message editor SHALL suggest colleagues as today, and the ment
 - **THEN** nobody is notified and the code shows `@semenets` as written
 
 ### Requirement: Channel icon
-A channel admin or a DIRECTOR SHALL be able to give a channel an icon from Atlas's icon library, searchable in Russian, on one of the palette colours, or clear it. It SHALL replace the channel's «#» or lock tile wherever the channel is shown. An icon or colour outside the library SHALL get 400 `CHAT_INVALID_ICON`. Changes SHALL be audited with ids only and reach open screens live; others SHALL get 403 `CHAT_FORBIDDEN`, audited.
+A channel admin or a DIRECTOR SHALL be able to give a channel an icon from Quorfield's icon library, searchable in Russian, on one of the palette colours, or clear it. It SHALL replace the channel's «#» or lock tile wherever the channel is shown. An icon or colour outside the library SHALL get 400 `CHAT_INVALID_ICON`. Changes SHALL be audited with ids only and reach open screens live; others SHALL get 403 `CHAT_FORBIDDEN`, audited.
 
 #### Scenario: Admin picks an icon
 - **WHEN** the admin of «Общий» picks the red colour, types «мег» and chooses «Мегафон»

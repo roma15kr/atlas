@@ -7,7 +7,7 @@
   - A bot can message a user only if that user has started *this* bot and not blocked it.
   - Ids the company holds for this bot are therefore usable directly.
   - Ids that came from a different bot or system won't be reachable. The import marks every row `UNVERIFIED` until the customer writes, and a failed send explains this.
-- **One receiver per bot.** Telegram delivers a bot's updates to one receiver: a webhook or a `getUpdates` poller. If another system handles this bot today, it stops receiving messages when Atlas takes over.
+- **One receiver per bot.** Telegram delivers a bot's updates to one receiver: a webhook or a `getUpdates` poller. If another system handles this bot today, it stops receiving messages when Quorfield takes over.
 - **Deployment.** The app runs as a single API process behind Coolify with HTTPS on `PUBLIC_URL`.
 
 ## Goals / Non-Goals
@@ -200,7 +200,7 @@ Rejected: copying each message into a client activity table. That duplicates dat
 
 ## Risks / Trade-offs
 
-- **[Another system uses the bot today]** Setting the webhook cuts it off, and updates it didn't collect are lost if there is a gap. **Mitigation:** OPERATIONS gets a switch-over checklist: export the id-to-manager list from the old system, import it into Atlas, then switch the webhook in a quiet hour. Telegram keeps undelivered updates for 24 hours, so a short gap loses nothing.
+- **[Another system uses the bot today]** Setting the webhook cuts it off, and updates it didn't collect are lost if there is a gap. **Mitigation:** OPERATIONS gets a switch-over checklist: export the id-to-manager list from the old system, import it into Quorfield, then switch the webhook in a quiet hour. Telegram keeps undelivered updates for 24 hours, so a short gap loses nothing.
 - **[Imported ids from another bot are unreachable]** **Mitigation:** the `UNVERIFIED` status, a clear 409 on send, and an offer to send an invite link through another channel.
 - **[The webhook endpoint is public]** **Mitigation:** the secret token check, strict body size (1 MB), IP-agnostic rate limiting, and no response data beyond 200 or 401.
 - **[Customer data retention]** Telegram messages are personal data stored indefinitely with the client. **Mitigation:** deleting a client only unlinks its contacts (`client_id` set null), so conversations aren't lost. A director can delete a contact with all its messages and files from Telegram settings. A retention policy is out of scope and noted for later.
@@ -215,7 +215,7 @@ Rejected: copying each message into a client activity table. That duplicates dat
 
 ## Implementation notes
 
-- **Company resolution:** the bot serves the deployment's first company (`botCompanyId`). Atlas deployments are single-company today.
+- **Company resolution:** the bot serves the deployment's first company (`botCompanyId`). Quorfield deployments are single-company today.
 - **Bot API base URL:** set by `TELEGRAM_API_BASE` (default `https://api.telegram.org`). Tests inject a fake fetch with `setTelegramFetch`.
 - **Webhook route:** registered before the general per-IP rate limiter, because Telegram's traffic comes from a few shared IPs. The secret token authenticates it instead.
 - **Unknown senders:** a `/start` without a valid token is stored as "Клиент начал диалог с ботом", so the queue shows that the customer opened the bot.

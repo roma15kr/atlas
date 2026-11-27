@@ -46,5 +46,5 @@ Each slice ends with `make check && npm run build` passing, and a commit. A test
   - `docs/OPERATIONS.md`: creating the GitHub token, and finding a request id in the logs;
   - `docs/ARCHITECTURE.md`: the code map entry.
 - [ ] 7.2 Take screenshots of the dialog and the inbox at desktop and 400px widths, against `ui-design-system`.
-- [ ] 7.3 On the Coolify test app, after `GITHUB_TOKEN` and `OPENAI_API_KEY` are set: a Ukrainian report with a screenshot becomes an English GitHub issue with labels and no personal data, and the status shows in Atlas.
+- [ ] 7.3 On the Coolify test app, after `GITHUB_TOKEN` and `OPENAI_API_KEY` are set: a Ukrainian report with a screenshot becomes an English GitHub issue with labels and no personal data, and the status shows in Quorfield.
 - [ ] 7.4 Update `STATUS.md`.

@@ -22,7 +22,7 @@ describe("issue content", () => {
     expect(body).toContain("1. Open a deal\n2. Click Save");
     expect(body).toContain("- Page: `/sales`");
     expect(body).toContain("- Browser: Chrome 141");
-    expect(body).toContain("- Atlas report: `0f6c1f62`");
+    expect(body).toContain("- Quorfield report: `0f6c1f62`");
     expect(body).toContain("translated from Ukrainian");
     expect(body).not.toMatch(/anna@example\.com|\+380 67 123 45 67|AppleWebKit/);
     expect(body).toContain("[email]");

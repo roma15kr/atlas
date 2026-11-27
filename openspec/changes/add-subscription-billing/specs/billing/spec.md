@@ -24,7 +24,7 @@ Only a director SHALL see «Тариф і оплата», choose or change a tar
 - **THEN** the server answers 403, and the refusal is audited
 
 ### Requirement: Paying through Stripe
-A director SHALL choose a tariff and period, and SHALL pay on Stripe's secure payment page. Atlas SHALL never receive or store card numbers. After a successful payment the screen SHALL show the new tariff as active. If the director cancels on Stripe's page, nothing SHALL change.
+A director SHALL choose a tariff and period, and SHALL pay on Stripe's secure payment page. Quorfield SHALL never receive or store card numbers. After a successful payment the screen SHALL show the new tariff as active. If the director cancels on Stripe's page, nothing SHALL change.
 
 #### Scenario: First payment
 - **WHEN** a director chooses «Стандарт + AI» billed yearly and completes payment on Stripe's page

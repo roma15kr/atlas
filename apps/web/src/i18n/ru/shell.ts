@@ -20,11 +20,11 @@ export const shell = {
     unreadIn: '{{label}}: непрочитанных {{count}}', quickNav: 'Быстрая навигация', unread: 'непрочитанных: {{count}}', tasks: 'Задачи', more: 'Ещё',
   },
   login: {
-    visual: 'Рабочее пространство Atlas', photo: 'Современный офис команды Atlas', day: 'Рабочий день', tagline1: 'Команда, клиенты и решения', tagline2: 'в одном рабочем пространстве.',
+    visual: 'Рабочее пространство Quorfield', photo: 'Современный офис команды Quorfield', day: 'Рабочий день', tagline1: 'Команда, клиенты и решения', tagline2: 'в одном рабочем пространстве.',
     demoReady: 'Демо-команда готова', demoData: 'Данные для обзора загружены', welcome: 'Добро пожаловать', title: 'Вход в рабочее пространство',
     subtitle: 'Используйте корпоративную учётную запись', username: 'Логин', usernamePlaceholder: 'Ваш логин', password: 'Пароль', passwordPlaceholder: 'Ваш пароль',
     showPassword: 'Показать пароль', hidePassword: 'Скрыть пароль', capsLock: 'Включён Caps Lock', submit: 'Войти', submitting: 'Входим…',
-    demoProfiles: 'Демо-профили', footer: 'Atlas Virtual Office · защищённое соединение', language: 'Язык',
+    demoProfiles: 'Демо-профили', footer: 'Quorfield Virtual Office · защищённое соединение', language: 'Язык',
     contactHint: 'Входите по логину (например, ivanenko), а не по телефону или email. Логин выдаёт руководитель.',
     cyrillicHint: 'Логин вводится латиницей — переключите раскладку.',
     errors: {
@@ -57,7 +57,7 @@ export const shell = {
     tooShort: 'Опишите проблему подробнее', tooLong: 'Не длиннее {{max}} символов', notFound: 'Обращение не найдено',
     logSummary: {
       errors: 'Ошибок приложения: {{errors}}; запросов к серверу: {{requests}}', failed: ' (с ошибкой: {{failed}})',
-      routes: 'Переходов по страницам: {{routes}}; состояние подключения к серверу', version: 'Версия Atlas {{version}}, {{viewport}}, {{language}}, {{timeZone}}',
+      routes: 'Переходов по страницам: {{routes}}; состояние подключения к серверу', version: 'Версия Quorfield {{version}}, {{viewport}}, {{language}}, {{timeZone}}',
     },
   },
 } satisfies Dictionary<typeof source>;

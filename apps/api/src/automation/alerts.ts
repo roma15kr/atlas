@@ -58,8 +58,8 @@ const rules: Record<AlertRule, string> = {
   INACTIVITY: `
     SELECT u.company_id, 'inactivity:' || u.id AS dedupe_key, 'INFO' AS severity,
            u.id AS user_id, u.department_id, NULL::uuid AS deal_id, 'PRESENCE' AS category,
-           'Нет активности в Atlas' AS title,
-           u.full_name || ': нет активности в Atlas ' || gap.weekdays || ' рабочих дн.' AS summary,
+           'Нет активности в Quorfield' AS title,
+           u.full_name || ': нет активности в Quorfield ' || gap.weekdays || ' рабочих дн.' AS summary,
            jsonb_build_object('lastOnlineAt', last.at, 'weekdays', gap.weekdays) AS evidence
     FROM users u
     CROSS JOIN LATERAL (SELECT max(occurred_at) AS at FROM presence_events pe WHERE pe.user_id = u.id AND pe.event = 'ONLINE') last

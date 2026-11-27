@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Interface languages
-Atlas SHALL offer its interface in Ukrainian, Russian and English, with Ukrainian as the default. Each user SHALL be able to choose their language in the profile, listed by each language's own name. The choice SHALL be stored on their account, apply at once without reloading, and follow them to every device they sign in from. Changing it SHALL be audited with the field name only.
+Quorfield SHALL offer its interface in Ukrainian, Russian and English, with Ukrainian as the default. Each user SHALL be able to choose their language in the profile, listed by each language's own name. The choice SHALL be stored on their account, apply at once without reloading, and follow them to every device they sign in from. Changing it SHALL be audited with the field name only.
 
 #### Scenario: Switching to English
 - **WHEN** a user picks English in «Профиль»
@@ -9,13 +9,13 @@ Atlas SHALL offer its interface in Ukrainian, Russian and English, with Ukrainia
 
 #### Scenario: New user
 - **WHEN** a colleague signs in for the first time
-- **THEN** Atlas is in Ukrainian
+- **THEN** Quorfield is in Ukrainian
 
 ### Requirement: Language before sign-in
 Before sign-in, the login and offline screens SHALL use the language last used in that browser, otherwise the browser's preferred language if it is Ukrainian, Russian or English, otherwise Ukrainian, and SHALL offer a language switch.
 
 #### Scenario: English browser
-- **WHEN** someone opens the login screen in a browser set to English, never having used Atlas there
+- **WHEN** someone opens the login screen in a browser set to English, never having used Quorfield there
 - **THEN** the login screen is in English
 
 ### Requirement: Localized formatting

@@ -52,7 +52,7 @@ export async function createDealOrder(req: Request, auth: AuthContext, dealId: s
 
   const total = lines.reduce((sum, line) => sum + Number(line.unit_price) * line.quantity, 0);
   const orderId = (await query<{ id: string }>("SELECT gen_random_uuid() AS id")).rows[0]!.id;
-  const comment = [`Atlas: угода «${deal.title}»`, previous ? `замінює № ${previous}` : null, `atlas:${orderId}`].filter(Boolean).join(" · ");
+  const comment = [`Quorfield: угода «${deal.title}»`, previous ? `замінює № ${previous}` : null, `atlas:${orderId}`].filter(Boolean).join(" · ");
   const body = {
     name: deal.client_name ?? deal.client_company, user_id: managerId, manager_id: managerId,
     phone: deal.client_phone ?? "", organization: deal.client_company ?? deal.client_name, delivery: "",

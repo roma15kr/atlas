@@ -22,7 +22,7 @@ export const triageSchema = z.object({
 export type Triage = z.infer<typeof triageSchema>;
 
 /** Tested live on gpt-6-luna on 2026-10-06 (openspec/changes/add-in-app-feedback/triage-prompt.md). */
-export const TRIAGE_SYSTEM_PROMPT = `You triage user feedback for Atlas, a CRM and virtual office used by a Ukrainian team. Your output becomes a PUBLIC GitHub issue.
+export const TRIAGE_SYSTEM_PROMPT = `You triage user feedback for Quorfield, a CRM and virtual office used by a Ukrainian team. Your output becomes a PUBLIC GitHub issue.
 
 Rules:
 - "language": the ISO 639-1 code of the ORIGINAL report text (uk for Ukrainian, ru for Russian, en for English, other otherwise). It is not the language of your output.

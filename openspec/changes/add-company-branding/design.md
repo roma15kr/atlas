@@ -1,9 +1,9 @@
 # Design: Company branding
 
 ## Context
-- **Name and mark are hard-coded** in `AppShell.tsx` (`<span className="brand-mark">A</span><strong>ATLAS</strong>`), in `LoginPage.tsx` (twice: the photo panel and the phone header), in `index.html` (`<title>Atlas</title>`, `theme-color`, icons) and in the static `public/manifest.webmanifest`.
+- **Name and mark are hard-coded** in `AppShell.tsx` (`<span className="brand-mark">A</span><strong>ATLAS</strong>`), in `LoginPage.tsx` (twice: the photo panel and the phone header), in `index.html` (`<title>Quorfield</title>`, `theme-color`, icons) and in the static `public/manifest.webmanifest`.
   - Pop-up notifications use `public/notification-icon.png` from `sw.js`.
-  - Server texts name «Atlas» in `push.testTitle` and the `alert.INACTIVITY.*` templates (`apps/api/src/i18n`).
+  - Server texts name «Quorfield» in `push.testTitle` and the `alert.INACTIVITY.*` templates (`apps/api/src/i18n`).
 - **Colours** are tokens in `styles.css :root` (`--primary`, `--primary-dark`, `--primary-soft`, `--sidebar`, `--sidebar-muted`). Several teal and sidebar shades are still hard-coded:
   - `#e7f2ef`/`#1e625c` on the sidebar mark, and `#f0f6f5` for selected rows;
   - `#31504c` for the active nav item, `#758683`, `#889995` and `#c2d0cd` in the sidebar;
@@ -30,7 +30,7 @@ Migration **`027_company_branding.sql`**:
 ```sql
 CREATE TABLE company_branding (
   company_id uuid PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
-  app_name text NOT NULL DEFAULT 'Atlas' CHECK (char_length(btrim(app_name)) BETWEEN 1 AND 30),
+  app_name text NOT NULL DEFAULT 'Quorfield' CHECK (char_length(btrim(app_name)) BETWEEN 1 AND 30),
   accent_color text NOT NULL DEFAULT '#176f68' CHECK (accent_color ~ '^#[0-9a-f]{6}$'),
   sidebar_color text NOT NULL DEFAULT '#1d2a28' CHECK (sidebar_color ~ '^#[0-9a-f]{6}$'),
   logo_version uuid,               -- NULL = no logo; changes with every upload (cache key)
@@ -226,5 +226,5 @@ The standard values stay visually identical (a screenshot comparison of four scr
 1. **Icons generated in the browser (D2)** rather than server-side resizing. It saves a dependency, but the maskable icon bakes in the accent colour at upload time; changing colours later leaves an old-coloured maskable icon until the logo is re-uploaded. Alternative: regenerate on colour change from the stored 512 logo (the director's browser would do it as part of saving colours).
 2. **Contrast rule only on the accent (white text ≥ 4.5).** A dark accent on a dark sidebar can make the active nav item hard to spot; we could also require a minimum difference between accent and sidebar.
 3. **Public `GET /branding` for the sole company.** It is fine for this single-company installation; a multi-company host would need a hostname-to-company mapping.
-4. **The tab title becomes «Page · App»**; today it is just «Atlas». A change for everyone, though minor.
+4. **The tab title becomes «Page · App»**; today it is just «Quorfield». A change for everyone, though minor.
 5. **Eight presets:** the palette is my choice. The director may want their exact brand colours as a preset instead.

@@ -17,7 +17,7 @@ export interface AlertTextRow {
 const percent = (value: unknown) => Math.round(Number(value) * 100);
 
 /** The title and summary of an alert as templates, or the stored texts when its rule or names are unknown. */
-export function alertTexts(row: AlertTextRow, appName = "Atlas"): { title: Text | string; summary: Text | string | null } {
+export function alertTexts(row: AlertTextRow, appName = "Quorfield"): { title: Text | string; summary: Text | string | null } {
   const evidence = row.evidence ?? {};
   const user = row.textUser ?? "";
   switch (row.rule) {
@@ -39,7 +39,7 @@ export function alertTexts(row: AlertTextRow, appName = "Atlas"): { title: Text 
 }
 
 /** An alert row for the API: texts in the reader's language, without the helper columns. */
-export function localizeAlert<T extends AlertTextRow>(language: Language, row: T, appName = "Atlas"): Omit<T, "textUser" | "textDeal" | "textKpi" | "textDays"> {
+export function localizeAlert<T extends AlertTextRow>(language: Language, row: T, appName = "Quorfield"): Omit<T, "textUser" | "textDeal" | "textKpi" | "textDays"> {
   const texts = alertTexts(row, appName);
   const { textUser: _user, textDeal: _deal, textKpi: _kpi, textDays: _days, ...rest } = row;
   return { ...rest, title: render(language, texts.title), summary: texts.summary === null ? null : render(language, texts.summary) };

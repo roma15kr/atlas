@@ -27,7 +27,7 @@ A conversation SHALL open on its newest messages and SHALL load earlier messages
 - **THEN** the view stays where it is and «Новые сообщения ↓» appears; clicking it scrolls to the new message
 
 ### Requirement: Reaction limits
-The system SHALL accept only the emoji Atlas offers in its picker, refusing others with 400 `VALIDATION_ERROR`, and SHALL refuse a new emoji on a message that already has 20 distinct ones with 409 `REACTION_LIMIT`. Adding a reaction that exists, or removing one that doesn't, SHALL change nothing.
+The system SHALL accept only the emoji Quorfield offers in its picker, refusing others with 400 `VALIDATION_ERROR`, and SHALL refuse a new emoji on a message that already has 20 distinct ones with 409 `REACTION_LIMIT`. Adding a reaction that exists, or removing one that doesn't, SHALL change nothing.
 
 #### Scenario: Arbitrary text as a reaction
 - **WHEN** a client sends the reaction «привет»

@@ -5,7 +5,7 @@ Things outside this repository that agents need to know exist. NAMES only, never
   - `OPENAI_API_KEY` — OpenAI API key for the AI analysis on the Team and Profile screens. Without it, the built-in rule texts are used.
   - `AI_ANALYSIS_MODEL` — the model for that analysis, default `gpt-6-luna`; change it without a release.
   - `FEEDBACK_MODEL` — the model that translates, summarises and anonymises problem reports, default `gpt-6-luna`.
-  - `GITHUB_TOKEN` — fine-grained GitHub token for `GITHUB_REPOSITORY`, Issues read/write only; problem reports become issues there. Without it, reports wait in Atlas.
+  - `GITHUB_TOKEN` — fine-grained GitHub token for `GITHUB_REPOSITORY`, Issues read/write only; problem reports become issues there. Without it, reports wait in Quorfield.
   - `GITHUB_REPOSITORY` — `owner/name` for problem-report issues, for example `roma15kr/atlas` (public: issues hold anonymised English text only).
   - `SOURCE_COMMIT` — set by Coolify at build time; becomes the app version (`APP_VERSION`, `VITE_APP_VERSION`) shown in problem reports and `/health`.
   - `IMAGE_UPLOADS_PER_HOUR` — optional; images a user may paste into formatted text per hour, default `60`.
@@ -19,7 +19,7 @@ Things outside this repository that agents need to know exist. NAMES only, never
   - `STRIPE_SECRET_KEY` — Stripe secret (or restricted) key for tariffs and payments: Checkout, Customers, Subscriptions, Billing Portal, Invoices, Prices (read). Use a test key on atlas-dev, a live key in production. Without it, billing shows «not configured» and every feature, AI included, stays on.
   - `STRIPE_WEBHOOK_SECRET` — the signing secret (`whsec_…`) of the webhook endpoint `https://<host>/api/stripe/webhook`.
   - `STRIPE_PRICE_STANDARD_MONTHLY`, `STRIPE_PRICE_STANDARD_YEARLY`, `STRIPE_PRICE_AI_MONTHLY`, `STRIPE_PRICE_AI_YEARLY` — the four Price ids (`price_…`), see `docs/OPERATIONS.md` → «Stripe billing».
-  - `STRIPE_PORTAL_CONFIGURATION` — optional; the id (`bpc_…`) of Atlas's own customer-portal configuration. Set it when the Stripe account also serves other business, so their default portal is untouched. Production uses one.
+  - `STRIPE_PORTAL_CONFIGURATION` — optional; the id (`bpc_…`) of Quorfield's own customer-portal configuration. Set it when the Stripe account also serves other business, so their default portal is untouched. Production uses one.
 - Third-party services and dashboards:
   - OpenAI API (platform.openai.com) — AI analysis. Set a monthly spending limit on the project.
   - Stripe (dashboard.stripe.com) — tariffs and card payments (ADR 0007): products and prices, the customer portal, the webhook, invoices.

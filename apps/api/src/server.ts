@@ -21,7 +21,7 @@ async function main(): Promise<void> {
   const io = createSocketServer(server);
   setRealtimeServer(io);
   server.listen(config.PORT, "0.0.0.0", () => {
-    console.log(`Atlas API listening on ${config.PORT}`);
+    console.log(`Quorfield API listening on ${config.PORT}`);
   });
   startMailScheduler();
   startAutomation();
@@ -44,6 +44,6 @@ async function main(): Promise<void> {
 }
 
 void main().catch((error) => {
-  console.error("Atlas API failed to start", error);
+  console.error("Quorfield API failed to start", error);
   process.exit(1);
 });

@@ -18,7 +18,7 @@ export interface Branding {
 }
 export type BrandingPatch = Partial<Pick<Branding, 'appName' | 'accentColor' | 'sidebarColor'>>;
 
-export const DEFAULT_BRANDING: Branding = { appName: 'Atlas', accentColor: '#176f68', sidebarColor: '#1d2a28', logoVersion: null, files: null, updatedAt: null };
+export const DEFAULT_BRANDING: Branding = { appName: 'Quorfield', accentColor: '#176f68', sidebarColor: '#1d2a28', logoVersion: null, files: null, updatedAt: null };
 export const MIN_ACCENT_CONTRAST = 4.5;
 export const APP_NAME_MAX = 30;
 

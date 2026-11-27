@@ -81,18 +81,18 @@ For each report the system SHALL produce, without waiting for a person:
 - the steps to reproduce when the text gives them;
 - a category: bug, complaint, idea or question;
 - a severity: low, medium, high or critical;
-- the product area, chosen from the Atlas capabilities.
+- the product area, chosen from the Quorfield capabilities.
 
-Names of people and companies, email addresses, phone numbers, amounts and record contents SHALL be replaced with neutral placeholders such as "[person]" or "[client]". The original text SHALL stay unchanged in Atlas.
+Names of people and companies, email addresses, phone numbers, amounts and record contents SHALL be replaced with neutral placeholders such as "[person]" or "[client]". The original text SHALL stay unchanged in Quorfield.
 
 #### Scenario: Ukrainian complaint
 - **WHEN** a report says "Олена Петренко не бачить угоду клієнта ТОВ Ромашка, телефон 067 123 45 67"
 - **THEN** the language is Ukrainian; the translation reads "[person] cannot see a deal of client [client], phone [phone]"; no name, company or phone number appears in the title, summary or translation; and the original text is unchanged
 
 ### Requirement: GitHub issue creation
-For each translated report, the system SHALL create one GitHub issue, without any approval step in Atlas; moderation happens on GitHub, in the configured repository. The issue SHALL have:
+For each translated report, the system SHALL create one GitHub issue, without any approval step in Quorfield; moderation happens on GitHub, in the configured repository. The issue SHALL have:
 - a title prefixed with the category;
-- a body with the summary, the anonymised translation, the steps to reproduce, the page, the app version, the browser and an Atlas report reference;
+- a body with the summary, the anonymised translation, the steps to reproduce, the page, the app version, the browser and an Quorfield report reference;
 - the labels `feedback`, the category, `severity:<level>` and `area:<area>`.
 
 The issue SHALL NOT contain:

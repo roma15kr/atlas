@@ -183,11 +183,11 @@ export function processFeedback(now?: Date, deps?: { triage?: typeof triageRepor
 **Live on the Coolify test app:**
 - send a Ukrainian report with a screenshot;
 - see the issue in GitHub with labels and no personal data;
-- see the status in Atlas.
+- see the status in Quorfield.
 
 ## Least confident decisions
 
-1. **Automatic publishing to a public repository.** Decided by the product owner on 2026-10-06: no moderation in Atlas; every report becomes a public issue, and moderation happens on GitHub. The remaining risk is a personal value the model misses. Three things limit it:
+1. **Automatic publishing to a public repository.** Decided by the product owner on 2026-10-06: no moderation in Quorfield; every report becomes a public issue, and moderation happens on GitHub. The remaining risk is a personal value the model misses. Three things limit it:
    - the issue never contains the original text, the screenshot or the log;
    - the regex scrub catches emails and phone numbers;
    - the triage instructions were tested live, with no leaks across three reports including a hard case.
@@ -207,7 +207,7 @@ export function processFeedback(now?: Date, deps?: { triage?: typeof triageRepor
    - **Weak:** it reported the language as "English" and paraphrased the text instead of keeping `[person]`/`[client]` placeholders.
 
    The prompt therefore asks for the ISO 639-1 code of the *original* text (`uk`, `ru`, `en` or `other`, as an enum) and a faithful translation that keeps a placeholder wherever a value was removed. A fixture test covers both. If leaks appear in practice, `FEEDBACK_MODEL` can switch to a stronger model without code changes.
-6. **A second AI provider.** Atlas will use Claude for the AI analysis screens and OpenAI for feedback triage. That means two keys and two data processors to mention in the privacy notice.
+6. **A second AI provider.** Quorfield will use Claude for the AI analysis screens and OpenAI for feedback triage. That means two keys and two data processors to mention in the privacy notice.
 4. **Who sees reports.** Directors only. Heads are excluded because complaints may concern them, but that means heads can't follow their own team's bug reports.
-5. **Log content.** Paths keep record ids, for example `/api/v1/clients/<uuid>`. That is useful for reproducing, but the ids aren't fully anonymous; they stay inside Atlas and are never sent to GitHub.
+5. **Log content.** Paths keep record ids, for example `/api/v1/clients/<uuid>`. That is useful for reproducing, but the ids aren't fully anonymous; they stay inside Quorfield and are never sent to GitHub.
 7. **Signed-in only.** Problems on the sign-in screen can't be reported.

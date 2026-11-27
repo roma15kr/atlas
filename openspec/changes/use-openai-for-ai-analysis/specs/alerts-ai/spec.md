@@ -3,7 +3,7 @@
 ## ADDED Requirements
 
 ### Requirement: Stored AI analyses
-The system SHALL store every analysis it returns, whether from the model or the rules, inside Atlas. Each stored analysis SHALL keep:
+The system SHALL store every analysis it returns, whether from the model or the rules, inside Quorfield. Each stored analysis SHALL keep:
 - who requested it and whom it is about;
 - the mode;
 - the summary and the recommendations;
@@ -11,7 +11,7 @@ The system SHALL store every analysis it returns, whether from the model or the 
 - the figures it was based on;
 - the time.
 
-Stored analyses SHALL NOT be sent outside Atlas, and SHALL NOT be edited.
+Stored analyses SHALL NOT be sent outside Quorfield, and SHALL NOT be edited.
 
 A stored analysis SHALL be visible to:
 - the person it is about, only if they requested it themselves;
